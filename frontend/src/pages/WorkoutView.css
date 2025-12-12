@@ -1,0 +1,92 @@
+.workout-view-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.workout-view-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.workout-view-card h1 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.workout-description {
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.exercises-list {
+  margin-top: 2rem;
+}
+
+.exercises-list h2 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.exercise-item {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.exercise-item h3 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.exercise-details {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.exercise-details span {
+  background: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.exercise-notes {
+  color: #666;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.btn-complete {
+  width: 100%;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 2rem;
+  transition: background-color 0.2s;
+}
+
+.btn-complete:hover {
+  background-color: #229954;
+}
+
+.completion-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 1rem;
+  border-radius: 4px;
+  text-align: center;
+  margin-top: 2rem;
+  font-weight: 500;
+}
+
