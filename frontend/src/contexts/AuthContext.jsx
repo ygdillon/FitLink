@@ -17,12 +17,18 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Add fetchUser to dependency if needed, but we'll keep it stable
+
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me')
       setUser(response.data)
     } catch (error) {
-      localStorage.removeItem('token')
+      console.error('Error fetching user:', error)
+      // Only remove token if it's an auth error, not a network error
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token')
+      }
       setUser(null)
     } finally {
       setLoading(false)

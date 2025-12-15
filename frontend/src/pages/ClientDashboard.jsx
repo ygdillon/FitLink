@@ -35,9 +35,14 @@ function ClientDashboard() {
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1>My Dashboard</h1>
-        <Link to="/progress" className="btn-primary">
-          Track Progress
-        </Link>
+        <div className="header-actions">
+          <Link to="/check-in" className="btn-primary">
+            Daily Check-in
+          </Link>
+          <Link to="/progress" className="btn-secondary">
+            Track Progress
+          </Link>
+        </div>
       </div>
 
       <div className="dashboard-grid">

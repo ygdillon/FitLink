@@ -13,16 +13,21 @@ import ProgressTracking from './pages/ProgressTracking'
 import Messages from './pages/Messages'
 import Profile from './pages/Profile'
 import Payments from './pages/Payments'
+import AddClient from './pages/AddClient'
+import ClientProfile from './pages/ClientProfile'
+import ClientProgress from './pages/ClientProgress'
+import DailyCheckIn from './pages/DailyCheckIn'
 
 // Components
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function AppRoutes() {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>
   }
 
   return (
@@ -39,6 +44,10 @@ function AppRoutes() {
         <Route path="/messages" element={<Messages />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/trainer/add-client" element={<AddClient />} />
+        <Route path="/trainer/clients/:clientId" element={<ClientProfile />} />
+        <Route path="/trainer/clients/:clientId/progress" element={<ClientProgress />} />
+        <Route path="/check-in" element={<DailyCheckIn />} />
         <Route path="/" element={<Navigate to={user?.role === 'trainer' ? '/trainer' : '/client'} />} />
       </Route>
     </Routes>
@@ -47,16 +56,17 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Navbar />
-          <AppRoutes />
-        </div>
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Navbar />
+            <AppRoutes />
+          </div>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
 export default App
-

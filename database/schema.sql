@@ -178,7 +178,26 @@ CREATE TRIGGER update_workouts_updated_at BEFORE UPDATE ON workouts
 CREATE TRIGGER update_workout_assignments_updated_at BEFORE UPDATE ON workout_assignments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Payments table (P2P payment records)
+-- Subscriptions table (recurring payments) - Created before payments since payments references it
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id SERIAL PRIMARY KEY,
+    trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
+    billing_cycle VARCHAR(50) NOT NULL CHECK (billing_cycle IN ('weekly', 'monthly', 'yearly')),
+    stripe_subscription_id VARCHAR(255) UNIQUE,
+    stripe_customer_id VARCHAR(255),
+    stripe_connect_account_id VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'past_due', 'unpaid')),
+    current_period_start TIMESTAMP,
+    current_period_end TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    cancelled_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Payments table (P2P payment records) - Created after subscriptions since it references subscriptions
 CREATE TABLE IF NOT EXISTS payments (
     id SERIAL PRIMARY KEY,
     trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -195,25 +214,6 @@ CREATE TABLE IF NOT EXISTS payments (
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Subscriptions table (recurring payments)
-CREATE TABLE IF NOT EXISTS subscriptions (
-    id SERIAL PRIMARY KEY,
-    trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    client_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    amount DECIMAL(10, 2) NOT NULL,
-    currency VARCHAR(3) DEFAULT 'USD',
-    billing_cycle VARCHAR(50) NOT NULL CHECK (billing_cycle IN ('weekly', 'monthly', 'yearly')),
-    stripe_subscription_id VARCHAR(255) UNIQUE,
-    stripe_customer_id VARCHAR(255),
-    stripe_connect_account_id VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'past_due', 'unpaid')),
-    current_period_start TIMESTAMP,
-    current_period_end TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    cancelled_at TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import './Dashboard.css'
 
@@ -7,6 +7,7 @@ function TrainerDashboard() {
   const [clients, setClients] = useState([])
   const [workouts, setWorkouts] = useState([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchDashboardData()
@@ -35,9 +36,14 @@ function TrainerDashboard() {
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1>Trainer Dashboard</h1>
-        <Link to="/workout/builder" className="btn-primary">
-          Create New Workout
-        </Link>
+        <div className="header-actions">
+          <Link to="/trainer/add-client" className="btn-primary">
+            Add New Client
+          </Link>
+          <Link to="/workout/builder" className="btn-secondary">
+            Create Workout
+          </Link>
+        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -48,10 +54,17 @@ function TrainerDashboard() {
           ) : (
             <ul className="client-list">
               {clients.map(client => (
-                <li key={client.id}>
+                <li key={client.id} onClick={() => navigate(`/trainer/clients/${client.id}`)} style={{ cursor: 'pointer' }}>
                   <div>
                     <strong>{client.name}</strong>
-                    <span className="client-status">{client.status}</span>
+                    <div className="client-meta">
+                      <span className="client-status">{client.status || 'active'}</span>
+                      {client.onboarding_completed && <span className="badge-complete">✓ Onboarded</span>}
+                      {client.checked_in_today > 0 && <span className="badge-checkin">✓ Checked in today</span>}
+                    </div>
+                    {client.primary_goal && (
+                      <div className="client-goal">Goal: {client.primary_goal}</div>
+                    )}
                   </div>
                 </li>
               ))}
