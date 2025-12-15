@@ -25,7 +25,7 @@ function Navbar() {
           {user.role === 'trainer' ? (
             <>
               <Link to="/trainer">Dashboard</Link>
-              <Link to="/trainer/add-client">Add Client</Link>
+              <Link to="/trainer/clients">Clients</Link>
               <Link to="/workout/builder">Create Workout</Link>
               <Link to="/messages">Messages</Link>
               <Link to="/payments">Payments</Link>

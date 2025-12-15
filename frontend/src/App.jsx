@@ -17,6 +17,7 @@ import AddClient from './pages/AddClient'
 import ClientProfile from './pages/ClientProfile'
 import ClientProgress from './pages/ClientProgress'
 import DailyCheckIn from './pages/DailyCheckIn'
+import Clients from './pages/Clients'
 
 // Components
 import Navbar from './components/Navbar'
@@ -37,6 +38,7 @@ function AppRoutes() {
       
       <Route element={<ProtectedRoute />}>
         <Route path="/trainer" element={<TrainerDashboard />} />
+        <Route path="/trainer/clients" element={<Clients />} />
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/workout/builder" element={<WorkoutBuilder />} />
         <Route path="/workout/:id" element={<WorkoutView />} />
@@ -58,7 +60,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <div className="App">
             <Navbar />
             <AppRoutes />
