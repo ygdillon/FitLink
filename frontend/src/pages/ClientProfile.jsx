@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import ClientWorkouts from './ClientWorkouts'
 import './ClientProfile.css'
 
 function ClientProfile() {
@@ -66,6 +67,18 @@ function ClientProfile() {
           onClick={() => setActiveTab('workouts')}
         >
           Workouts
+        </button>
+        <button
+          className={activeTab === 'schedule' ? 'active' : ''}
+          onClick={() => setActiveTab('schedule')}
+        >
+          Schedule
+        </button>
+        <button
+          className={activeTab === 'payments' ? 'active' : ''}
+          onClick={() => setActiveTab('payments')}
+        >
+          Payments
         </button>
       </div>
 
@@ -271,26 +284,20 @@ function ClientProfile() {
         )}
 
         {activeTab === 'workouts' && (
-          <div className="workouts-tab">
-            <h2>Assigned Workouts</h2>
-            {client.workouts && client.workouts.length > 0 ? (
-              <div className="workouts-list">
-                {client.workouts.map(workout => (
-                  <div key={workout.id} className="workout-card">
-                    <h3>{workout.workout_name}</h3>
-                    <div className="workout-meta">
-                      <span>Assigned: {new Date(workout.assigned_date).toLocaleDateString()}</span>
-                      <span className={`status-badge ${workout.status}`}>
-                        {workout.status}
-                      </span>
-                    </div>
-                    {workout.description && <p>{workout.description}</p>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No workouts assigned yet</p>
-            )}
+          <ClientWorkouts clientId={clientId} clientName={client.name} />
+        )}
+
+        {activeTab === 'schedule' && (
+          <div className="schedule-tab">
+            <h2>Schedule</h2>
+            <p>Schedule management coming soon...</p>
+          </div>
+        )}
+
+        {activeTab === 'payments' && (
+          <div className="payments-tab">
+            <h2>Payments</h2>
+            <p>Payment management coming soon...</p>
           </div>
         )}
       </div>

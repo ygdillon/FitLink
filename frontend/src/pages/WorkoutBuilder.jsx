@@ -6,6 +6,8 @@ import './WorkoutBuilder.css'
 function WorkoutBuilder() {
   const [workoutName, setWorkoutName] = useState('')
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('')
+  const [isTemplate, setIsTemplate] = useState(false)
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -39,9 +41,11 @@ function WorkoutBuilder() {
       await api.post('/trainer/workouts', {
         name: workoutName,
         description,
+        category,
+        is_template: isTemplate,
         exercises: exercises.filter(ex => ex.name.trim() !== '')
       })
-      navigate('/trainer')
+      navigate('/trainer/workouts')
     } catch (error) {
       console.error('Error creating workout:', error)
       alert('Failed to create workout')
@@ -71,6 +75,33 @@ function WorkoutBuilder() {
               onChange={(e) => setDescription(e.target.value)}
               rows="3"
             />
+          </div>
+          <div className="form-group">
+            <label>Category (optional)</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">Select category...</option>
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="hiit">HIIT</option>
+              <option value="flexibility">Flexibility</option>
+              <option value="full-body">Full Body</option>
+              <option value="upper-body">Upper Body</option>
+              <option value="lower-body">Lower Body</option>
+              <option value="core">Core</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={isTemplate}
+                onChange={(e) => setIsTemplate(e.target.checked)}
+              />
+              Save as Template (reusable workout)
+            </label>
           </div>
 
           <div className="exercises-section">

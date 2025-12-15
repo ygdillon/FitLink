@@ -18,6 +18,7 @@ import ClientProfile from './pages/ClientProfile'
 import ClientProgress from './pages/ClientProgress'
 import DailyCheckIn from './pages/DailyCheckIn'
 import Clients from './pages/Clients'
+import WorkoutLibrary from './pages/WorkoutLibrary'
 
 // Components
 import Navbar from './components/Navbar'
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="/trainer/clients" element={<Clients />} />
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/workout/builder" element={<WorkoutBuilder />} />
+        <Route path="/trainer/workouts" element={<WorkoutLibrary />} />
         <Route path="/workout/:id" element={<WorkoutView />} />
         <Route path="/progress" element={<ProgressTracking />} />
         <Route path="/messages" element={<Messages />} />
