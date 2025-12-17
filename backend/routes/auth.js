@@ -8,7 +8,7 @@ const router = express.Router()
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body
+    const { name, email, password, role, phoneNumber } = req.body
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'All fields are required' })
@@ -16,6 +16,11 @@ router.post('/register', async (req, res) => {
 
     if (!['trainer', 'client'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' })
+    }
+
+    // Phone number is required for trainers
+    if (role === 'trainer' && !phoneNumber) {
+      return res.status(400).json({ message: 'Phone number is required for trainers' })
     }
 
     // Check if user exists
@@ -42,8 +47,8 @@ router.post('/register', async (req, res) => {
     // Create role-specific profile
     if (role === 'trainer') {
       await pool.query(
-        'INSERT INTO trainers (user_id) VALUES ($1)',
-        [user.id]
+        'INSERT INTO trainers (user_id, phone_number) VALUES ($1, $2)',
+        [user.id, phoneNumber]
       )
     } else {
       await pool.query(

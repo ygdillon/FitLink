@@ -9,7 +9,8 @@ function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'client'
+    role: 'client',
+    phoneNumber: ''
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -34,12 +35,19 @@ function Register() {
 
     setLoading(true)
 
+    // Validate phone number for trainers
+    if (formData.role === 'trainer' && !formData.phoneNumber.trim()) {
+      setError('Phone number is required for trainers')
+      return
+    }
+
     try {
       await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        phoneNumber: formData.role === 'trainer' ? formData.phoneNumber : undefined
       })
       // Redirect based on role
       if (formData.role === 'client') {
@@ -95,6 +103,20 @@ function Register() {
               <option value="trainer">Trainer</option>
             </select>
           </div>
+          {formData.role === 'trainer' && (
+            <div className="form-group">
+              <label>Phone Number *</label>
+              <input
+                type="tel"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="e.g., (555) 123-4567"
+                required
+              />
+              <small>Required for trainers so clients can contact you</small>
+            </div>
+          )}
           <div className="form-group">
             <label>Password</label>
             <input

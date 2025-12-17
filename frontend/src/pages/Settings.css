@@ -113,6 +113,12 @@
 
 .trainer-email {
   color: #666;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.trainer-phone {
+  color: #666;
   margin-bottom: 0.75rem;
   font-size: 0.95rem;
 }

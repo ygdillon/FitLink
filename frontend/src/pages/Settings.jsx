@@ -175,6 +175,9 @@ function Settings() {
                 <div className="trainer-details">
                   <h3>{currentTrainer.name}</h3>
                   <p className="trainer-email">{currentTrainer.email}</p>
+                  {currentTrainer.phoneNumber && (
+                    <p className="trainer-phone">📞 {currentTrainer.phoneNumber}</p>
+                  )}
                   {currentTrainer.bio && (
                     <p className="trainer-bio">{currentTrainer.bio}</p>
                   )}
@@ -294,6 +297,9 @@ function Settings() {
                       <div className="trainer-result-details">
                         <h4>{trainer.name}</h4>
                         <p className="trainer-email">{trainer.email}</p>
+                        {trainer.phoneNumber && (
+                          <p className="trainer-phone">📞 {trainer.phoneNumber}</p>
+                        )}
                         {trainer.bio && (
                           <p className="trainer-bio">{trainer.bio}</p>
                         )}
