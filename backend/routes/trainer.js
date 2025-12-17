@@ -11,8 +11,10 @@ router.use(requireRole(['trainer']))
 // Get trainer's clients with full details
 router.get('/clients', async (req, res) => {
   try {
+    // trainer_id references trainers(user_id), and trainers.user_id = users.id for the trainer
+    // So we need to match clients.trainer_id to the trainer's user.id
     const result = await pool.query(
-      `SELECT c.id, u.name, u.email, c.start_date, c.status, c.onboarding_completed,
+      `SELECT c.id, c.user_id, u.name, u.email, c.start_date, c.status, c.onboarding_completed,
               c.primary_goal, c.goal_target, c.training_preference,
               (SELECT COUNT(*) FROM daily_check_ins dci 
                WHERE dci.client_id = c.user_id 
@@ -25,6 +27,7 @@ router.get('/clients', async (req, res) => {
       [req.user.id]
     )
 
+    console.log(`[DEBUG] Trainer ${req.user.id} (${req.user.email}) fetching clients, found ${result.rows.length} clients`)
     res.json(result.rows)
   } catch (error) {
     console.error('Error fetching clients:', error)
@@ -96,6 +99,40 @@ router.get('/clients/:clientId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching client profile:', error)
     res.status(500).json({ message: 'Failed to fetch client profile' })
+  }
+})
+
+// Get client's assigned workouts
+router.get('/clients/:clientId/workouts', async (req, res) => {
+  try {
+    const { clientId } = req.params
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const clientUserId = clientCheck.rows[0].user_id
+
+    // Get assigned workouts
+    const result = await pool.query(
+      `SELECT wa.*, w.name as workout_name, w.description, w.category
+       FROM workout_assignments wa
+       JOIN workouts w ON wa.workout_id = w.id
+       WHERE wa.client_id = $1
+       ORDER BY wa.assigned_date DESC`,
+      [clientUserId]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching client workouts:', error)
+    res.status(500).json({ message: 'Failed to fetch client workouts' })
   }
 })
 
@@ -226,32 +263,91 @@ router.put('/clients/:clientId/onboarding', async (req, res) => {
     const { clientId } = req.params
     const onboardingData = req.body
 
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT id FROM clients WHERE id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    // Build dynamic update query for partial updates
+    const updates = []
+    const values = []
+    let paramCount = 1
+
+    if (onboardingData.height !== undefined) {
+      updates.push(`height = $${paramCount++}`)
+      values.push(onboardingData.height)
+    }
+    if (onboardingData.weight !== undefined) {
+      updates.push(`weight = $${paramCount++}`)
+      values.push(onboardingData.weight)
+    }
+    if (onboardingData.gender !== undefined) {
+      updates.push(`gender = $${paramCount++}`)
+      values.push(onboardingData.gender)
+    }
+    if (onboardingData.age !== undefined) {
+      updates.push(`age = $${paramCount++}`)
+      values.push(onboardingData.age)
+    }
+    if (onboardingData.previous_experience !== undefined) {
+      updates.push(`previous_experience = $${paramCount++}`)
+      values.push(onboardingData.previous_experience)
+    }
+    if (onboardingData.average_daily_eating !== undefined) {
+      updates.push(`average_daily_eating = $${paramCount++}`)
+      values.push(onboardingData.average_daily_eating)
+    }
+    if (onboardingData.primary_goal !== undefined) {
+      updates.push(`primary_goal = $${paramCount++}`)
+      values.push(onboardingData.primary_goal)
+    }
+    if (onboardingData.goal_target !== undefined) {
+      updates.push(`goal_target = $${paramCount++}`)
+      values.push(onboardingData.goal_target)
+    }
+    if (onboardingData.goal_timeframe !== undefined) {
+      updates.push(`goal_timeframe = $${paramCount++}`)
+      values.push(onboardingData.goal_timeframe)
+    }
+    if (onboardingData.secondary_goals !== undefined) {
+      updates.push(`secondary_goals = $${paramCount++}`)
+      values.push(onboardingData.secondary_goals ? JSON.stringify(onboardingData.secondary_goals) : null)
+    }
+    if (onboardingData.barriers !== undefined) {
+      updates.push(`barriers = $${paramCount++}`)
+      values.push(onboardingData.barriers)
+    }
+    if (onboardingData.training_preference !== undefined) {
+      updates.push(`training_preference = $${paramCount++}`)
+      values.push(onboardingData.training_preference)
+    }
+    if (onboardingData.communication_preference !== undefined) {
+      updates.push(`communication_preference = $${paramCount++}`)
+      values.push(onboardingData.communication_preference)
+    }
+
+    // Always update onboarding_data and updated_at
+    updates.push(`onboarding_data = $${paramCount++}`)
+    values.push(JSON.stringify(onboardingData))
+    updates.push(`updated_at = CURRENT_TIMESTAMP`)
+
+    // Add WHERE clause parameters
+    values.push(clientId, req.user.id)
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' })
+    }
+
     await pool.query(
       `UPDATE clients 
-       SET height = $1, weight = $2, gender = $3, age = $4,
-           previous_experience = $5, average_daily_eating = $6, primary_goal = $7,
-           goal_target = $8, goal_timeframe = $9, secondary_goals = $10,
-           barriers = $11, training_preference = $12, communication_preference = $13,
-           onboarding_data = $14, onboarding_completed = true
-       WHERE id = $15 AND trainer_id = $16`,
-      [
-        onboardingData.height,
-        onboardingData.weight,
-        onboardingData.gender,
-        onboardingData.age,
-        onboardingData.previous_experience,
-        onboardingData.average_daily_eating,
-        onboardingData.primary_goal,
-        onboardingData.goal_target,
-        onboardingData.goal_timeframe,
-        onboardingData.secondary_goals ? JSON.stringify(onboardingData.secondary_goals) : null,
-        onboardingData.barriers,
-        onboardingData.training_preference,
-        onboardingData.communication_preference,
-        JSON.stringify(onboardingData),
-        clientId,
-        req.user.id
-      ]
+       SET ${updates.join(', ')}
+       WHERE id = $${paramCount} AND trainer_id = $${paramCount + 1}`,
+      values
     )
 
     res.json({ message: 'Client onboarding updated successfully' })
@@ -357,10 +453,11 @@ router.post('/clients/:clientId/check-ins/:checkInId/respond', async (req, res) 
 router.get('/workouts', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, name, description, created_at
-       FROM workouts
-       WHERE trainer_id = $1
-       ORDER BY created_at DESC`,
+      `SELECT w.id, w.name, w.description, w.category, w.is_template, w.created_at,
+              (SELECT COUNT(*) FROM workout_exercises we WHERE we.workout_id = w.id) as exercise_count
+       FROM workouts w
+       WHERE w.trainer_id = $1
+       ORDER BY w.created_at DESC`,
       [req.user.id]
     )
 
@@ -374,7 +471,7 @@ router.get('/workouts', async (req, res) => {
 // Create workout
 router.post('/workouts', async (req, res) => {
   try {
-    const { name, description, exercises } = req.body
+    const { name, description, category, is_template, exercises } = req.body
 
     if (!name || !exercises || exercises.length === 0) {
       return res.status(400).json({ message: 'Name and exercises are required' })
@@ -387,17 +484,18 @@ router.post('/workouts', async (req, res) => {
 
       // Insert workout
       const workoutResult = await client.query(
-        'INSERT INTO workouts (trainer_id, name, description) VALUES ($1, $2, $3) RETURNING id',
-        [req.user.id, name, description]
+        'INSERT INTO workouts (trainer_id, name, description, category, is_template) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [req.user.id, name, description, category || null, is_template || false]
       )
 
       const workoutId = workoutResult.rows[0].id
 
-      // Insert exercises
-      for (const exercise of exercises) {
+      // Insert exercises with order
+      for (let i = 0; i < exercises.length; i++) {
+        const exercise = exercises[i]
         await client.query(
-          `INSERT INTO workout_exercises (workout_id, exercise_name, sets, reps, weight, rest, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          `INSERT INTO workout_exercises (workout_id, exercise_name, sets, reps, weight, rest, notes, order_index)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           [
             workoutId,
             exercise.name,
@@ -405,7 +503,8 @@ router.post('/workouts', async (req, res) => {
             exercise.reps || null,
             exercise.weight || null,
             exercise.rest || null,
-            exercise.notes || null
+            exercise.notes || null,
+            i
           ]
         )
       }
@@ -425,6 +524,602 @@ router.post('/workouts', async (req, res) => {
   } catch (error) {
     console.error('Error creating workout:', error)
     res.status(500).json({ message: 'Failed to create workout' })
+  }
+})
+
+// Assign workout to client
+router.post('/workouts/:workoutId/assign', async (req, res) => {
+  try {
+    const { workoutId } = req.params
+    const { clientId, assignedDate, dueDate, notes } = req.body
+
+    if (!clientId || !assignedDate) {
+      return res.status(400).json({ message: 'Client ID and assigned date are required' })
+    }
+
+    // Verify workout belongs to trainer
+    const workoutCheck = await pool.query(
+      'SELECT id FROM workouts WHERE id = $1 AND trainer_id = $2',
+      [workoutId, req.user.id]
+    )
+
+    if (workoutCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Workout not found' })
+    }
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found or not assigned to you' })
+    }
+
+    // Insert workout assignment
+    const result = await pool.query(
+      `INSERT INTO workout_assignments (workout_id, client_id, assigned_date, due_date, status)
+       VALUES ($1, $2, $3, $4, 'assigned')
+       RETURNING *`,
+      [workoutId, clientId, assignedDate, dueDate || null]
+    )
+
+    res.status(201).json({
+      message: 'Workout assigned successfully',
+      assignment: result.rows[0]
+    })
+  } catch (error) {
+    console.error('Error assigning workout:', error)
+    res.status(500).json({ message: 'Failed to assign workout' })
+  }
+})
+
+// Get upcoming sessions for trainer
+router.get('/sessions/upcoming', async (req, res) => {
+  try {
+    // Get upcoming workout assignments as sessions
+    const result = await pool.query(
+      `SELECT wa.id, wa.assigned_date as date, wa.due_date, wa.status,
+              w.name as workout_name, w.description,
+              u.name as client_name, u.id as client_id
+       FROM workout_assignments wa
+       JOIN workouts w ON wa.workout_id = w.id
+       JOIN users u ON wa.client_id = u.id
+       JOIN clients c ON c.user_id = u.id
+       WHERE c.trainer_id = $1
+         AND wa.assigned_date >= CURRENT_DATE
+         AND wa.status IN ('assigned', 'in_progress')
+       ORDER BY wa.assigned_date ASC
+       LIMIT 10`,
+      [req.user.id]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching upcoming sessions:', error)
+    res.status(500).json({ message: 'Failed to fetch upcoming sessions' })
+  }
+})
+
+// ========== NUTRITION ROUTES ==========
+
+// Get nutrition goals for a client
+router.get('/clients/:clientId/nutrition/goals', async (req, res) => {
+  try {
+    const { clientId } = req.params
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM nutrition_goals WHERE client_id = $1',
+      [clientId]
+    )
+
+    res.json(result.rows[0] || null)
+  } catch (error) {
+    console.error('Error fetching nutrition goals:', error)
+    res.status(500).json({ message: 'Failed to fetch nutrition goals' })
+  }
+})
+
+// Create or update nutrition goals
+router.post('/clients/:clientId/nutrition/goals', async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const { target_calories, target_protein, target_carbs, target_fats, water_intake_goal, notes } = req.body
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    // Check if goals exist
+    const existing = await pool.query(
+      'SELECT id FROM nutrition_goals WHERE client_id = $1',
+      [clientId]
+    )
+
+    if (existing.rows.length > 0) {
+      // Update existing
+      const result = await pool.query(
+        `UPDATE nutrition_goals 
+         SET target_calories = $1, target_protein = $2, target_carbs = $3, 
+             target_fats = $4, water_intake_goal = $5, notes = $6, updated_at = CURRENT_TIMESTAMP
+         WHERE client_id = $7
+         RETURNING *`,
+        [target_calories, target_protein, target_carbs, target_fats, water_intake_goal, notes, clientId]
+      )
+      res.json(result.rows[0])
+    } else {
+      // Create new
+      const result = await pool.query(
+        `INSERT INTO nutrition_goals 
+         (client_id, target_calories, target_protein, target_carbs, target_fats, water_intake_goal, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [clientId, target_calories, target_protein, target_carbs, target_fats, water_intake_goal, notes]
+      )
+      res.status(201).json(result.rows[0])
+    }
+  } catch (error) {
+    console.error('Error saving nutrition goals:', error)
+    res.status(500).json({ message: 'Failed to save nutrition goals' })
+  }
+})
+
+// Get nutrition plans for a client
+router.get('/clients/:clientId/nutrition/plans', async (req, res) => {
+  try {
+    const { clientId } = req.params
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM nutrition_plans WHERE client_id = $1 ORDER BY created_at DESC',
+      [clientId]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching nutrition plans:', error)
+    res.status(500).json({ message: 'Failed to fetch nutrition plans' })
+  }
+})
+
+// Create nutrition plan
+router.post('/clients/:clientId/nutrition/plans', async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const { plan_name, daily_calories, daily_protein, daily_carbs, daily_fats, start_date, end_date, notes } = req.body
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const result = await pool.query(
+      `INSERT INTO nutrition_plans 
+       (client_id, trainer_id, plan_name, daily_calories, daily_protein, daily_carbs, daily_fats, start_date, end_date, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [clientId, req.user.id, plan_name, daily_calories, daily_protein, daily_carbs, daily_fats, start_date, end_date || null, notes]
+    )
+
+    res.status(201).json(result.rows[0])
+  } catch (error) {
+    console.error('Error creating nutrition plan:', error)
+    res.status(500).json({ message: 'Failed to create nutrition plan' })
+  }
+})
+
+// Get nutrition logs for a client
+router.get('/clients/:clientId/nutrition/logs', async (req, res) => {
+  try {
+    const { clientId } = req.params
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM nutrition_logs WHERE client_id = $1 ORDER BY log_date DESC, created_at DESC',
+      [clientId]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching nutrition logs:', error)
+    res.status(500).json({ message: 'Failed to fetch nutrition logs' })
+  }
+})
+
+// Create nutrition log entry
+router.post('/clients/:clientId/nutrition/logs', async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const { log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes } = req.body
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const result = await pool.query(
+      `INSERT INTO nutrition_logs 
+       (client_id, log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING *`,
+      [clientId, log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes]
+    )
+
+    res.status(201).json(result.rows[0])
+  } catch (error) {
+    console.error('Error creating nutrition log:', error)
+    res.status(500).json({ message: 'Failed to create nutrition log' })
+  }
+})
+
+// ========== TRAINER REQUEST MANAGEMENT ==========
+
+// Get all pending trainer requests
+router.get('/requests', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT tr.*, u.name as client_name, u.email as client_email,
+              c.height, c.weight, c.gender, c.age, c.location,
+              c.previous_experience, c.activity_level, c.available_dates,
+              c.primary_goal, c.goal_target, c.goal_timeframe, c.secondary_goals,
+              c.nutrition_habits, c.nutrition_experience, c.average_daily_eating,
+              c.injuries, c.sleep_hours, c.stress_level, c.lifestyle_activity,
+              c.psychological_barriers, c.mindset, c.motivation_why,
+              c.training_preference, c.communication_preference, c.barriers,
+              c.onboarding_data
+       FROM trainer_requests tr
+       JOIN users u ON tr.client_id = u.id
+       LEFT JOIN clients c ON tr.client_id = c.user_id
+       WHERE tr.trainer_id = $1 AND tr.status = 'pending'
+       ORDER BY tr.created_at DESC`,
+      [req.user.id]
+    )
+
+    const requests = result.rows.map(row => {
+      // Parse JSONB fields
+      let secondaryGoals = row.secondary_goals
+      if (secondaryGoals) {
+        secondaryGoals = typeof secondaryGoals === 'string' ? JSON.parse(secondaryGoals) : secondaryGoals
+      }
+      
+      let availableDates = row.available_dates
+      if (availableDates) {
+        availableDates = typeof availableDates === 'string' ? JSON.parse(availableDates) : availableDates
+      }
+      
+      let onboardingData = row.onboarding_data
+      if (onboardingData) {
+        onboardingData = typeof onboardingData === 'string' ? JSON.parse(onboardingData) : onboardingData
+      }
+
+      return {
+        id: row.id,
+        clientId: row.client_id,
+        clientName: row.client_name,
+        clientEmail: row.client_email,
+        status: row.status,
+        message: row.message,
+        createdAt: row.created_at,
+        // Basic Info
+        height: row.height,
+        weight: row.weight,
+        gender: row.gender,
+        age: row.age,
+        location: row.location,
+        // Workout Experience
+        previousExperience: row.previous_experience,
+        activityLevel: row.activity_level,
+        availableDates: availableDates,
+        // Goals
+        primaryGoal: row.primary_goal,
+        goalTarget: row.goal_target,
+        goalTimeframe: row.goal_timeframe,
+        secondaryGoals: secondaryGoals,
+        // Nutrition
+        nutritionHabits: row.nutrition_habits,
+        nutritionExperience: row.nutrition_experience,
+        averageDailyEating: row.average_daily_eating,
+        // Health & Lifestyle
+        injuries: row.injuries,
+        sleepHours: row.sleep_hours,
+        stressLevel: row.stress_level,
+        lifestyleActivity: row.lifestyle_activity,
+        // Psychological
+        psychologicalBarriers: row.psychological_barriers,
+        mindset: row.mindset,
+        motivationWhy: row.motivation_why,
+        // Preferences
+        trainingPreference: row.training_preference,
+        communicationPreference: row.communication_preference,
+        barriers: row.barriers,
+        // Full onboarding data
+        onboardingData: onboardingData
+      }
+    })
+
+    res.json(requests)
+  } catch (error) {
+    console.error('Error fetching trainer requests:', error)
+    res.status(500).json({ message: 'Failed to fetch trainer requests' })
+  }
+})
+
+// Get all requests (pending, approved, rejected)
+router.get('/requests/all', async (req, res) => {
+  try {
+    const { status } = req.query
+    let query = `SELECT tr.*, u.name as client_name, u.email as client_email,
+                        c.height, c.weight, c.gender, c.age, c.location,
+                        c.previous_experience, c.activity_level, c.available_dates,
+                        c.primary_goal, c.goal_target, c.goal_timeframe, c.secondary_goals,
+                        c.nutrition_habits, c.nutrition_experience, c.average_daily_eating,
+                        c.injuries, c.sleep_hours, c.stress_level, c.lifestyle_activity,
+                        c.psychological_barriers, c.mindset, c.motivation_why,
+                        c.training_preference, c.communication_preference, c.barriers,
+                        c.onboarding_data
+                 FROM trainer_requests tr
+                 JOIN users u ON tr.client_id = u.id
+                 LEFT JOIN clients c ON tr.client_id = c.user_id
+                 WHERE tr.trainer_id = $1`
+    const params = [req.user.id]
+
+    if (status) {
+      query += ' AND tr.status = $2'
+      params.push(status)
+    }
+
+    query += ' ORDER BY tr.created_at DESC'
+
+    const result = await pool.query(query, params)
+
+    const requests = result.rows.map(row => {
+      // Parse JSONB fields
+      let secondaryGoals = row.secondary_goals
+      if (secondaryGoals) {
+        secondaryGoals = typeof secondaryGoals === 'string' ? JSON.parse(secondaryGoals) : secondaryGoals
+      }
+      
+      let availableDates = row.available_dates
+      if (availableDates) {
+        availableDates = typeof availableDates === 'string' ? JSON.parse(availableDates) : availableDates
+      }
+      
+      let onboardingData = row.onboarding_data
+      if (onboardingData) {
+        onboardingData = typeof onboardingData === 'string' ? JSON.parse(onboardingData) : onboardingData
+      }
+
+      return {
+        id: row.id,
+        clientId: row.client_id,
+        clientName: row.client_name,
+        clientEmail: row.client_email,
+        status: row.status,
+        message: row.message,
+        trainerResponse: row.trainer_response,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        // Basic Info
+        height: row.height,
+        weight: row.weight,
+        gender: row.gender,
+        age: row.age,
+        location: row.location,
+        // Workout Experience
+        previousExperience: row.previous_experience,
+        activityLevel: row.activity_level,
+        availableDates: availableDates,
+        // Goals
+        primaryGoal: row.primary_goal,
+        goalTarget: row.goal_target,
+        goalTimeframe: row.goal_timeframe,
+        secondaryGoals: secondaryGoals,
+        // Nutrition
+        nutritionHabits: row.nutrition_habits,
+        nutritionExperience: row.nutrition_experience,
+        averageDailyEating: row.average_daily_eating,
+        // Health & Lifestyle
+        injuries: row.injuries,
+        sleepHours: row.sleep_hours,
+        stressLevel: row.stress_level,
+        lifestyleActivity: row.lifestyle_activity,
+        // Psychological
+        psychologicalBarriers: row.psychological_barriers,
+        mindset: row.mindset,
+        motivationWhy: row.motivation_why,
+        // Preferences
+        trainingPreference: row.training_preference,
+        communicationPreference: row.communication_preference,
+        barriers: row.barriers,
+        // Full onboarding data
+        onboardingData: onboardingData
+      }
+    })
+
+    res.json(requests)
+  } catch (error) {
+    console.error('Error fetching all trainer requests:', error)
+    res.status(500).json({ message: 'Failed to fetch trainer requests' })
+  }
+})
+
+// Approve a trainer request
+router.post('/requests/:requestId/approve', async (req, res) => {
+  try {
+    const { requestId } = req.params
+    const { trainerResponse } = req.body
+
+    // Get the request
+    const requestResult = await pool.query(
+      'SELECT * FROM trainer_requests WHERE id = $1 AND trainer_id = $2',
+      [requestId, req.user.id]
+    )
+
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Request not found' })
+    }
+
+    const request = requestResult.rows[0]
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ message: 'Request is not pending' })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      // Update request status
+      await client.query(
+        `UPDATE trainer_requests 
+         SET status = 'approved', trainer_response = $1, updated_at = NOW()
+         WHERE id = $2`,
+        [trainerResponse || null, requestId]
+      )
+
+      // Check if client already has a trainer
+      const existingClient = await client.query(
+        'SELECT trainer_id FROM clients WHERE user_id = $1',
+        [request.client_id]
+      )
+
+      if (existingClient.rows.length > 0 && existingClient.rows[0].trainer_id) {
+        // Client already has a trainer, disconnect them first
+        const oldTrainerId = existingClient.rows[0].trainer_id
+        await client.query(
+          'UPDATE clients SET trainer_id = $1 WHERE user_id = $2',
+          [req.user.id, request.client_id]
+        )
+
+        // Decrease old trainer's active client count
+        await client.query(
+          `UPDATE trainers 
+           SET active_clients = GREATEST(COALESCE(active_clients, 0) - 1, 0)
+           WHERE user_id = $1`,
+          [oldTrainerId]
+        )
+      } else {
+        // Update or create client record
+        if (existingClient.rows.length > 0) {
+          await client.query(
+            'UPDATE clients SET trainer_id = $1, start_date = COALESCE(start_date, CURRENT_DATE) WHERE user_id = $2',
+            [req.user.id, request.client_id]
+          )
+        } else {
+          await client.query(
+            'INSERT INTO clients (user_id, trainer_id, start_date) VALUES ($1, $2, CURRENT_DATE)',
+            [request.client_id, req.user.id]
+          )
+        }
+      }
+
+      // Update trainer's client count
+      await client.query(
+        `UPDATE trainers 
+         SET total_clients = COALESCE(total_clients, 0) + 1,
+             active_clients = COALESCE(active_clients, 0) + 1
+         WHERE user_id = $1`,
+        [req.user.id]
+      )
+
+      await client.query('COMMIT')
+
+      res.json({ 
+        message: 'Request approved successfully. Client has been connected.',
+        requestId 
+      })
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
+  } catch (error) {
+    console.error('Error approving request:', error)
+    res.status(500).json({ message: 'Failed to approve request' })
+  }
+})
+
+// Reject a trainer request
+router.post('/requests/:requestId/reject', async (req, res) => {
+  try {
+    const { requestId } = req.params
+    const { trainerResponse } = req.body
+
+    // Get the request
+    const requestResult = await pool.query(
+      'SELECT * FROM trainer_requests WHERE id = $1 AND trainer_id = $2',
+      [requestId, req.user.id]
+    )
+
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Request not found' })
+    }
+
+    if (requestResult.rows[0].status !== 'pending') {
+      return res.status(400).json({ message: 'Request is not pending' })
+    }
+
+    // Update request status
+    await pool.query(
+      `UPDATE trainer_requests 
+       SET status = 'rejected', trainer_response = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [trainerResponse || null, requestId]
+    )
+
+    res.json({ 
+      message: 'Request rejected',
+      requestId 
+    })
+  } catch (error) {
+    console.error('Error rejecting request:', error)
+    res.status(500).json({ message: 'Failed to reject request' })
   }
 })
 

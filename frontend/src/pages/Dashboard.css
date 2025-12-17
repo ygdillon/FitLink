@@ -21,7 +21,7 @@
 }
 
 .btn-primary {
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 4px;
@@ -30,7 +30,7 @@
 }
 
 .btn-primary:hover {
-  background-color: #2980b9;
+  background-color: #7BA53E;
 }
 
 .dashboard-grid {
@@ -70,7 +70,7 @@
 }
 
 .client-list li:hover {
-  background-color: #f8f9fa;
+  background-color: #E8F5D8;
 }
 
 .client-meta {
@@ -85,8 +85,8 @@
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #C8E6A0;
+  color: #5A7A3A;
 }
 
 .client-goal {
@@ -112,7 +112,7 @@
 }
 
 .workout-list a {
-  color: #3498db;
+  color: #9BCF53;
   text-decoration: none;
 }
 

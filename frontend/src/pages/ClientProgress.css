@@ -18,7 +18,7 @@
 .btn-back {
   background: none;
   border: none;
-  color: #3498db;
+  color: #9BCF53;
   cursor: pointer;
   font-size: 0.875rem;
   padding: 0.25rem 0;
@@ -35,7 +35,7 @@
 }
 
 .btn-add-metric {
-  background-color: #27ae60;
+  background-color: #7BA53E;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -124,7 +124,7 @@
   background: #f8f9fa;
   padding: 1.5rem;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid #9BCF53;
 }
 
 .metric-card h3 {
@@ -140,7 +140,7 @@
 .current-value {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #3498db;
+  color: #9BCF53;
   margin-bottom: 0.25rem;
 }
 
@@ -160,7 +160,7 @@
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #3498db, #27ae60);
+  background: linear-gradient(90deg, #9BCF53, #7BA53E);
   transition: width 0.3s ease;
 }
 
@@ -176,7 +176,7 @@
   padding: 1rem;
   background: #f8f9fa;
   border-radius: 4px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid #9BCF53;
 }
 
 .timeline-date {

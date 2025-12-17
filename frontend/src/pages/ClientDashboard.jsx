@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
-import './Dashboard.css'
+import './ClientDashboard.css'
 
 function ClientDashboard() {
-  const [assignedWorkouts, setAssignedWorkouts] = useState([])
-  const [recentProgress, setRecentProgress] = useState([])
+  const [upcomingSessions, setUpcomingSessions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -14,12 +13,8 @@ function ClientDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [workoutsRes, progressRes] = await Promise.all([
-        api.get('/client/workouts'),
-        api.get('/client/progress/recent')
-      ])
-      setAssignedWorkouts(workoutsRes.data)
-      setRecentProgress(progressRes.data)
+      const sessionsRes = await api.get('/schedule/client/upcoming').catch(() => ({ data: [] }))
+      setUpcomingSessions(sessionsRes.data || [])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -28,57 +23,55 @@ function ClientDashboard() {
   }
 
   if (loading) {
-    return <div className="dashboard-container">Loading...</div>
+    return <div className="client-dashboard-container">Loading...</div>
   }
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>My Dashboard</h1>
-        <div className="header-actions">
-          <Link to="/check-in" className="btn-primary">
-            Daily Check-in
-          </Link>
-          <Link to="/progress" className="btn-secondary">
-            Track Progress
-          </Link>
-        </div>
+    <div className="client-dashboard-container">
+      <div className="client-dashboard-header">
+        <h1>My Space</h1>
       </div>
 
-      <div className="dashboard-grid">
-        <div className="dashboard-card">
-          <h2>Assigned Workouts ({assignedWorkouts.length})</h2>
-          {assignedWorkouts.length === 0 ? (
-            <p>No workouts assigned yet</p>
+      <div className="client-dashboard-layout">
+        <div className="client-dashboard-panel schedule-panel">
+          <div className="panel-header">
+            <h2>Upcoming Sessions</h2>
+          </div>
+          {upcomingSessions.length === 0 ? (
+            <div className="empty-state">
+              <p>No upcoming sessions scheduled</p>
+              <p className="empty-hint">Your trainer will schedule sessions for you</p>
+            </div>
           ) : (
-            <ul className="workout-list">
-              {assignedWorkouts.map(workout => (
-                <li key={workout.id}>
-                  <Link to={`/workout/${workout.id}`}>
-                    {workout.name}
-                  </Link>
-                  <span className="workout-status">{workout.status}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="dashboard-card">
-          <h2>Recent Progress</h2>
-          {recentProgress.length === 0 ? (
-            <p>No progress entries yet</p>
-          ) : (
-            <ul className="progress-list">
-              {recentProgress.map(entry => (
-                <li key={entry.id}>
-                  <div>
-                    <strong>{new Date(entry.date).toLocaleDateString()}</strong>
-                    {entry.weight && <span>Weight: {entry.weight} lbs</span>}
+            <div className="sessions-list">
+              {upcomingSessions.slice(0, 10).map(session => (
+                <div key={session.id} className="session-item">
+                  <div className="session-date">
+                    <div className="session-day">{new Date(session.session_date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                    <div className="session-number">{new Date(session.session_date).getDate()}</div>
                   </div>
-                </li>
+                  <div className="session-details">
+                    <div className="session-time">
+                      {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit' 
+                      })}
+                    </div>
+                    {session.workout_name && (
+                      <div className="session-workout">{session.workout_name}</div>
+                    )}
+                    {session.session_type && (
+                      <div className="session-type">{session.session_type}</div>
+                    )}
+                  </div>
+                  <div className="session-status">
+                    <span className={`status-badge ${session.status || 'scheduled'}`}>
+                      {session.status || 'scheduled'}
+                    </span>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>

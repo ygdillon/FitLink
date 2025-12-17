@@ -34,7 +34,7 @@
 }
 
 .step.active {
-  color: #3498db;
+  color: #9BCF53;
   font-weight: 600;
 }
 
@@ -46,7 +46,7 @@
   transform: translateX(-50%);
   width: 100%;
   height: 2px;
-  background: #3498db;
+  background: #9BCF53;
 }
 
 .form-step {
@@ -85,7 +85,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #9BCF53;
 }
 
 .form-group small {
@@ -133,7 +133,7 @@
 }
 
 .btn-add-goal {
-  background: #27ae60;
+  background: #7BA53E;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -165,12 +165,12 @@
 }
 
 .btn-primary {
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: #7BA53E;
 }
 
 .btn-primary:disabled {

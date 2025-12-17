@@ -7,7 +7,8 @@ import './TrainerDashboard.css'
 function TrainerDashboard() {
   const [clients, setClients] = useState([])
   const [revenue, setRevenue] = useState({ total: 0, thisMonth: 0, thisWeek: 0 })
-  const [upcomingSessions, setUpcomingSessions] = useState([])
+      const [upcomingSessions, setUpcomingSessions] = useState([])
+      const [clientsWithSessions, setClientsWithSessions] = useState(new Map())
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -20,7 +21,7 @@ function TrainerDashboard() {
       const [clientsRes, revenueRes, sessionsRes] = await Promise.all([
         api.get('/trainer/clients'),
         api.get('/payments/trainer/history').catch(() => ({ data: [] })),
-        api.get('/trainer/sessions/upcoming').catch(() => ({ data: [] }))
+        api.get('/schedule/trainer/upcoming').catch(() => ({ data: [] }))
       ])
       setClients(clientsRes.data)
       
@@ -45,7 +46,18 @@ function TrainerDashboard() {
         setRevenue({ total, thisMonth: monthRevenue, thisWeek: weekRevenue })
       }
       
-      setUpcomingSessions(sessionsRes.data || [])
+      const sessions = sessionsRes.data || []
+      setUpcomingSessions(sessions)
+      
+      // Create a map of client_id to next session for quick lookup
+      const sessionMap = new Map()
+      sessions.forEach(session => {
+        const clientId = session.client_profile_id || session.client_id
+        if (!sessionMap.has(clientId) || new Date(session.session_date) < new Date(sessionMap.get(clientId).session_date)) {
+          sessionMap.set(clientId, session)
+        }
+      })
+      setClientsWithSessions(sessionMap)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -60,7 +72,7 @@ function TrainerDashboard() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-layout">
-        {/* Left Panel - Total Revenue (1/3 width, full height) */}
+        {/* Left Sidebar - Total Revenue (vertical) */}
         <div className="dashboard-panel revenue-panel">
           <h2>Total Revenue</h2>
           <div className="revenue-display">
@@ -83,9 +95,9 @@ function TrainerDashboard() {
           </div>
         </div>
 
-        {/* Right Panels (2/3 width) */}
+        {/* Right Panels (main content area) */}
         <div className="dashboard-right-panels">
-          {/* Upper Right Panel - Schedule with Upcoming Sessions (2/3 height) */}
+          {/* Upper Right Panel - Schedule with Upcoming Sessions (50% height) */}
           <div className="dashboard-panel schedule-panel">
             <div className="panel-header">
               <h2>Schedule with Upcoming Sessions</h2>
@@ -101,12 +113,17 @@ function TrainerDashboard() {
                 {upcomingSessions.slice(0, 5).map(session => (
                   <div key={session.id} className="session-item">
                     <div className="session-date">
-                      <div className="session-day">{new Date(session.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                      <div className="session-number">{new Date(session.date).getDate()}</div>
+                      <div className="session-day">{new Date(session.session_date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className="session-number">{new Date(session.session_date).getDate()}</div>
                     </div>
                     <div className="session-details">
                       <div className="session-client">{session.client_name}</div>
-                      <div className="session-time">{session.time || 'Time TBD'}</div>
+                      <div className="session-time">
+                        {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
                       {session.workout_name && (
                         <div className="session-workout">{session.workout_name}</div>
                       )}
@@ -122,7 +139,7 @@ function TrainerDashboard() {
             )}
           </div>
 
-          {/* Lower Right Panel - Clients (1/3 height) */}
+          {/* Lower Right Panel - Clients (50% height) */}
           <div className="dashboard-panel clients-panel">
             <div className="panel-header">
               <h2>Clients</h2>
@@ -136,34 +153,26 @@ function TrainerDashboard() {
                 </Link>
               </div>
             ) : (
-              <div className="clients-list-compact">
+              <div className="clients-list-vertical">
                 {clients.map(client => {
-                  // Get next session date (mock for now - would come from schedule data)
-                  const nextSession = upcomingSessions.find(s => s.client_id === client.user_id || s.client_id === client.id)
+                  // Get next session from the map
+                  const nextSession = clientsWithSessions.get(client.id)
                   return (
                     <div 
                       key={client.id} 
-                      className="client-item-compact"
+                      className="client-item-vertical"
                       onClick={() => navigate(`/trainer/clients/${client.id}`)}
                     >
-                      <div className="client-info-compact">
-                        <div className="client-avatar-small">
-                          {client.name?.charAt(0).toUpperCase() || 'C'}
-                        </div>
-                        <div className="client-details-compact">
-                          <div className="client-name-compact">{client.name}</div>
-                          {nextSession ? (
-                            <div className="client-session-date">
-                              Next: {new Date(nextSession.date).toLocaleDateString()}
-                            </div>
-                          ) : (
-                            <div className="client-session-date">No session scheduled</div>
-                          )}
-                        </div>
+                      <div className="client-name-vertical">
+                        {client.name}
                       </div>
-                      <span className={`status-badge-small ${client.status || 'active'}`}>
-                        {client.status || 'active'}
-                      </span>
+                      <div className="client-session-vertical">
+                        {nextSession ? (
+                          `Next: ${new Date(nextSession.session_date).toLocaleDateString()}`
+                        ) : (
+                          'No session scheduled'
+                        )}
+                      </div>
                     </div>
                   )
                 })}

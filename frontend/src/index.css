@@ -10,7 +10,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: #F5F9F0;
   color: #333;
 }
 
@@ -25,5 +25,18 @@ code {
 
 .App {
   min-height: 100vh;
+  display: flex;
+}
+
+/* Main content area with sidebar offset */
+.main-content {
+  margin-left: 240px;
+  flex: 1;
+  min-height: 100vh;
+}
+
+/* Override margin when navbar is not visible (login/register pages) */
+.App:not(:has(.navbar-sidebar)) .main-content {
+  margin-left: 0;
 }
 

@@ -46,7 +46,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #9BCF53;
 }
 
 .exercises-section {
@@ -66,7 +66,7 @@
 }
 
 .btn-add {
-  background-color: #27ae60;
+  background-color: #7BA53E;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -127,7 +127,7 @@
 }
 
 .form-actions button {
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
   border: none;
   padding: 0.75rem 2rem;
@@ -137,7 +137,7 @@
 }
 
 .form-actions button:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: #7BA53E;
 }
 
 .form-actions button:disabled {

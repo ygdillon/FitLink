@@ -1,0 +1,108 @@
+.client-nutrition-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.nutrition-header {
+  margin-bottom: 2rem;
+}
+
+.nutrition-header h1 {
+  color: #2c3e50;
+  margin: 0;
+}
+
+.nutrition-goals-section,
+.today-progress-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.nutrition-goals-section h2,
+.today-progress-section h2 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+}
+
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.goal-card {
+  background: linear-gradient(135deg, #9BCF53, #7BA53E);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.goal-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.goal-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.progress-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress-label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #E8F5D8;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9BCF53, #7BA53E);
+  transition: width 0.3s ease;
+  border-radius: 12px;
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #666;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.empty-hint {
+  color: #999;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}

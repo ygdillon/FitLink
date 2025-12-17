@@ -95,7 +95,7 @@
 
 .message.sent {
   align-self: flex-end;
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
 }
 
@@ -130,7 +130,7 @@
 }
 
 .message-input-form button {
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -139,7 +139,7 @@
 }
 
 .message-input-form button:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: #7BA53E;
 }
 
 .message-input-form button:disabled {

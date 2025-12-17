@@ -8,6 +8,7 @@ import workoutRoutes from './routes/workout.js'
 import messageRoutes from './routes/message.js'
 import profileRoutes from './routes/profile.js'
 import paymentRoutes from './routes/payment.js'
+import scheduleRoutes from './routes/schedule.js'
 import { pool } from './config/database.js'
 
 dotenv.config()
@@ -33,6 +34,7 @@ app.use('/api/workouts', workoutRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/profile', profileRoutes)
 app.use('/api/payments', paymentRoutes)
+app.use('/api/schedule', scheduleRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

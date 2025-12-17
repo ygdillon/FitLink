@@ -19,10 +19,16 @@ import ClientProgress from './pages/ClientProgress'
 import DailyCheckIn from './pages/DailyCheckIn'
 import Clients from './pages/Clients'
 import WorkoutLibrary from './pages/WorkoutLibrary'
+import ClientWorkouts from './pages/ClientWorkouts'
+import ClientNutrition from './pages/ClientNutrition'
+import Settings from './pages/Settings'
+import TrainerRequests from './pages/TrainerRequests'
+import ClientOnboarding from './pages/ClientOnboarding'
 
 // Components
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
+import ClientRouteGuard from './components/ClientRouteGuard'
 import ErrorBoundary from './components/ErrorBoundary'
 
 function AppRoutes() {
@@ -40,7 +46,17 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/trainer" element={<TrainerDashboard />} />
         <Route path="/trainer/clients" element={<Clients />} />
-        <Route path="/client" element={<ClientDashboard />} />
+        <Route path="/trainer/requests" element={<TrainerRequests />} />
+        
+        <Route element={<ClientRouteGuard />}>
+          <Route path="/client/onboarding" element={<ClientOnboarding />} />
+          <Route path="/client" element={<ClientDashboard />} />
+          <Route path="/client/workouts" element={<ClientWorkouts />} />
+          <Route path="/client/progress" element={<ProgressTracking />} />
+          <Route path="/client/nutrition" element={<ClientNutrition />} />
+        </Route>
+        
+        <Route path="/settings" element={<Settings />} />
         <Route path="/workout/builder" element={<WorkoutBuilder />} />
         <Route path="/trainer/workouts" element={<WorkoutLibrary />} />
         <Route path="/workout/:id" element={<WorkoutView />} />
@@ -65,7 +81,9 @@ function App() {
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <div className="App">
             <Navbar />
-            <AppRoutes />
+            <div className="main-content" id="main-content">
+              <AppRoutes />
+            </div>
           </div>
         </Router>
       </AuthProvider>

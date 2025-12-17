@@ -2,8 +2,17 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 80px);
+  min-height: 100vh;
   padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #F5F9F0;
 }
 
 .login-card {
@@ -42,13 +51,13 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #9BCF53;
 }
 
 .login-card button {
   width: 100%;
   padding: 0.75rem;
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
   border: none;
   border-radius: 4px;
@@ -59,7 +68,7 @@
 }
 
 .login-card button:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: #7BA53E;
 }
 
 .login-card button:disabled {
@@ -82,7 +91,7 @@
 }
 
 .login-card a {
-  color: #3498db;
+  color: #9BCF53;
   text-decoration: none;
 }
 

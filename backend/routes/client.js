@@ -30,8 +30,15 @@ router.get('/workouts', async (req, res) => {
 // Daily check-in
 router.post('/check-in', async (req, res) => {
   try {
-    const { workout_completed, diet_stuck_to, notes } = req.body
+    const { workout_completed, diet_stuck_to, workout_rating, notes } = req.body
     const today = new Date().toISOString().split('T')[0]
+
+    // Validate workout_rating if workout was completed
+    if (workout_completed === true && workout_rating !== null) {
+      if (workout_rating < 1 || workout_rating > 10) {
+        return res.status(400).json({ message: 'Workout rating must be between 1 and 10' })
+      }
+    }
 
     // Check if check-in already exists for today
     const existing = await pool.query(
@@ -43,19 +50,19 @@ router.post('/check-in', async (req, res) => {
       // Update existing check-in
       const result = await pool.query(
         `UPDATE daily_check_ins 
-         SET workout_completed = $1, diet_stuck_to = $2, notes = $3, status = 'completed', updated_at = NOW()
-         WHERE id = $4
+         SET workout_completed = $1, diet_stuck_to = $2, workout_rating = $3, notes = $4, status = 'completed', updated_at = NOW()
+         WHERE id = $5
          RETURNING *`,
-        [workout_completed, diet_stuck_to, notes, existing.rows[0].id]
+        [workout_completed, diet_stuck_to, workout_rating || null, notes, existing.rows[0].id]
       )
       res.json(result.rows[0])
     } else {
       // Create new check-in
       const result = await pool.query(
-        `INSERT INTO daily_check_ins (client_id, check_in_date, workout_completed, diet_stuck_to, notes, status)
-         VALUES ($1, $2, $3, $4, $5, 'completed')
+        `INSERT INTO daily_check_ins (client_id, check_in_date, workout_completed, diet_stuck_to, workout_rating, notes, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'completed')
          RETURNING *`,
-        [req.user.id, today, workout_completed, diet_stuck_to, notes]
+        [req.user.id, today, workout_completed, diet_stuck_to, workout_rating || null, notes]
       )
       res.status(201).json(result.rows[0])
     }
@@ -167,6 +174,483 @@ router.post('/progress', async (req, res) => {
   } catch (error) {
     console.error('Error creating progress entry:', error)
     res.status(500).json({ message: 'Failed to create progress entry' })
+  }
+})
+
+// ========== NUTRITION ROUTES FOR CLIENTS ==========
+
+// Get nutrition goals
+router.get('/nutrition/goals', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM nutrition_goals WHERE client_id = $1',
+      [req.user.id]
+    )
+
+    res.json(result.rows[0] || null)
+  } catch (error) {
+    console.error('Error fetching nutrition goals:', error)
+    res.status(500).json({ message: 'Failed to fetch nutrition goals' })
+  }
+})
+
+// Get nutrition logs
+router.get('/nutrition/logs', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query
+    let query = 'SELECT * FROM nutrition_logs WHERE client_id = $1'
+    const params = [req.user.id]
+
+    if (startDate && endDate) {
+      query += ' AND log_date BETWEEN $2 AND $3'
+      params.push(startDate, endDate)
+    }
+
+    query += ' ORDER BY log_date DESC, created_at DESC LIMIT 100'
+
+    const result = await pool.query(query, params)
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching nutrition logs:', error)
+    res.status(500).json({ message: 'Failed to fetch nutrition logs' })
+  }
+})
+
+// Create nutrition log entry
+router.post('/nutrition/logs', async (req, res) => {
+  try {
+    const { log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes } = req.body
+
+    const result = await pool.query(
+      `INSERT INTO nutrition_logs 
+       (client_id, log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING *`,
+      [req.user.id, log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes]
+    )
+
+    res.status(201).json(result.rows[0])
+  } catch (error) {
+    console.error('Error creating nutrition log:', error)
+    res.status(500).json({ message: 'Failed to create nutrition log' })
+  }
+})
+
+// ========== TRAINER MANAGEMENT ROUTES ==========
+
+// Get current trainer
+router.get('/trainer', async (req, res) => {
+  try {
+    // Get client's trainer_id
+    const clientResult = await pool.query(
+      'SELECT trainer_id FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    if (clientResult.rows.length === 0 || !clientResult.rows[0].trainer_id) {
+      return res.status(404).json({ message: 'No trainer assigned' })
+    }
+
+    const trainerId = clientResult.rows[0].trainer_id
+
+    // Get trainer info
+    const trainerResult = await pool.query(
+      `SELECT t.*, u.name, u.email, u.profile_image
+       FROM trainers t
+       JOIN users u ON t.user_id = u.id
+       WHERE t.user_id = $1`,
+      [trainerId]
+    )
+
+    if (trainerResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Trainer not found' })
+    }
+
+    const trainer = trainerResult.rows[0]
+    
+    // Parse JSONB fields
+    if (trainer.specialties) {
+      trainer.specialties = typeof trainer.specialties === 'string' 
+        ? JSON.parse(trainer.specialties) 
+        : trainer.specialties
+    }
+    if (trainer.certifications) {
+      trainer.certifications = typeof trainer.certifications === 'string'
+        ? JSON.parse(trainer.certifications)
+        : trainer.certifications
+    }
+
+    res.json({
+      id: trainer.user_id,
+      name: trainer.name,
+      email: trainer.email,
+      bio: trainer.bio,
+      specialties: trainer.specialties,
+      certifications: trainer.certifications,
+      hourly_rate: trainer.hourly_rate,
+      total_clients: trainer.total_clients,
+      active_clients: trainer.active_clients,
+      profile_image: trainer.profile_image
+    })
+  } catch (error) {
+    console.error('Error fetching trainer:', error)
+    res.status(500).json({ message: 'Failed to fetch trainer' })
+  }
+})
+
+// Search for trainers
+router.get('/trainers/search', async (req, res) => {
+  try {
+    const { q } = req.query
+
+    if (!q || q.trim().length === 0) {
+      return res.json([])
+    }
+
+    const searchTerm = `%${q.trim()}%`
+
+    // Search trainers by name, email, bio, or specialties
+    const result = await pool.query(
+      `SELECT DISTINCT t.*, u.name, u.email, u.profile_image
+       FROM trainers t
+       JOIN users u ON t.user_id = u.id
+       WHERE (
+         u.name ILIKE $1 OR
+         u.email ILIKE $1 OR
+         t.bio ILIKE $1 OR
+         t.specialties::text ILIKE $1
+       )
+       ORDER BY u.name ASC
+       LIMIT 20`,
+      [searchTerm]
+    )
+
+    const trainers = result.rows.map(trainer => {
+      // Parse JSONB fields
+      let specialties = trainer.specialties
+      if (specialties) {
+        specialties = typeof specialties === 'string' 
+          ? JSON.parse(specialties) 
+          : specialties
+      }
+      let certifications = trainer.certifications
+      if (certifications) {
+        certifications = typeof certifications === 'string'
+          ? JSON.parse(certifications)
+          : certifications
+      }
+
+      return {
+        id: trainer.user_id,
+        name: trainer.name,
+        email: trainer.email,
+        bio: trainer.bio,
+        specialties: specialties,
+        certifications: certifications,
+        hourly_rate: trainer.hourly_rate,
+        total_clients: trainer.total_clients,
+        active_clients: trainer.active_clients,
+        profile_image: trainer.profile_image
+      }
+    })
+
+    res.json(trainers)
+  } catch (error) {
+    console.error('Error searching trainers:', error)
+    res.status(500).json({ message: 'Failed to search trainers' })
+  }
+})
+
+// Request to connect with a trainer
+router.post('/trainer/request', async (req, res) => {
+  try {
+    const { trainerId, message } = req.body
+
+    if (!trainerId) {
+      return res.status(400).json({ message: 'Trainer ID is required' })
+    }
+
+    // Check if onboarding is completed
+    const onboardingCheck = await pool.query(
+      'SELECT onboarding_completed FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    if (onboardingCheck.rows.length === 0 || !onboardingCheck.rows[0].onboarding_completed) {
+      return res.status(403).json({ 
+        message: 'Please complete your profile before requesting a trainer',
+        requires_onboarding: true
+      })
+    }
+
+    // Verify trainer exists
+    const trainerCheck = await pool.query(
+      'SELECT user_id FROM trainers WHERE user_id = $1',
+      [trainerId]
+    )
+
+    if (trainerCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Trainer not found' })
+    }
+
+    // Check if client already has this trainer
+    const existingClient = await pool.query(
+      'SELECT trainer_id FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    if (existingClient.rows.length > 0 && existingClient.rows[0].trainer_id === trainerId) {
+      return res.status(400).json({ message: 'You are already connected with this trainer' })
+    }
+
+    // Check if there's already a pending request
+    const existingRequest = await pool.query(
+      `SELECT id, status FROM trainer_requests 
+       WHERE client_id = $1 AND trainer_id = $2 AND status = 'pending'`,
+      [req.user.id, trainerId]
+    )
+
+    if (existingRequest.rows.length > 0) {
+      return res.status(400).json({ message: 'You already have a pending request with this trainer' })
+    }
+
+    // Ensure client record exists
+    const clientCheck = await pool.query(
+      'SELECT id FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      await pool.query(
+        'INSERT INTO clients (user_id, start_date) VALUES ($1, CURRENT_DATE)',
+        [req.user.id]
+      )
+    }
+
+    // Create trainer request
+    const result = await pool.query(
+      `INSERT INTO trainer_requests (client_id, trainer_id, status, message)
+       VALUES ($1, $2, 'pending', $3)
+       RETURNING *`,
+      [req.user.id, trainerId, message || null]
+    )
+
+    res.status(201).json({ 
+      message: 'Trainer request sent successfully! The trainer will review your request.',
+      request: result.rows[0]
+    })
+  } catch (error) {
+    console.error('Error requesting trainer:', error)
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(400).json({ message: 'You already have a pending request with this trainer' })
+    }
+    res.status(500).json({ message: 'Failed to send trainer request' })
+  }
+})
+
+// Get client's pending requests
+router.get('/trainer/requests', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT tr.*, u.name as trainer_name, u.email as trainer_email, t.bio, t.specialties
+       FROM trainer_requests tr
+       JOIN users u ON tr.trainer_id = u.id
+       LEFT JOIN trainers t ON tr.trainer_id = t.user_id
+       WHERE tr.client_id = $1
+       ORDER BY tr.created_at DESC`,
+      [req.user.id]
+    )
+
+    const requests = result.rows.map(row => ({
+      id: row.id,
+      trainerId: row.trainer_id,
+      trainerName: row.trainer_name,
+      trainerEmail: row.trainer_email,
+      status: row.status,
+      message: row.message,
+      trainerResponse: row.trainer_response,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      bio: row.bio,
+      specialties: row.specialties ? (typeof row.specialties === 'string' ? JSON.parse(row.specialties) : row.specialties) : null
+    }))
+
+    res.json(requests)
+  } catch (error) {
+    console.error('Error fetching trainer requests:', error)
+    res.status(500).json({ message: 'Failed to fetch trainer requests' })
+  }
+})
+
+// Get client's own profile
+router.get('/profile', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT c.*, u.name, u.email
+       FROM clients c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = $1`,
+      [req.user.id]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Client profile not found' })
+    }
+
+    const client = result.rows[0]
+    
+    // Parse JSONB fields
+    if (client.goals) {
+      client.goals = typeof client.goals === 'string' ? JSON.parse(client.goals) : client.goals
+    }
+    if (client.secondary_goals) {
+      client.secondary_goals = typeof client.secondary_goals === 'string' ? JSON.parse(client.secondary_goals) : client.secondary_goals
+    }
+    if (client.available_dates) {
+      client.available_dates = typeof client.available_dates === 'string' ? JSON.parse(client.available_dates) : client.available_dates
+    }
+    if (client.onboarding_data) {
+      client.onboarding_data = typeof client.onboarding_data === 'string' ? JSON.parse(client.onboarding_data) : client.onboarding_data
+    }
+
+    res.json(client)
+  } catch (error) {
+    console.error('Error fetching client profile:', error)
+    res.status(500).json({ message: 'Failed to fetch client profile' })
+  }
+})
+
+// Update client's own profile/onboarding
+router.put('/profile', async (req, res) => {
+  try {
+    const profileData = req.body
+
+    // Check if client record exists
+    const clientCheck = await pool.query(
+      'SELECT id FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    let clientId
+    if (clientCheck.rows.length === 0) {
+      // Create client record
+      const result = await pool.query(
+        'INSERT INTO clients (user_id, start_date) VALUES ($1, CURRENT_DATE) RETURNING id',
+        [req.user.id]
+      )
+      clientId = result.rows[0].id
+    } else {
+      clientId = clientCheck.rows[0].id
+    }
+
+    // Build update query
+    const updates = []
+    const values = []
+    let paramCount = 1
+
+    const fields = [
+      'height', 'weight', 'gender', 'age', 'previous_experience',
+      'average_daily_eating', 'primary_goal', 'goal_target', 'goal_timeframe',
+      'secondary_goals', 'barriers', 'training_preference', 'communication_preference',
+      'activity_level', 'available_dates', 'location', 'nutrition_habits',
+      'nutrition_experience', 'injuries', 'sleep_hours', 'stress_level',
+      'lifestyle_activity', 'psychological_barriers', 'mindset', 'motivation_why'
+    ]
+
+    fields.forEach(field => {
+      if (profileData[field] !== undefined) {
+        if (field === 'secondary_goals' || field === 'available_dates') {
+          updates.push(`${field} = $${paramCount++}`)
+          values.push(profileData[field] ? JSON.stringify(profileData[field]) : null)
+        } else {
+          updates.push(`${field} = $${paramCount++}`)
+          values.push(profileData[field])
+        }
+      }
+    })
+
+    // Always update onboarding_data and onboarding_completed
+    updates.push(`onboarding_data = $${paramCount++}`)
+    values.push(JSON.stringify(profileData))
+    updates.push(`onboarding_completed = $${paramCount++}`)
+    values.push(true)
+    updates.push(`updated_at = CURRENT_TIMESTAMP`)
+
+    values.push(clientId)
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' })
+    }
+
+    await pool.query(
+      `UPDATE clients 
+       SET ${updates.join(', ')}
+       WHERE id = $${paramCount}`,
+      values
+    )
+
+    res.json({ 
+      message: 'Profile updated successfully',
+      onboarding_completed: true
+    })
+  } catch (error) {
+    console.error('Error updating client profile:', error)
+    res.status(500).json({ message: 'Failed to update profile' })
+  }
+})
+
+// Check if onboarding is completed
+router.get('/profile/onboarding-status', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT onboarding_completed FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    if (result.rows.length === 0) {
+      return res.json({ onboarding_completed: false })
+    }
+
+    res.json({ onboarding_completed: result.rows[0].onboarding_completed || false })
+  } catch (error) {
+    console.error('Error checking onboarding status:', error)
+    res.status(500).json({ message: 'Failed to check onboarding status' })
+  }
+})
+
+// Disconnect from trainer
+router.delete('/trainer', async (req, res) => {
+  try {
+    // Get current trainer
+    const clientResult = await pool.query(
+      'SELECT trainer_id FROM clients WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    if (clientResult.rows.length === 0 || !clientResult.rows[0].trainer_id) {
+      return res.status(404).json({ message: 'No trainer assigned' })
+    }
+
+    const trainerId = clientResult.rows[0].trainer_id
+
+    // Remove trainer from client
+    await pool.query(
+      'UPDATE clients SET trainer_id = NULL WHERE user_id = $1',
+      [req.user.id]
+    )
+
+    // Decrease trainer's active client count
+    await pool.query(
+      `UPDATE trainers 
+       SET active_clients = GREATEST(COALESCE(active_clients, 0) - 1, 0)
+       WHERE user_id = $1`,
+      [trainerId]
+    )
+
+    res.json({ message: 'Disconnected from trainer successfully' })
+  } catch (error) {
+    console.error('Error disconnecting trainer:', error)
+    res.status(500).json({ message: 'Failed to disconnect from trainer' })
   }
 })
 

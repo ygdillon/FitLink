@@ -52,7 +52,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #9BCF53;
 }
 
 .measurements-section {
@@ -76,7 +76,7 @@
 
 .progress-form-card button {
   width: 100%;
-  background-color: #3498db;
+  background-color: #9BCF53;
   color: white;
   border: none;
   padding: 0.75rem;
@@ -87,7 +87,7 @@
 }
 
 .progress-form-card button:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: #7BA53E;
 }
 
 .progress-form-card button:disabled {

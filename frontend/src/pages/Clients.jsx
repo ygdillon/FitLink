@@ -180,14 +180,20 @@ function Clients() {
                 </div>
                 
                 <div className="client-card-body">
-                  {client.primary_goal && (
-                    <div className="client-goal">
-                      <strong>Goal:</strong> {client.primary_goal.replace('_', ' ')}
-                    </div>
-                  )}
-                  {client.goal_target && (
-                    <div className="client-target">
-                      <strong>Target:</strong> {client.goal_target}
+                  {client.primary_goal ? (
+                    <>
+                      <div className="client-goal">
+                        <strong>Goal:</strong> {client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </div>
+                      {client.goal_target && (
+                        <div className="client-target">
+                          <strong>Target:</strong> {client.goal_target}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="client-goal missing">
+                      <strong>⚠️ No Goal Set</strong>
                     </div>
                   )}
                   {client.training_preference && (

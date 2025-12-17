@@ -41,7 +41,12 @@ function Register() {
         password: formData.password,
         role: formData.role
       })
-      navigate('/')
+      // Redirect based on role
+      if (formData.role === 'client') {
+        navigate('/client/onboarding')
+      } else {
+        navigate('/trainer')
+      }
     } catch (err) {
       console.error('Registration error:', err)
       const errorMessage = err.response?.data?.message || err.message || 'Registration failed'

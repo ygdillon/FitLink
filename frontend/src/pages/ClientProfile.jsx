@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import ClientWorkouts from './ClientWorkouts'
+import ClientSchedule from './ClientSchedule'
+import ClientGoals from './ClientGoals'
+import ClientNutrition from './ClientNutrition'
 import './ClientProfile.css'
 
 function ClientProfile() {
@@ -9,7 +12,7 @@ function ClientProfile() {
   const navigate = useNavigate()
   const [client, setClient] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('goals') // Default to Goals tab
 
   useEffect(() => {
     fetchClientProfile()
@@ -43,46 +46,8 @@ function ClientProfile() {
         </div>
       </div>
 
-      <div className="client-tabs">
-        <button
-          className={activeTab === 'overview' ? 'active' : ''}
-          onClick={() => setActiveTab('overview')}
-        >
-          Overview
-        </button>
-        <button
-          className={activeTab === 'progress' ? 'active' : ''}
-          onClick={() => setActiveTab('progress')}
-        >
-          Progress
-        </button>
-        <button
-          className={activeTab === 'check-ins' ? 'active' : ''}
-          onClick={() => setActiveTab('check-ins')}
-        >
-          Check-ins
-        </button>
-        <button
-          className={activeTab === 'workouts' ? 'active' : ''}
-          onClick={() => setActiveTab('workouts')}
-        >
-          Workouts
-        </button>
-        <button
-          className={activeTab === 'schedule' ? 'active' : ''}
-          onClick={() => setActiveTab('schedule')}
-        >
-          Schedule
-        </button>
-        <button
-          className={activeTab === 'payments' ? 'active' : ''}
-          onClick={() => setActiveTab('payments')}
-        >
-          Payments
-        </button>
-      </div>
-
-      <div className="client-content">
+      <div className="client-profile-layout">
+        <div className="client-content">
         {activeTab === 'overview' && (
           <div className="overview-tab">
             <div className="info-section">
@@ -119,31 +84,41 @@ function ClientProfile() {
               </div>
             </div>
 
-            {client.primary_goal && (
-              <div className="info-section">
-                <h2>Goals</h2>
-                <div className="goal-card">
-                  <h3>Primary Goal</h3>
-                  <p className="capitalize">{client.primary_goal.replace('_', ' ')}</p>
-                  {client.goal_target && (
-                    <p><strong>Target:</strong> {client.goal_target}</p>
-                  )}
-                  {client.goal_timeframe && (
-                    <p><strong>Timeframe:</strong> {client.goal_timeframe}</p>
-                  )}
-                </div>
-                {client.secondary_goals && Array.isArray(client.secondary_goals) && client.secondary_goals.length > 0 && (
-                  <div className="secondary-goals">
-                    <h3>Secondary Goals</h3>
-                    <ul>
-                      {client.secondary_goals.map((goal, index) => (
-                        <li key={index}>{goal}</li>
-                      ))}
-                    </ul>
+            {/* Goals Section */}
+            <div className="info-section">
+              <h2>Goals</h2>
+              {client.primary_goal ? (
+                <>
+                  <div className="goal-card">
+                    <h3>Primary Goal</h3>
+                    <p className="capitalize">{client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    {client.goal_target && (
+                      <p><strong>Target:</strong> {client.goal_target}</p>
+                    )}
+                    {client.goal_timeframe && (
+                      <p><strong>Timeframe:</strong> {client.goal_timeframe}</p>
+                    )}
+                    {client.goal_target && client.goal_timeframe && (
+                      <p className="goal-summary"><strong>Summary:</strong> {client.goal_target} in {client.goal_timeframe}</p>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                  {client.secondary_goals && Array.isArray(client.secondary_goals) && client.secondary_goals.length > 0 && (
+                    <div className="secondary-goals">
+                      <h3>Secondary Goals</h3>
+                      <ul>
+                        {client.secondary_goals.map((goal, index) => (
+                          <li key={index}>{goal}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="no-goal-warning-inline">
+                  <p>⚠️ No goal set for this client. <button onClick={() => setActiveTab('goals')} className="link-button">Set a goal →</button></p>
+                </div>
+              )}
+            </div>
 
             {client.previous_experience && (
               <div className="info-section">
@@ -256,6 +231,11 @@ function ClientProfile() {
                       {checkIn.workout_completed !== null && (
                         <div>
                           <strong>Workout:</strong> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
+                          {checkIn.workout_rating && (
+                            <span className="workout-rating-badge">
+                              {' '}• Rating: <span className="rating-value">{checkIn.workout_rating}/10</span>
+                            </span>
+                          )}
                         </div>
                       )}
                       {checkIn.diet_stuck_to !== null && (
@@ -283,15 +263,20 @@ function ClientProfile() {
           </div>
         )}
 
+        {activeTab === 'goals' && (
+          <ClientGoals clientId={clientId} client={client} onUpdate={fetchClientProfile} />
+        )}
+
         {activeTab === 'workouts' && (
           <ClientWorkouts clientId={clientId} clientName={client.name} />
         )}
 
         {activeTab === 'schedule' && (
-          <div className="schedule-tab">
-            <h2>Schedule</h2>
-            <p>Schedule management coming soon...</p>
-          </div>
+          <ClientSchedule clientId={clientId} clientName={client.name} />
+        )}
+
+        {activeTab === 'nutrition' && (
+          <ClientNutrition clientId={clientId} clientName={client.name} />
         )}
 
         {activeTab === 'payments' && (
@@ -300,6 +285,60 @@ function ClientProfile() {
             <p>Payment management coming soon...</p>
           </div>
         )}
+        </div>
+
+        <div className="client-tabs-sidebar">
+          <div className="client-tabs">
+            <button
+              className={activeTab === 'overview' ? 'active' : ''}
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </button>
+            <button
+              className={activeTab === 'goals' ? 'active' : ''}
+              onClick={() => setActiveTab('goals')}
+            >
+              Goals
+            </button>
+            <button
+              className={activeTab === 'progress' ? 'active' : ''}
+              onClick={() => setActiveTab('progress')}
+            >
+              Progress
+            </button>
+            <button
+              className={activeTab === 'check-ins' ? 'active' : ''}
+              onClick={() => setActiveTab('check-ins')}
+            >
+              Check-ins
+            </button>
+            <button
+              className={activeTab === 'workouts' ? 'active' : ''}
+              onClick={() => setActiveTab('workouts')}
+            >
+              Workouts
+            </button>
+            <button
+              className={activeTab === 'schedule' ? 'active' : ''}
+              onClick={() => setActiveTab('schedule')}
+            >
+              Schedule
+            </button>
+            <button
+              className={activeTab === 'nutrition' ? 'active' : ''}
+              onClick={() => setActiveTab('nutrition')}
+            >
+              Nutrition
+            </button>
+            <button
+              className={activeTab === 'payments' ? 'active' : ''}
+              onClick={() => setActiveTab('payments')}
+            >
+              Payments
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

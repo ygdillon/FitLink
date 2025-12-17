@@ -58,7 +58,7 @@
 }
 
 .radio-option:hover {
-  border-color: #3498db;
+  border-color: #9BCF53;
   background-color: #f8f9fa;
 }
 
@@ -70,11 +70,11 @@
 
 .radio-option input[type="radio"]:checked + span {
   font-weight: 600;
-  color: #3498db;
+  color: #9BCF53;
 }
 
 .radio-option:has(input[type="radio"]:checked) {
-  border-color: #3498db;
+  border-color: #9BCF53;
   background-color: #e8f4f8;
 }
 
@@ -90,7 +90,7 @@
 
 .question-group textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #9BCF53;
 }
 
 .question-group small {
@@ -103,7 +103,7 @@
 .btn-submit {
   width: 100%;
   padding: 1rem;
-  background-color: #27ae60;
+  background-color: #7BA53E;
   color: white;
   border: none;
   border-radius: 4px;
@@ -131,7 +131,7 @@
 }
 
 .submitted-message h2 {
-  color: #27ae60;
+  color: #7BA53E;
   margin-bottom: 1.5rem;
 }
 
@@ -164,7 +164,7 @@
   margin-top: 1.5rem;
   padding: 1rem;
   background: #e8f4f8;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid #9BCF53;
   border-radius: 4px;
 }
 
@@ -207,5 +207,91 @@
 .message.error {
   background-color: #f8d7da;
   color: #721c24;
+}
+
+/* Workout Rating System */
+.rating-container {
+  margin-top: 1rem;
+}
+
+.rating-scale {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rating-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.rating-option input[type="radio"] {
+  display: none;
+}
+
+.rating-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #666;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rating-number:hover {
+  border-color: #9BCF53;
+  background-color: #F5F9F0;
+  transform: scale(1.1);
+}
+
+.rating-number.selected {
+  background: linear-gradient(135deg, #9BCF53, #7BA53E);
+  color: white;
+  border-color: #7BA53E;
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(155, 207, 83, 0.3);
+}
+
+.rating-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #999;
+  margin-bottom: 0.5rem;
+}
+
+.rating-feedback {
+  text-align: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #E8F5D8;
+  border-radius: 4px;
+}
+
+.rating-text {
+  color: #5A7A3A;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.workout-rating-display {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.rating-value {
+  color: #9BCF53;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
