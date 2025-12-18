@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { Container, Title, Text, Badge, Button, Card, Stack, Group, Avatar, Modal, Textarea, Alert, Loader, Accordion, Divider, Paper, Box } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
-import './TrainerRequests.css'
 
 function TrainerRequests() {
   const [requests, setRequests] = useState([])
@@ -8,7 +9,7 @@ function TrainerRequests() {
   const [filter, setFilter] = useState('pending') // 'pending', 'all', 'approved', 'rejected'
   const [message, setMessage] = useState('')
   const [selectedRequest, setSelectedRequest] = useState(null)
-  const [showActionModal, setShowActionModal] = useState(false)
+  const [opened, { open, close }] = useDisclosure(false)
   const [actionType, setActionType] = useState('') // 'approve' or 'reject'
   const [responseMessage, setResponseMessage] = useState('')
   const [expandedRequest, setExpandedRequest] = useState(null) // Track which request is expanded
@@ -35,13 +36,13 @@ function TrainerRequests() {
   const handleApprove = (request) => {
     setSelectedRequest(request)
     setActionType('approve')
-    setShowActionModal(true)
+    open()
   }
 
   const handleReject = (request) => {
     setSelectedRequest(request)
     setActionType('reject')
-    setShowActionModal(true)
+    open()
   }
 
   const submitAction = async () => {
@@ -52,7 +53,7 @@ function TrainerRequests() {
       await api.post(endpoint, { trainerResponse: responseMessage.trim() || null })
       
       setMessage(`Request ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`)
-      setShowActionModal(false)
+      close()
       setSelectedRequest(null)
       setResponseMessage('')
       fetchRequests()
@@ -66,339 +67,308 @@ function TrainerRequests() {
   }
 
   if (loading) {
-    return <div className="trainer-requests-container">Loading...</div>
+    return (
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
+    )
   }
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
 
   return (
-    <div className="trainer-requests-container">
-      <div className="requests-header">
-        <h1>Trainer Requests</h1>
+    <Container size="xl" py="xl">
+      <Group justify="space-between" mb="xl">
+        <Title order={1}>Client Requests</Title>
         {pendingCount > 0 && (
-          <div className="pending-badge">
+          <Badge color="yellow" size="lg" variant="filled">
             {pendingCount} Pending
-          </div>
+          </Badge>
         )}
-      </div>
+      </Group>
 
-      <div className="requests-filters">
-        <button
-          className={filter === 'pending' ? 'active' : ''}
+      <Group mb="md" gap="xs">
+        <Button
+          variant={filter === 'pending' ? 'filled' : 'outline'}
           onClick={() => setFilter('pending')}
+          color="lime.8"
         >
           Pending {pendingCount > 0 && `(${pendingCount})`}
-        </button>
-        <button
-          className={filter === 'all' ? 'active' : ''}
+        </Button>
+        <Button
+          variant={filter === 'all' ? 'filled' : 'outline'}
           onClick={() => setFilter('all')}
+          color="lime.8"
         >
           All Requests
-        </button>
-        <button
-          className={filter === 'approved' ? 'active' : ''}
+        </Button>
+        <Button
+          variant={filter === 'approved' ? 'filled' : 'outline'}
           onClick={() => setFilter('approved')}
+          color="lime.8"
         >
           Approved
-        </button>
-        <button
-          className={filter === 'rejected' ? 'active' : ''}
+        </Button>
+        <Button
+          variant={filter === 'rejected' ? 'filled' : 'outline'}
           onClick={() => setFilter('rejected')}
+          color="lime.8"
         >
           Rejected
-        </button>
-      </div>
+        </Button>
+      </Group>
 
       {message && (
-        <div className={`requests-message ${message.includes('success') ? 'success' : 'error'}`}>
+        <Alert 
+          color={message.includes('success') ? 'green' : 'red'} 
+          mb="md"
+          onClose={() => setMessage('')}
+          withCloseButton
+        >
           {message}
-        </div>
+        </Alert>
       )}
 
       {requests.length === 0 ? (
-        <div className="no-requests">
-          <p>No {filter === 'all' ? '' : filter} requests found.</p>
-        </div>
+        <Paper p="xl" withBorder>
+          <Text c="dimmed" ta="center">
+            No {filter === 'all' ? '' : filter} requests found.
+          </Text>
+        </Paper>
       ) : (
-        <div className="requests-list">
-          {requests.map(request => (
-            <div key={request.id} className={`request-card ${request.status}`}>
-              <div className="request-card-header">
-                <div className="client-info">
-                  <div className="client-avatar">
-                    {request.clientName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3>{request.clientName}</h3>
-                    <p className="client-email">{request.clientEmail}</p>
-                  </div>
-                </div>
-                <span className={`request-status-badge ${request.status}`}>
-                  {request.status === 'pending' && '⏳ Pending'}
-                  {request.status === 'approved' && '✓ Approved'}
-                  {request.status === 'rejected' && '✗ Rejected'}
-                </span>
-              </div>
-
-              {/* Quick Summary */}
-              <div className="request-summary">
-                {request.primaryGoal && (
-                  <div className="summary-item">
-                    <strong>Primary Goal:</strong> {request.primaryGoal}
-                    {request.goalTarget && ` - ${request.goalTarget}`}
-                    {request.goalTimeframe && ` (${request.goalTimeframe})`}
-                  </div>
-                )}
-                {request.location && (
-                  <div className="summary-item">
-                    <strong>Location:</strong> {request.location}
-                  </div>
-                )}
-                {request.age && (
-                  <div className="summary-item">
-                    <strong>Age:</strong> {request.age} {request.gender && `• ${request.gender}`}
-                  </div>
-                )}
-                {request.activityLevel && (
-                  <div className="summary-item">
-                    <strong>Activity Level:</strong> {request.activityLevel}
-                  </div>
-                )}
-              </div>
-
-              {request.message && (
-                <div className="request-message">
-                  <strong>Client Message:</strong>
-                  <p>{request.message}</p>
-                </div>
-              )}
-
-              {/* Expandable Full Profile */}
-              <div className="profile-expand-section">
-                <button
-                  className="btn-expand-profile"
-                  onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
-                >
-                  {expandedRequest === request.id ? '▼ Hide Full Profile' : '▶ View Full Profile'}
-                </button>
-
-                {expandedRequest === request.id && (
-                  <div className="full-profile-details">
-                    {/* Basic Information */}
-                    <div className="profile-section">
-                      <h4>Basic Information</h4>
-                      <div className="profile-grid">
-                        {request.height && <div><strong>Height:</strong> {request.height} inches</div>}
-                        {request.weight && <div><strong>Weight:</strong> {request.weight} lbs</div>}
-                        {request.gender && <div><strong>Gender:</strong> {request.gender}</div>}
-                        {request.age && <div><strong>Age:</strong> {request.age}</div>}
-                        {request.location && <div className="full-width"><strong>Location:</strong> {request.location}</div>}
-                      </div>
-                    </div>
-
-                    {/* Workout Experience */}
-                    {(request.previousExperience || request.activityLevel || request.availableDates) && (
-                      <div className="profile-section">
-                        <h4>Workout Experience</h4>
-                        {request.previousExperience && (
-                          <div className="profile-text"><strong>Experience:</strong> {request.previousExperience}</div>
-                        )}
-                        {request.activityLevel && (
-                          <div><strong>Current Activity Level:</strong> {request.activityLevel}</div>
-                        )}
-                        {request.availableDates && request.availableDates.length > 0 && (
-                          <div className="available-dates-display">
-                            <strong>Available Times:</strong>
-                            <div className="dates-grid">
-                              {request.availableDates.map((date, idx) => (
-                                <span key={idx} className="date-tag">{date.day} - {date.time}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Goals */}
-                    {(request.primaryGoal || request.secondaryGoals) && (
-                      <div className="profile-section">
-                        <h4>Goals</h4>
-                        {request.primaryGoal && (
-                          <div><strong>Primary Goal:</strong> {request.primaryGoal}</div>
-                        )}
-                        {request.goalTarget && (
-                          <div><strong>Target:</strong> {request.goalTarget}</div>
-                        )}
-                        {request.goalTimeframe && (
-                          <div><strong>Timeframe:</strong> {request.goalTimeframe}</div>
-                        )}
-                        {request.secondaryGoals && request.secondaryGoals.length > 0 && (
-                          <div>
-                            <strong>Secondary Goals:</strong>
-                            <div className="goals-list">
-                              {request.secondaryGoals.map((goal, idx) => (
-                                <span key={idx} className="goal-tag">{goal}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Nutrition */}
-                    {(request.nutritionHabits || request.nutritionExperience || request.averageDailyEating) && (
-                      <div className="profile-section">
-                        <h4>Nutrition</h4>
-                        {request.nutritionHabits && (
-                          <div className="profile-text"><strong>Current Habits:</strong> {request.nutritionHabits}</div>
-                        )}
-                        {request.nutritionExperience && (
-                          <div className="profile-text"><strong>Experience:</strong> {request.nutritionExperience}</div>
-                        )}
-                        {request.averageDailyEating && (
-                          <div className="profile-text"><strong>Average Daily Eating:</strong> {request.averageDailyEating}</div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Health & Lifestyle */}
-                    {(request.injuries || request.sleepHours || request.stressLevel || request.lifestyleActivity) && (
-                      <div className="profile-section">
-                        <h4>Health & Lifestyle</h4>
-                        {request.injuries && (
-                          <div className="profile-text"><strong>Injuries/Limitations:</strong> {request.injuries}</div>
-                        )}
-                        {request.sleepHours && (
-                          <div><strong>Sleep:</strong> {request.sleepHours} hours/night</div>
-                        )}
-                        {request.stressLevel && (
-                          <div><strong>Stress Level:</strong> {request.stressLevel}</div>
-                        )}
-                        {request.lifestyleActivity && (
-                          <div className="profile-text"><strong>Lifestyle Activity:</strong> {request.lifestyleActivity}</div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Psychological Factors */}
-                    {(request.psychologicalBarriers || request.mindset || request.motivationWhy) && (
-                      <div className="profile-section">
-                        <h4>Psychological Factors</h4>
-                        {request.psychologicalBarriers && (
-                          <div className="profile-text"><strong>Barriers:</strong> {request.psychologicalBarriers}</div>
-                        )}
-                        {request.mindset && (
-                          <div className="profile-text"><strong>Current Mindset:</strong> {request.mindset}</div>
-                        )}
-                        {request.motivationWhy && (
-                          <div className="profile-text"><strong>Motivation ("Why"):</strong> {request.motivationWhy}</div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Preferences */}
-                    {(request.trainingPreference || request.communicationPreference || request.barriers) && (
-                      <div className="profile-section">
-                        <h4>Preferences</h4>
-                        {request.trainingPreference && (
-                          <div><strong>Training Preference:</strong> {request.trainingPreference}</div>
-                        )}
-                        {request.communicationPreference && (
-                          <div><strong>Communication:</strong> {request.communicationPreference}</div>
-                        )}
-                        {request.barriers && (
-                          <div className="profile-text"><strong>Barriers to Gym:</strong> {request.barriers}</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {request.trainerResponse && (
-                <div className="trainer-response">
-                  <strong>Your Response:</strong>
-                  <p>{request.trainerResponse}</p>
-                </div>
-              )}
-
-              <div className="request-footer">
-                <div className="request-date">
-                  Received: {new Date(request.createdAt).toLocaleDateString()}
-                </div>
-                {request.status === 'pending' && (
-                  <div className="request-actions">
-                    <button
-                      className="btn-approve"
-                      onClick={() => handleApprove(request)}
+        <Stack gap="md">
+          {requests.map(request => {
+            const profile = request.profile || {}
+            return (
+              <Card key={request.id} shadow="sm" padding="lg" radius="md" withBorder>
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Group>
+                      <Avatar color="green" size="md" radius="xl">
+                        {request.clientName.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Title order={4}>{request.clientName}</Title>
+                        <Text size="sm" c="dimmed">{request.clientEmail}</Text>
+                      </Box>
+                    </Group>
+                    <Badge 
+                      color={
+                        request.status === 'approved' ? 'green' : 
+                        request.status === 'rejected' ? 'red' : 'yellow'
+                      }
                     >
-                      Approve
-                    </button>
-                    <button
-                      className="btn-reject"
-                      onClick={() => handleReject(request)}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                      {request.status === 'pending' && '⏳ Pending'}
+                      {request.status === 'approved' && '✓ Approved'}
+                      {request.status === 'rejected' && '✗ Rejected'}
+                    </Badge>
+                  </Group>
+
+                  {/* Quick Summary */}
+                  {(profile.primary_goal || profile.location || profile.age || profile.activity_level) && (
+                    <Group gap="md">
+                      {profile.primary_goal && (
+                        <Text size="sm">
+                          <Text span fw={500}>Goal:</Text> {profile.primary_goal}
+                          {profile.goal_target && ` - ${profile.goal_target}`}
+                        </Text>
+                      )}
+                      {profile.location && (
+                        <Text size="sm">
+                          <Text span fw={500}>Location:</Text> {profile.location}
+                        </Text>
+                      )}
+                      {profile.age && (
+                        <Text size="sm">
+                          <Text span fw={500}>Age:</Text> {profile.age}
+                          {profile.gender && ` • ${profile.gender}`}
+                        </Text>
+                      )}
+                      {profile.activity_level && (
+                        <Text size="sm">
+                          <Text span fw={500}>Activity:</Text> {profile.activity_level}
+                        </Text>
+                      )}
+                    </Group>
+                  )}
+
+                  {request.message && (
+                    <Box>
+                      <Text fw={500} size="sm" mb="xs">Client Message:</Text>
+                      <Text size="sm">{request.message}</Text>
+                    </Box>
+                  )}
+
+                  {/* Expandable Full Profile */}
+                  <Accordion>
+                    <Accordion.Item value="profile">
+                      <Accordion.Control>View Full Profile</Accordion.Control>
+                      <Accordion.Panel>
+                        <Stack gap="md">
+                          {/* Basic Information */}
+                          {(profile.height || profile.weight || profile.gender || profile.age || profile.location) && (
+                            <Box>
+                              <Title order={5} mb="xs">Basic Information</Title>
+                              <Group gap="md">
+                                {profile.height && <Text size="sm"><Text span fw={500}>Height:</Text> {profile.height} cm</Text>}
+                                {profile.weight && <Text size="sm"><Text span fw={500}>Weight:</Text> {profile.weight} kg</Text>}
+                                {profile.gender && <Text size="sm"><Text span fw={500}>Gender:</Text> {profile.gender}</Text>}
+                                {profile.age && <Text size="sm"><Text span fw={500}>Age:</Text> {profile.age}</Text>}
+                                {profile.location && <Text size="sm"><Text span fw={500}>Location:</Text> {profile.location}</Text>}
+                              </Group>
+                            </Box>
+                          )}
+
+                          {/* Goals */}
+                          {(profile.primary_goal || profile.secondary_goals) && (
+                            <Box>
+                              <Title order={5} mb="xs">Goals</Title>
+                              <Stack gap="xs">
+                                {profile.primary_goal && <Text size="sm"><Text span fw={500}>Primary:</Text> {profile.primary_goal}</Text>}
+                                {profile.goal_target && <Text size="sm"><Text span fw={500}>Target:</Text> {profile.goal_target}</Text>}
+                                {profile.goal_timeframe && <Text size="sm"><Text span fw={500}>Timeframe:</Text> {profile.goal_timeframe}</Text>}
+                                {profile.secondary_goals && profile.secondary_goals.length > 0 && (
+                                  <Box>
+                                    <Text size="sm" fw={500} mb="xs">Secondary Goals:</Text>
+                                    <Group gap="xs">
+                                      {profile.secondary_goals.map((goal, idx) => (
+                                        <Badge key={idx} size="sm" variant="light">{goal}</Badge>
+                                      ))}
+                                    </Group>
+                                  </Box>
+                                )}
+                              </Stack>
+                            </Box>
+                          )}
+
+                          {/* Nutrition */}
+                          {(profile.nutrition_habits || profile.nutrition_experience || profile.average_daily_eating) && (
+                            <Box>
+                              <Title order={5} mb="xs">Nutrition</Title>
+                              <Stack gap="xs">
+                                {profile.nutrition_habits && <Text size="sm"><Text span fw={500}>Habits:</Text> {profile.nutrition_habits}</Text>}
+                                {profile.nutrition_experience && <Text size="sm"><Text span fw={500}>Experience:</Text> {profile.nutrition_experience}</Text>}
+                                {profile.average_daily_eating && <Text size="sm"><Text span fw={500}>Daily Eating:</Text> {profile.average_daily_eating}</Text>}
+                              </Stack>
+                            </Box>
+                          )}
+
+                          {/* Health & Lifestyle */}
+                          {(profile.injuries || profile.sleep_hours || profile.stress_level || profile.lifestyle_activity) && (
+                            <Box>
+                              <Title order={5} mb="xs">Health & Lifestyle</Title>
+                              <Stack gap="xs">
+                                {profile.injuries && <Text size="sm"><Text span fw={500}>Injuries:</Text> {profile.injuries}</Text>}
+                                {profile.sleep_hours && <Text size="sm"><Text span fw={500}>Sleep:</Text> {profile.sleep_hours} hours/night</Text>}
+                                {profile.stress_level && <Text size="sm"><Text span fw={500}>Stress:</Text> {profile.stress_level}</Text>}
+                                {profile.lifestyle_activity && <Text size="sm"><Text span fw={500}>Lifestyle:</Text> {profile.lifestyle_activity}</Text>}
+                              </Stack>
+                            </Box>
+                          )}
+
+                          {/* Psychological */}
+                          {(profile.psychological_barriers || profile.mindset || profile.motivation_why) && (
+                            <Box>
+                              <Title order={5} mb="xs">Psychological Factors</Title>
+                              <Stack gap="xs">
+                                {profile.psychological_barriers && <Text size="sm"><Text span fw={500}>Barriers:</Text> {profile.psychological_barriers}</Text>}
+                                {profile.mindset && <Text size="sm"><Text span fw={500}>Mindset:</Text> {profile.mindset}</Text>}
+                                {profile.motivation_why && <Text size="sm"><Text span fw={500}>Motivation:</Text> {profile.motivation_why}</Text>}
+                              </Stack>
+                            </Box>
+                          )}
+
+                          {/* Preferences */}
+                          {(profile.training_preference || profile.communication_preference || profile.barriers) && (
+                            <Box>
+                              <Title order={5} mb="xs">Preferences</Title>
+                              <Stack gap="xs">
+                                {profile.training_preference && <Text size="sm"><Text span fw={500}>Training:</Text> {profile.training_preference}</Text>}
+                                {profile.communication_preference && <Text size="sm"><Text span fw={500}>Communication:</Text> {profile.communication_preference}</Text>}
+                                {profile.barriers && <Text size="sm"><Text span fw={500}>Barriers:</Text> {profile.barriers}</Text>}
+                              </Stack>
+                            </Box>
+                          )}
+                        </Stack>
+                      </Accordion.Panel>
+                    </Accordion.Item>
+                  </Accordion>
+
+                  {request.trainerResponse && (
+                    <Alert color="blue" title="Your Response">
+                      {request.trainerResponse}
+                    </Alert>
+                  )}
+
+                  <Divider />
+
+                  <Group justify="space-between">
+                    <Text size="xs" c="dimmed">
+                      Received: {new Date(request.createdAt).toLocaleDateString()}
+                    </Text>
+                    {request.status === 'pending' && (
+                      <Group>
+                        <Button color="green" onClick={() => handleApprove(request)}>
+                          Approve
+                        </Button>
+                        <Button color="red" variant="outline" onClick={() => handleReject(request)}>
+                          Reject
+                        </Button>
+                      </Group>
+                    )}
+                  </Group>
+                </Stack>
+              </Card>
+            )
+          })}
+        </Stack>
       )}
 
-      {/* Action Modal */}
-      {showActionModal && selectedRequest && (
-        <div className="modal-overlay" onClick={() => setShowActionModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{actionType === 'approve' ? 'Approve' : 'Reject'} Request</h2>
-              <button className="modal-close" onClick={() => setShowActionModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <p>
-                {actionType === 'approve' 
-                  ? `Are you sure you want to approve ${selectedRequest.clientName}'s request? They will be added as your client.`
-                  : `Are you sure you want to reject ${selectedRequest.clientName}'s request?`
-                }
-              </p>
-              <div className="form-group">
-                <label>Response Message (Optional)</label>
-                <textarea
-                  value={responseMessage}
-                  onChange={(e) => setResponseMessage(e.target.value)}
-                  placeholder={actionType === 'approve' 
-                    ? "Welcome! I'm excited to work with you..."
-                    : "Thank you for your interest, but..."
-                  }
-                  rows="4"
-                  className="response-textarea"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-cancel" 
-                onClick={() => {
-                  setShowActionModal(false)
-                  setResponseMessage('')
-                  setSelectedRequest(null)
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className={actionType === 'approve' ? 'btn-confirm-approve' : 'btn-confirm-reject'}
-                onClick={submitAction}
-              >
-                {actionType === 'approve' ? 'Approve Request' : 'Reject Request'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Modal 
+        opened={opened} 
+        onClose={close} 
+        title={`${actionType === 'approve' ? 'Approve' : 'Reject'} Request`}
+      >
+        <Stack gap="md">
+          <Text>
+            {actionType === 'approve' 
+              ? `Are you sure you want to approve ${selectedRequest?.clientName}'s request? They will be added as your client.`
+              : `Are you sure you want to reject ${selectedRequest?.clientName}'s request?`
+            }
+          </Text>
+          <Textarea
+            label="Response Message (Optional)"
+            placeholder={actionType === 'approve' 
+              ? "Welcome! I'm excited to work with you..."
+              : "Thank you for your interest, but..."
+            }
+            value={responseMessage}
+            onChange={(e) => setResponseMessage(e.target.value)}
+            rows={4}
+          />
+          <Group justify="flex-end">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                close()
+                setResponseMessage('')
+                setSelectedRequest(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              color={actionType === 'approve' ? 'green' : 'red'}
+              onClick={submitAction}
+            >
+              {actionType === 'approve' ? 'Approve Request' : 'Reject Request'}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </Container>
   )
 }
 

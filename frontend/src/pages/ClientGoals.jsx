@@ -1,30 +1,48 @@
 import { useState } from 'react'
+import { Paper, Title, Text, Stack, Select, TextInput, Button, Group, Badge, Alert, Loader } from '@mantine/core'
+import { useForm } from '@mantine/form'
+import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import './ClientGoals.css'
 
 function ClientGoals({ clientId, client, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    primary_goal: client.primary_goal || '',
-    goal_target: client.goal_target || '',
-    goal_timeframe: client.goal_timeframe || '',
-    secondary_goals: Array.isArray(client.secondary_goals) ? client.secondary_goals : []
-  })
   const [newSecondaryGoal, setNewSecondaryGoal] = useState('')
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const form = useForm({
+    initialValues: {
+      primary_goal: client.primary_goal || '',
+      goal_target: client.goal_target || '',
+      goal_timeframe: client.goal_timeframe || '',
+      secondary_goals: Array.isArray(client.secondary_goals) ? client.secondary_goals : []
+    },
+    validate: {
+      primary_goal: (value) => (!value ? 'Primary goal is required' : null),
+      goal_target: (value) => (!value ? 'Goal target is required' : null),
+      goal_timeframe: (value) => (!value ? 'Goal timeframe is required' : null),
+    },
+  })
+
+  const handleSubmit = async (values) => {
     setLoading(true)
     
     try {
-      await api.put(`/trainer/clients/${clientId}/onboarding`, formData)
+      await api.put(`/trainer/clients/${clientId}/onboarding`, values)
       setIsEditing(false)
-      onUpdate() // Refresh client data
-      alert('Goals updated successfully!')
+      onUpdate()
+      notifications.show({
+        title: 'Goals Updated',
+        message: 'Client goals have been successfully updated!',
+        color: 'green',
+      })
     } catch (error) {
       console.error('Error updating goals:', error)
-      alert('Failed to update goals')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to update goals',
+        color: 'red',
+      })
     } finally {
       setLoading(false)
     }
@@ -32,188 +50,177 @@ function ClientGoals({ clientId, client, onUpdate }) {
 
   const addSecondaryGoal = () => {
     if (newSecondaryGoal.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        secondary_goals: [...prev.secondary_goals, newSecondaryGoal.trim()]
-      }))
+      form.setFieldValue('secondary_goals', [...form.values.secondary_goals, newSecondaryGoal.trim()])
       setNewSecondaryGoal('')
     }
   }
 
   const removeSecondaryGoal = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      secondary_goals: prev.secondary_goals.filter((_, i) => i !== index)
-    }))
+    form.setFieldValue('secondary_goals', form.values.secondary_goals.filter((_, i) => i !== index))
   }
 
   if (!client.primary_goal && !isEditing) {
     return (
-      <div className="client-goals-container">
-        <div className="no-goal-warning">
-          <h2>⚠️ No Goal Set</h2>
-          <p>This client doesn't have a goal set yet. Setting a clear goal is essential for tracking progress and success.</p>
-          <button onClick={() => setIsEditing(true)} className="btn-primary">
+      <Paper p="xl" withBorder>
+        <Stack gap="md" align="center">
+          <Alert color="yellow" title="⚠️ No Goal Set">
+            This client doesn't have a goal set yet. Setting a clear goal is essential for tracking progress and success.
+          </Alert>
+          <Button onClick={() => setIsEditing(true)}>
             Set Client Goal
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Stack>
+      </Paper>
     )
   }
 
   return (
-    <div className="client-goals-container">
-      <div className="goals-header">
-        <h2>Client Goals</h2>
+    <Stack gap="md">
+      <Group justify="space-between">
+        <Title order={2}>Client Goals</Title>
         {!isEditing && (
-          <button onClick={() => setIsEditing(true)} className="btn-edit-goal">
+          <Button onClick={() => setIsEditing(true)} variant="outline">
             Edit Goals
-          </button>
+          </Button>
         )}
-      </div>
+      </Group>
 
       {isEditing ? (
-        <form onSubmit={handleSubmit} className="goals-form">
-          <div className="form-section">
-            <h3>Primary Goal *</h3>
-            <div className="form-group">
-              <label>Goal Type *</label>
-              <select
-                value={formData.primary_goal}
-                onChange={(e) => setFormData({ ...formData, primary_goal: e.target.value })}
+        <Paper p="md" withBorder>
+          <form onSubmit={form.onSubmit(handleSubmit)}>
+            <Stack gap="md">
+              <Title order={3}>Primary Goal *</Title>
+              <Select
+                label="Goal Type *"
+                placeholder="Select a goal"
+                data={[
+                  'Weight Loss',
+                  'Muscle Gain',
+                  'Tone & Strengthen',
+                  'Improve Strength',
+                  'Improve Cardio',
+                  'Improve Flexibility',
+                  'Improve Performance',
+                  'Build Healthy Habits',
+                  'Increase Energy',
+                  'Reduce Stress'
+                ]}
+                {...form.getInputProps('primary_goal')}
                 required
-              >
-                <option value="">Select a goal...</option>
-                <option value="weight_loss">Weight Loss</option>
-                <option value="muscle_gain">Muscle Gain</option>
-                <option value="tone_and_strengthen">Tone & Strengthen</option>
-                <option value="improve_strength">Improve Strength</option>
-                <option value="improve_cardio">Improve Cardio</option>
-                <option value="improve_flexibility">Improve Flexibility</option>
-                <option value="improve_performance">Improve Performance</option>
-                <option value="build_habits">Build Healthy Habits</option>
-                <option value="increase_energy">Increase Energy</option>
-                <option value="reduce_stress">Reduce Stress</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Target *</label>
-              <input
-                type="text"
-                value={formData.goal_target}
-                onChange={(e) => setFormData({ ...formData, goal_target: e.target.value })}
-                required
+              />
+              <TextInput
+                label="Target *"
                 placeholder="e.g., Lose 20 lbs, Gain 10 lbs muscle, Bench 225 lbs"
-              />
-            </div>
-            <div className="form-group">
-              <label>Timeframe *</label>
-              <input
-                type="text"
-                value={formData.goal_timeframe}
-                onChange={(e) => setFormData({ ...formData, goal_timeframe: e.target.value })}
+                {...form.getInputProps('goal_target')}
                 required
+              />
+              <TextInput
+                label="Timeframe *"
                 placeholder="e.g., 3 months, 6 months, 1 year"
+                {...form.getInputProps('goal_timeframe')}
+                required
               />
-            </div>
-          </div>
 
-          <div className="form-section">
-            <h3>Secondary Goals</h3>
-            <div className="secondary-goals-input">
-              <input
-                type="text"
-                value={newSecondaryGoal}
-                onChange={(e) => setNewSecondaryGoal(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSecondaryGoal())}
-                placeholder="Add a secondary goal..."
-              />
-              <button type="button" onClick={addSecondaryGoal} className="btn-add-goal">
-                Add
-              </button>
-            </div>
-            {formData.secondary_goals.length > 0 && (
-              <div className="secondary-goals-list">
-                {formData.secondary_goals.map((goal, index) => (
-                  <div key={index} className="secondary-goal-tag">
-                    {goal}
-                    <button
-                      type="button"
-                      onClick={() => removeSecondaryGoal(index)}
-                      className="btn-remove-tag"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+              <div>
+                <Title order={4} mb="xs">Secondary Goals</Title>
+                <Group mb="xs">
+                  <TextInput
+                    placeholder="Add a secondary goal..."
+                    value={newSecondaryGoal}
+                    onChange={(e) => setNewSecondaryGoal(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSecondaryGoal())}
+                    style={{ flex: 1 }}
+                  />
+                  <Button onClick={addSecondaryGoal} variant="outline">
+                    Add
+                  </Button>
+                </Group>
+                {form.values.secondary_goals.length > 0 && (
+                  <Group gap="xs">
+                    {form.values.secondary_goals.map((goal, index) => (
+                      <Badge
+                        key={index}
+                        variant="light"
+                        rightSection={
+                          <button
+                            type="button"
+                            onClick={() => removeSecondaryGoal(index)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 4 }}
+                          >
+                            ×
+                          </button>
+                        }
+                      >
+                        {goal}
+                      </Badge>
+                    ))}
+                  </Group>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="form-actions">
-            <button type="button" onClick={() => {
-              setIsEditing(false)
-              setFormData({
-                primary_goal: client.primary_goal || '',
-                goal_target: client.goal_target || '',
-                goal_timeframe: client.goal_timeframe || '',
-                secondary_goals: Array.isArray(client.secondary_goals) ? client.secondary_goals : []
-              })
-            }}>
-              Cancel
-            </button>
-            <button type="submit" disabled={loading} className="btn-primary">
-              {loading ? 'Saving...' : 'Save Goals'}
-            </button>
-          </div>
-        </form>
+              <Group justify="flex-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false)
+                    form.setValues({
+                      primary_goal: client.primary_goal || '',
+                      goal_target: client.goal_target || '',
+                      goal_timeframe: client.goal_timeframe || '',
+                      secondary_goals: Array.isArray(client.secondary_goals) ? client.secondary_goals : []
+                    })
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" loading={loading}>
+                  Save Goals
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Paper>
       ) : (
-        <div className="goals-display">
-          <div className="primary-goal-card">
-            <div className="goal-header">
-              <h3>Primary Goal</h3>
-              <span className="goal-type-badge">
+        <Stack gap="md">
+          <Paper p="md" withBorder>
+            <Group justify="space-between" mb="md">
+              <Title order={3}>Primary Goal</Title>
+              <Badge size="lg" variant="light">
                 {client.primary_goal ? client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Not Set'}
-              </span>
-            </div>
-            {client.goal_target && (
-              <div className="goal-detail">
-                <strong>Target:</strong> {client.goal_target}
-              </div>
-            )}
-            {client.goal_timeframe && (
-              <div className="goal-detail">
-                <strong>Timeframe:</strong> {client.goal_timeframe}
-              </div>
-            )}
-            {client.goal_target && client.goal_timeframe && (
-              <div className="goal-summary">
-                <strong>Goal Summary:</strong> {client.goal_target} in {client.goal_timeframe}
-              </div>
-            )}
-          </div>
+              </Badge>
+            </Group>
+            <Stack gap="xs">
+              {client.goal_target && (
+                <Text><Text span fw={500}>Target:</Text> {client.goal_target}</Text>
+              )}
+              {client.goal_timeframe && (
+                <Text><Text span fw={500}>Timeframe:</Text> {client.goal_timeframe}</Text>
+              )}
+              {client.goal_target && client.goal_timeframe && (
+                <Text fw={500} c="green">
+                  Goal Summary: {client.goal_target} in {client.goal_timeframe}
+                </Text>
+              )}
+            </Stack>
+          </Paper>
 
-          {client.secondary_goals && Array.isArray(client.secondary_goals) && client.secondary_goals.length > 0 && (
-            <div className="secondary-goals-section">
-              <h3>Secondary Goals</h3>
-              <div className="secondary-goals-grid">
+          {client.secondary_goals && Array.isArray(client.secondary_goals) && client.secondary_goals.length > 0 ? (
+            <Paper p="md" withBorder>
+              <Title order={3} mb="md">Secondary Goals</Title>
+              <Group gap="xs">
                 {client.secondary_goals.map((goal, index) => (
-                  <div key={index} className="secondary-goal-card">
+                  <Badge key={index} size="lg" variant="light">
                     {goal}
-                  </div>
+                  </Badge>
                 ))}
-              </div>
-            </div>
+              </Group>
+            </Paper>
+          ) : (
+            <Text c="dimmed">No secondary goals set. Click "Edit Goals" to add some.</Text>
           )}
-
-          {(!client.secondary_goals || client.secondary_goals.length === 0) && (
-            <div className="no-secondary-goals">
-              <p>No secondary goals set. Click "Edit Goals" to add some.</p>
-            </div>
-          )}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   )
 }
 

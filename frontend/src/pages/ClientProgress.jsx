@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, Grid, Progress, NumberInput, Select, TextInput } from '@mantine/core'
+import { useForm } from '@mantine/form'
+import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import './ClientProgress.css'
 
@@ -11,12 +14,18 @@ function ClientProgress() {
   const [progressEntries, setProgressEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddMetric, setShowAddMetric] = useState(false)
-  const [newMetric, setNewMetric] = useState({
-    metric_name: '',
-    metric_type: 'custom',
-    unit: '',
-    target_value: '',
-    current_value: ''
+  
+  const metricForm = useForm({
+    initialValues: {
+      metric_name: '',
+      metric_type: 'custom',
+      unit: '',
+      target_value: '',
+      current_value: ''
+    },
+    validate: {
+      metric_name: (value) => (!value ? 'Metric name is required' : null),
+    },
   })
 
   useEffect(() => {
@@ -36,199 +45,185 @@ function ClientProgress() {
     }
   }
 
-  const handleAddMetric = async (e) => {
-    e.preventDefault()
+  const handleAddMetric = async (values) => {
     try {
-      await api.post(`/trainer/clients/${clientId}/metrics`, newMetric)
-      setNewMetric({
-        metric_name: '',
-        metric_type: 'custom',
-        unit: '',
-        target_value: '',
-        current_value: ''
-      })
+      await api.post(`/trainer/clients/${clientId}/metrics`, values)
+      metricForm.reset()
       setShowAddMetric(false)
       fetchClientData()
+      notifications.show({
+        title: 'Metric Added',
+        message: 'Custom metric has been successfully added!',
+        color: 'green',
+      })
     } catch (error) {
       console.error('Error adding metric:', error)
-      alert('Failed to add metric')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to add metric',
+        color: 'red',
+      })
     }
   }
 
   if (loading) {
-    return <div className="client-progress-container">Loading...</div>
+    return (
+      <Group justify="center" py="xl">
+        <Loader size="lg" />
+      </Group>
+    )
   }
 
   if (!client) {
-    return <div className="client-progress-container">Client not found</div>
+    return (
+      <Container size="xl" py="xl">
+        <Alert color="red" title="Client Not Found">
+          The requested client could not be found.
+        </Alert>
+      </Container>
+    )
   }
 
   return (
-    <div className="client-progress-container">
-      <div className="progress-header">
+    <Container size="xl" py="xl">
+      <Group justify="space-between" mb="xl">
         <div>
-          <button onClick={() => navigate(`/trainer/clients/${clientId}`)} className="btn-back">
+          <Button variant="subtle" onClick={() => navigate(`/trainer/clients/${clientId}`)} mb="xs">
             ← Back to Client Profile
-          </button>
-          <h1>Progress Tracking - {client.name}</h1>
+          </Button>
+          <Title order={1}>Progress Tracking - {client.name}</Title>
         </div>
-        <button onClick={() => setShowAddMetric(!showAddMetric)} className="btn-add-metric">
+        <Button onClick={() => setShowAddMetric(!showAddMetric)}>
           + Add Custom Metric
-        </button>
-      </div>
+        </Button>
+      </Group>
 
       {showAddMetric && (
-        <div className="add-metric-card">
-          <h2>Add Custom Metric</h2>
-          <form onSubmit={handleAddMetric}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Metric Name *</label>
-                <input
-                  type="text"
-                  value={newMetric.metric_name}
-                  onChange={(e) => setNewMetric({...newMetric, metric_name: e.target.value})}
-                  required
+        <Paper p="md" withBorder mb="xl">
+          <Title order={3} mb="md">Add Custom Metric</Title>
+          <form onSubmit={metricForm.onSubmit(handleAddMetric)}>
+            <Stack gap="md">
+              <Group grow>
+                <TextInput
+                  label="Metric Name *"
                   placeholder="e.g., Bench Press Max, Waist Measurement"
+                  {...metricForm.getInputProps('metric_name')}
+                  required
                 />
-              </div>
-              <div className="form-group">
-                <label>Type</label>
-                <select
-                  value={newMetric.metric_type}
-                  onChange={(e) => setNewMetric({...newMetric, metric_type: e.target.value})}
-                >
-                  <option value="custom">Custom</option>
-                  <option value="weight">Weight</option>
-                  <option value="strength">Strength</option>
-                  <option value="measurement">Measurement</option>
-                  <option value="endurance">Endurance</option>
-                </select>
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Unit</label>
-                <input
-                  type="text"
-                  value={newMetric.unit}
-                  onChange={(e) => setNewMetric({...newMetric, unit: e.target.value})}
+                <Select
+                  label="Type"
+                  data={['Custom', 'Weight', 'Strength', 'Measurement', 'Endurance']}
+                  {...metricForm.getInputProps('metric_type')}
+                />
+              </Group>
+              <Group grow>
+                <TextInput
+                  label="Unit"
                   placeholder="e.g., lbs, kg, reps, inches"
+                  {...metricForm.getInputProps('unit')}
                 />
-              </div>
-              <div className="form-group">
-                <label>Current Value</label>
-                <input
-                  type="number"
-                  value={newMetric.current_value}
-                  onChange={(e) => setNewMetric({...newMetric, current_value: e.target.value})}
-                  step="0.1"
+                <NumberInput
+                  label="Current Value"
                   placeholder="Current"
+                  step={0.1}
+                  {...metricForm.getInputProps('current_value')}
                 />
-              </div>
-              <div className="form-group">
-                <label>Target Value</label>
-                <input
-                  type="number"
-                  value={newMetric.target_value}
-                  onChange={(e) => setNewMetric({...newMetric, target_value: e.target.value})}
-                  step="0.1"
+                <NumberInput
+                  label="Target Value"
                   placeholder="Target"
+                  step={0.1}
+                  {...metricForm.getInputProps('target_value')}
                 />
-              </div>
-            </div>
-            <div className="form-actions">
-              <button type="submit" className="btn-primary">Add Metric</button>
-              <button type="button" onClick={() => setShowAddMetric(false)} className="btn-secondary">
-                Cancel
-              </button>
-            </div>
+              </Group>
+              <Group justify="flex-end">
+                <Button variant="outline" onClick={() => setShowAddMetric(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Add Metric
+                </Button>
+              </Group>
+            </Stack>
           </form>
-        </div>
+        </Paper>
       )}
 
-      <div className="progress-grid">
-        {/* Custom Metrics Section */}
-        <div className="metrics-section">
-          <h2>Custom Metrics</h2>
-          {customMetrics.length === 0 ? (
-            <p>No custom metrics yet. Add one to start tracking!</p>
-          ) : (
-            <div className="metrics-grid">
-              {customMetrics.map(metric => (
-                <div key={metric.id} className="metric-card">
-                  <h3>{metric.metric_name}</h3>
-                  <div className="metric-values">
-                    <div className="current-value">
-                      {metric.current_value || 'N/A'} {metric.unit}
-                    </div>
-                    {metric.target_value && (
-                      <div className="target-value">
-                        Target: {metric.target_value} {metric.unit}
-                      </div>
-                    )}
-                  </div>
-                  {metric.target_value && metric.current_value && (
-                    <div className="progress-bar-container">
-                      <div 
-                        className="progress-bar"
-                        style={{
-                          width: `${Math.min((metric.current_value / metric.target_value) * 100, 100)}%`
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <Grid>
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Paper p="md" withBorder>
+            <Title order={2} mb="md">Custom Metrics</Title>
+            {customMetrics.length === 0 ? (
+              <Text c="dimmed">No custom metrics yet. Add one to start tracking!</Text>
+            ) : (
+              <Stack gap="md">
+                {customMetrics.map(metric => (
+                  <Card key={metric.id} withBorder>
+                    <Stack gap="xs">
+                      <Title order={4}>{metric.metric_name}</Title>
+                      <Group>
+                        <Text fw={500}>
+                          {metric.current_value || 'N/A'} {metric.unit}
+                        </Text>
+                        {metric.target_value && (
+                          <Text size="sm" c="dimmed">
+                            Target: {metric.target_value} {metric.unit}
+                          </Text>
+                        )}
+                      </Group>
+                      {metric.target_value && metric.current_value && (
+                        <Progress 
+                          value={Math.min((metric.current_value / metric.target_value) * 100, 100)} 
+                          color="green"
+                        />
+                      )}
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
+            )}
+          </Paper>
+        </Grid.Col>
 
-        {/* Progress Entries Section */}
-        <div className="entries-section">
-          <h2>Progress History</h2>
-          {progressEntries.length === 0 ? (
-            <p>No progress entries yet</p>
-          ) : (
-            <div className="progress-timeline">
-              {progressEntries.map(entry => (
-                <div key={entry.id} className="timeline-entry">
-                  <div className="timeline-date">
-                    {new Date(entry.date).toLocaleDateString()}
-                  </div>
-                  <div className="timeline-content">
-                    <div className="entry-metrics">
-                      {entry.weight && (
-                        <div className="metric-badge">
-                          Weight: {entry.weight} lbs
-                        </div>
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Paper p="md" withBorder>
+            <Title order={2} mb="md">Progress History</Title>
+            {progressEntries.length === 0 ? (
+              <Text c="dimmed">No progress entries yet</Text>
+            ) : (
+              <Stack gap="md">
+                {progressEntries.map(entry => (
+                  <Card key={entry.id} withBorder>
+                    <Stack gap="xs">
+                      <Text fw={500}>{new Date(entry.date).toLocaleDateString()}</Text>
+                      <Group gap="xs">
+                        {entry.weight && (
+                          <Badge variant="light">Weight: {entry.weight} kg</Badge>
+                        )}
+                        {entry.body_fat && (
+                          <Badge variant="light">Body Fat: {entry.body_fat}%</Badge>
+                        )}
+                        {entry.measurements && (
+                          <>
+                            {Object.entries(JSON.parse(entry.measurements || '{}')).map(([key, value]) => (
+                              <Badge key={key} variant="light">
+                                {key}: {value} in
+                              </Badge>
+                            ))}
+                          </>
+                        )}
+                      </Group>
+                      {entry.notes && (
+                        <Text size="sm" c="dimmed">{entry.notes}</Text>
                       )}
-                      {entry.body_fat && (
-                        <div className="metric-badge">
-                          Body Fat: {entry.body_fat}%
-                        </div>
-                      )}
-                      {entry.measurements && (
-                        <div className="measurements">
-                          {Object.entries(JSON.parse(entry.measurements || '{}')).map(([key, value]) => (
-                            <div key={key} className="metric-badge">
-                              {key}: {value} in
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {entry.notes && (
-                      <div className="entry-notes">{entry.notes}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
+            )}
+          </Paper>
+        </Grid.Col>
+      </Grid>
+    </Container>
   )
 }
 

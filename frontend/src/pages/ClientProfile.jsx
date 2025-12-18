@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Container, Title, Text, Tabs, Paper, Card, Badge, Button, Stack, Group, Grid, Loader, Alert, Box } from '@mantine/core'
 import api from '../services/api'
 import ClientWorkouts from './ClientWorkouts'
 import ClientSchedule from './ClientSchedule'
@@ -30,317 +31,274 @@ function ClientProfile() {
   }
 
   if (loading) {
-    return <div className="client-profile-container">Loading...</div>
+    return (
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
+    )
   }
 
   if (!client) {
-    return <div className="client-profile-container">Client not found</div>
+    return (
+      <Container size="xl" py="xl">
+        <Alert color="red" title="Client Not Found">
+          The requested client could not be found.
+        </Alert>
+      </Container>
+    )
   }
 
   return (
-    <div className="client-profile-container">
-      <div className="client-profile-header">
-        <h1>{client.name}</h1>
-        <div className="client-status-badge">
+    <Container size="xl" py="xl">
+      <Group justify="space-between" mb="xl">
+        <Title order={1}>{client.name}</Title>
+        <Badge color={client.status === 'active' ? 'green' : 'gray'} size="lg">
           {client.status || 'active'}
-        </div>
-      </div>
+        </Badge>
+      </Group>
 
-      <div className="client-profile-layout">
-        <div className="client-content">
-        {activeTab === 'overview' && (
-          <div className="overview-tab">
-            <div className="info-section">
-              <h2>Onboarding Information</h2>
-              <div className="info-grid">
-                <div className="info-item">
-                  <label>Email</label>
-                  <div>{client.email}</div>
-                </div>
-                {client.height && (
-                  <div className="info-item">
-                    <label>Height</label>
-                    <div>{client.height} inches</div>
-                  </div>
-                )}
-                {client.weight && (
-                  <div className="info-item">
-                    <label>Weight</label>
-                    <div>{client.weight} lbs</div>
-                  </div>
-                )}
-                {client.age && (
-                  <div className="info-item">
-                    <label>Age</label>
-                    <div>{client.age}</div>
-                  </div>
-                )}
-                {client.gender && (
-                  <div className="info-item">
-                    <label>Gender</label>
-                    <div className="capitalize">{client.gender}</div>
-                  </div>
-                )}
-              </div>
-            </div>
+      <Tabs value={activeTab} onChange={setActiveTab} orientation="vertical" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+        <Box style={{ flex: '0 0 180px' }}>
+          <Tabs.List>
+            <Tabs.Tab value="overview">Overview</Tabs.Tab>
+            <Tabs.Tab value="goals">Goals</Tabs.Tab>
+            <Tabs.Tab value="progress">Progress</Tabs.Tab>
+            <Tabs.Tab value="check-ins">Check-ins</Tabs.Tab>
+            <Tabs.Tab value="workouts">Workouts</Tabs.Tab>
+            <Tabs.Tab value="schedule">Schedule</Tabs.Tab>
+            <Tabs.Tab value="nutrition">Nutrition</Tabs.Tab>
+            <Tabs.Tab value="payments">Payments</Tabs.Tab>
+          </Tabs.List>
+        </Box>
 
-            {/* Goals Section */}
-            <div className="info-section">
-              <h2>Goals</h2>
-              {client.primary_goal ? (
-                <>
-                  <div className="goal-card">
-                    <h3>Primary Goal</h3>
-                    <p className="capitalize">{client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                    {client.goal_target && (
-                      <p><strong>Target:</strong> {client.goal_target}</p>
+        <Box style={{ flex: 1, minWidth: 0 }}>
+            <Tabs.Panel value="overview">
+              <Stack gap="md">
+                <Paper p="md" withBorder>
+                  <Title order={3} mb="md">Onboarding Information</Title>
+                  <Grid>
+                    <Grid.Col span={6}>
+                      <Text size="sm" c="dimmed">Email</Text>
+                      <Text>{client.email}</Text>
+                    </Grid.Col>
+                    {client.height && (
+                      <Grid.Col span={6}>
+                        <Text size="sm" c="dimmed">Height</Text>
+                        <Text>{client.height} cm</Text>
+                      </Grid.Col>
                     )}
-                    {client.goal_timeframe && (
-                      <p><strong>Timeframe:</strong> {client.goal_timeframe}</p>
+                    {client.weight && (
+                      <Grid.Col span={6}>
+                        <Text size="sm" c="dimmed">Weight</Text>
+                        <Text>{client.weight} kg</Text>
+                      </Grid.Col>
                     )}
-                    {client.goal_target && client.goal_timeframe && (
-                      <p className="goal-summary"><strong>Summary:</strong> {client.goal_target} in {client.goal_timeframe}</p>
+                    {client.age && (
+                      <Grid.Col span={6}>
+                        <Text size="sm" c="dimmed">Age</Text>
+                        <Text>{client.age}</Text>
+                      </Grid.Col>
                     )}
-                  </div>
-                  {client.secondary_goals && Array.isArray(client.secondary_goals) && client.secondary_goals.length > 0 && (
-                    <div className="secondary-goals">
-                      <h3>Secondary Goals</h3>
-                      <ul>
-                        {client.secondary_goals.map((goal, index) => (
-                          <li key={index}>{goal}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    {client.gender && (
+                      <Grid.Col span={6}>
+                        <Text size="sm" c="dimmed">Gender</Text>
+                        <Text>{client.gender}</Text>
+                      </Grid.Col>
+                    )}
+                  </Grid>
+                </Paper>
+
+                <Paper p="md" withBorder>
+                  <Title order={3} mb="md">Goals</Title>
+                  {client.primary_goal ? (
+                    <Stack gap="sm">
+                      <Card withBorder>
+                        <Title order={4} mb="xs">Primary Goal</Title>
+                        <Text>{client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</Text>
+                        {client.goal_target && <Text><Text span fw={500}>Target:</Text> {client.goal_target}</Text>}
+                        {client.goal_timeframe && <Text><Text span fw={500}>Timeframe:</Text> {client.goal_timeframe}</Text>}
+                      </Card>
+                      {client.secondary_goals && Array.isArray(client.secondary_goals) && client.secondary_goals.length > 0 && (
+                        <div>
+                          <Text fw={500} mb="xs">Secondary Goals</Text>
+                          <Group gap="xs">
+                            {client.secondary_goals.map((goal, index) => (
+                              <Badge key={index} variant="light">{goal}</Badge>
+                            ))}
+                          </Group>
+                        </div>
+                      )}
+                    </Stack>
+                  ) : (
+                    <Alert color="yellow">
+                      ⚠️ No goal set for this client. <Button variant="subtle" size="xs" onClick={() => setActiveTab('goals')}>Set a goal →</Button>
+                    </Alert>
                   )}
-                </>
-              ) : (
-                <div className="no-goal-warning-inline">
-                  <p>⚠️ No goal set for this client. <button onClick={() => setActiveTab('goals')} className="link-button">Set a goal →</button></p>
-                </div>
-              )}
-            </div>
+                </Paper>
 
-            {client.previous_experience && (
-              <div className="info-section">
-                <h2>Previous Experience</h2>
-                <p>{client.previous_experience}</p>
-              </div>
-            )}
+                {client.previous_experience && (
+                  <Paper p="md" withBorder>
+                    <Title order={3} mb="xs">Previous Experience</Title>
+                    <Text>{client.previous_experience}</Text>
+                  </Paper>
+                )}
 
-            {client.average_daily_eating && (
-              <div className="info-section">
-                <h2>Daily Eating Habits</h2>
-                <p>{client.average_daily_eating}</p>
-              </div>
-            )}
+                {client.average_daily_eating && (
+                  <Paper p="md" withBorder>
+                    <Title order={3} mb="xs">Daily Eating Habits</Title>
+                    <Text>{client.average_daily_eating}</Text>
+                  </Paper>
+                )}
 
-            {client.barriers && (
-              <div className="info-section">
-                <h2>Barriers</h2>
-                <p>{client.barriers}</p>
-              </div>
-            )}
+                {client.barriers && (
+                  <Paper p="md" withBorder>
+                    <Title order={3} mb="xs">Barriers</Title>
+                    <Text>{client.barriers}</Text>
+                  </Paper>
+                )}
 
-            <div className="info-section">
-              <h2>Preferences</h2>
-              <div className="info-grid">
-                {client.training_preference && (
-                  <div className="info-item">
-                    <label>Training Preference</label>
-                    <div className="capitalize">{client.training_preference}</div>
+                <Paper p="md" withBorder>
+                  <Title order={3} mb="md">Preferences</Title>
+                  <Grid>
+                    {client.training_preference && (
+                      <Grid.Col span={6}>
+                        <Text size="sm" c="dimmed">Training Preference</Text>
+                        <Text>{client.training_preference}</Text>
+                      </Grid.Col>
+                    )}
+                    {client.communication_preference && (
+                      <Grid.Col span={6}>
+                        <Text size="sm" c="dimmed">Communication</Text>
+                        <Text>{client.communication_preference}</Text>
+                      </Grid.Col>
+                    )}
+                  </Grid>
+                </Paper>
+              </Stack>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="progress">
+              <Stack gap="md">
+                <Group justify="space-between">
+                  <Title order={2}>Progress Tracking</Title>
+                  <Button onClick={() => navigate(`/trainer/clients/${clientId}/progress`)}>
+                    View Full Progress
+                  </Button>
+                </Group>
+                {client.recent_progress && client.recent_progress.length > 0 ? (
+                  <Stack gap="sm">
+                    {client.recent_progress.map(entry => (
+                      <Card key={entry.id} withBorder>
+                        <Group justify="space-between" mb="xs">
+                          <Text fw={500}>{new Date(entry.date).toLocaleDateString()}</Text>
+                          <Group gap="md">
+                            {entry.weight && <Text size="sm">Weight: {entry.weight} kg</Text>}
+                            {entry.body_fat && <Text size="sm">Body Fat: {entry.body_fat}%</Text>}
+                          </Group>
+                        </Group>
+                        {entry.notes && <Text size="sm" c="dimmed">{entry.notes}</Text>}
+                      </Card>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Text c="dimmed">No progress entries yet</Text>
+                )}
+
+                {client.custom_metrics && client.custom_metrics.length > 0 && (
+                  <div>
+                    <Title order={3} mb="md">Custom Metrics</Title>
+                    <Grid>
+                      {client.custom_metrics.map(metric => (
+                        <Grid.Col key={metric.id} span={4}>
+                          <Card withBorder>
+                            <Text fw={500} mb="xs">{metric.metric_name}</Text>
+                            <Text size="lg" fw={700}>{metric.current_value} {metric.unit}</Text>
+                            {metric.target_value && (
+                              <Text size="sm" c="dimmed">Target: {metric.target_value} {metric.unit}</Text>
+                            )}
+                          </Card>
+                        </Grid.Col>
+                      ))}
+                    </Grid>
                   </div>
                 )}
-                {client.communication_preference && (
-                  <div className="info-item">
-                    <label>Communication</label>
-                    <div className="capitalize">{client.communication_preference}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+              </Stack>
+            </Tabs.Panel>
 
-        {activeTab === 'progress' && (
-          <div className="progress-tab">
-            <div className="progress-header">
-              <h2>Progress Tracking</h2>
-              <button 
-                onClick={() => navigate(`/trainer/clients/${clientId}/progress`)}
-                className="btn-view-full"
-              >
-                View Full Progress
-              </button>
-            </div>
-            {client.recent_progress && client.recent_progress.length > 0 ? (
-              <div className="progress-entries">
-                {client.recent_progress.map(entry => (
-                  <div key={entry.id} className="progress-entry-card">
-                    <div className="entry-date">
-                      {new Date(entry.date).toLocaleDateString()}
-                    </div>
-                    <div className="entry-metrics">
-                      {entry.weight && <span>Weight: {entry.weight} lbs</span>}
-                      {entry.body_fat && <span>Body Fat: {entry.body_fat}%</span>}
-                    </div>
-                    {entry.notes && <p className="entry-notes">{entry.notes}</p>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No progress entries yet</p>
-            )}
-
-            {client.custom_metrics && client.custom_metrics.length > 0 && (
-              <div className="custom-metrics-section">
-                <h3>Custom Metrics</h3>
-                <div className="metrics-grid">
-                  {client.custom_metrics.map(metric => (
-                    <div key={metric.id} className="metric-card">
-                      <h4>{metric.metric_name}</h4>
-                      <div className="metric-value">
-                        {metric.current_value} {metric.unit}
-                      </div>
-                      {metric.target_value && (
-                        <div className="metric-target">
-                          Target: {metric.target_value} {metric.unit}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'check-ins' && (
-          <div className="check-ins-tab">
-            <h2>Daily Check-ins</h2>
-            {client.check_ins && client.check_ins.length > 0 ? (
-              <div className="check-ins-list">
-                {client.check_ins.map(checkIn => (
-                  <div key={checkIn.id} className="check-in-card">
-                    <div className="check-in-header">
-                      <strong>{new Date(checkIn.check_in_date).toLocaleDateString()}</strong>
-                      <span className={`status-badge ${checkIn.status}`}>
-                        {checkIn.status}
-                      </span>
-                    </div>
-                    <div className="check-in-answers">
-                      {checkIn.workout_completed !== null && (
-                        <div>
-                          <strong>Workout:</strong> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
-                          {checkIn.workout_rating && (
-                            <span className="workout-rating-badge">
-                              {' '}• Rating: <span className="rating-value">{checkIn.workout_rating}/10</span>
-                            </span>
+            <Tabs.Panel value="check-ins">
+              <Stack gap="md">
+                <Title order={2}>Daily Check-ins</Title>
+                {client.check_ins && client.check_ins.length > 0 ? (
+                  <Stack gap="sm">
+                    {client.check_ins.map(checkIn => (
+                      <Card key={checkIn.id} withBorder>
+                        <Group justify="space-between" mb="xs">
+                          <Text fw={500}>{new Date(checkIn.check_in_date).toLocaleDateString()}</Text>
+                          <Badge color={checkIn.status === 'completed' ? 'green' : 'yellow'}>
+                            {checkIn.status}
+                          </Badge>
+                        </Group>
+                        <Stack gap="xs">
+                          {checkIn.workout_completed !== null && (
+                            <Text size="sm">
+                              <Text span fw={500}>Workout:</Text> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
+                              {checkIn.workout_rating && (
+                                <Badge size="sm" ml="xs" variant="light">
+                                  Rating: {checkIn.workout_rating}/10
+                                </Badge>
+                              )}
+                            </Text>
                           )}
-                        </div>
-                      )}
-                      {checkIn.diet_stuck_to !== null && (
-                        <div>
-                          <strong>Diet:</strong> {checkIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
-                        </div>
-                      )}
-                    </div>
-                    {checkIn.notes && (
-                      <div className="check-in-notes">
-                        <strong>Notes:</strong> {checkIn.notes}
-                      </div>
-                    )}
-                    {checkIn.trainer_response && (
-                      <div className="trainer-response">
-                        <strong>Your Response:</strong> {checkIn.trainer_response}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No check-ins yet</p>
-            )}
-          </div>
-        )}
+                          {checkIn.diet_stuck_to !== null && (
+                            <Text size="sm">
+                              <Text span fw={500}>Diet:</Text> {checkIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
+                            </Text>
+                          )}
+                          {checkIn.notes && (
+                            <Text size="sm" c="dimmed"><Text span fw={500}>Notes:</Text> {checkIn.notes}</Text>
+                          )}
+                          {checkIn.trainer_response && (
+                            <Alert color="blue" title="Your Response">
+                              {checkIn.trainer_response}
+                            </Alert>
+                          )}
+                        </Stack>
+                      </Card>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Text c="dimmed">No check-ins yet</Text>
+                )}
+              </Stack>
+            </Tabs.Panel>
 
-        {activeTab === 'goals' && (
-          <ClientGoals clientId={clientId} client={client} onUpdate={fetchClientProfile} />
-        )}
+            <Tabs.Panel value="goals">
+              <ClientGoals clientId={clientId} client={client} onUpdate={fetchClientProfile} />
+            </Tabs.Panel>
 
-        {activeTab === 'workouts' && (
-          <ClientWorkouts clientId={clientId} clientName={client.name} />
-        )}
+            <Tabs.Panel value="workouts">
+              <ClientWorkouts clientId={clientId} clientName={client.name} />
+            </Tabs.Panel>
 
-        {activeTab === 'schedule' && (
-          <ClientSchedule clientId={clientId} clientName={client.name} />
-        )}
+            <Tabs.Panel value="schedule">
+              <ClientSchedule clientId={clientId} clientName={client.name} />
+            </Tabs.Panel>
 
-        {activeTab === 'nutrition' && (
-          <ClientNutrition clientId={clientId} clientName={client.name} />
-        )}
+            <Tabs.Panel value="nutrition">
+              <ClientNutrition clientId={clientId} clientName={client.name} />
+            </Tabs.Panel>
 
-        {activeTab === 'payments' && (
-          <div className="payments-tab">
-            <h2>Payments</h2>
-            <p>Payment management coming soon...</p>
-          </div>
-        )}
-        </div>
-
-        <div className="client-tabs-sidebar">
-          <div className="client-tabs">
-            <button
-              className={activeTab === 'overview' ? 'active' : ''}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={activeTab === 'goals' ? 'active' : ''}
-              onClick={() => setActiveTab('goals')}
-            >
-              Goals
-            </button>
-            <button
-              className={activeTab === 'progress' ? 'active' : ''}
-              onClick={() => setActiveTab('progress')}
-            >
-              Progress
-            </button>
-            <button
-              className={activeTab === 'check-ins' ? 'active' : ''}
-              onClick={() => setActiveTab('check-ins')}
-            >
-              Check-ins
-            </button>
-            <button
-              className={activeTab === 'workouts' ? 'active' : ''}
-              onClick={() => setActiveTab('workouts')}
-            >
-              Workouts
-            </button>
-            <button
-              className={activeTab === 'schedule' ? 'active' : ''}
-              onClick={() => setActiveTab('schedule')}
-            >
-              Schedule
-            </button>
-            <button
-              className={activeTab === 'nutrition' ? 'active' : ''}
-              onClick={() => setActiveTab('nutrition')}
-            >
-              Nutrition
-            </button>
-            <button
-              className={activeTab === 'payments' ? 'active' : ''}
-              onClick={() => setActiveTab('payments')}
-            >
-              Payments
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            <Tabs.Panel value="payments">
+              <Paper p="md" withBorder>
+                <Title order={2} mb="md">Payments</Title>
+                <Text c="dimmed">Payment management coming soon...</Text>
+              </Paper>
+            </Tabs.Panel>
+          </Box>
+      </Tabs>
+    </Container>
   )
 }
 

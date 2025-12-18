@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Container, Title, Text, Tabs, Paper, Card, Avatar, Badge, Button, TextInput, Textarea, Modal, Stack, Group, Alert, Loader, Divider } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
 import './Settings.css'
 
@@ -12,7 +14,7 @@ function Settings() {
   const [activeTab, setActiveTab] = useState('current') // 'current', 'find', or 'requests'
   const [pendingRequests, setPendingRequests] = useState([])
   const [requestMessage, setRequestMessage] = useState('')
-  const [showRequestModal, setShowRequestModal] = useState(false)
+  const [opened, { open, close }] = useDisclosure(false)
   const [selectedTrainer, setSelectedTrainer] = useState(null)
 
   useEffect(() => {
@@ -81,7 +83,7 @@ function Settings() {
     }
 
     setSelectedTrainer(searchResults.find(t => t.id === trainerId))
-    setShowRequestModal(true)
+    open()
   }
 
   const submitTrainerRequest = async () => {
@@ -93,7 +95,7 @@ function Settings() {
         message: requestMessage.trim() || null
       })
       setMessage('Trainer request sent successfully! The trainer will review your request and get back to you.')
-      setShowRequestModal(false)
+      close()
       setRequestMessage('')
       setSelectedTrainer(null)
       fetchPendingRequests()
@@ -127,272 +129,243 @@ function Settings() {
   }
 
   if (loading) {
-    return <div className="settings-container">Loading...</div>
+    return (
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
+    )
   }
 
   return (
-    <div className="settings-container">
-      <div className="settings-header">
-        <h1>Settings</h1>
-      </div>
-
-      <div className="settings-tabs">
-        <button
-          className={activeTab === 'current' ? 'active' : ''}
-          onClick={() => setActiveTab('current')}
-        >
-          Current Trainer
-        </button>
-        <button
-          className={activeTab === 'requests' ? 'active' : ''}
-          onClick={() => setActiveTab('requests')}
-        >
-          Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
-        </button>
-        <button
-          className={activeTab === 'find' ? 'active' : ''}
-          onClick={() => setActiveTab('find')}
-        >
-          Find Trainer
-        </button>
-      </div>
+    <Container size="xl" py="xl">
+      <Title order={1} mb="xl">Settings</Title>
 
       {message && (
-        <div className={`settings-message ${message.includes('success') || message.includes('sent') ? 'success' : 'error'}`}>
+        <Alert 
+          color={message.includes('success') || message.includes('sent') ? 'green' : 'red'} 
+          mb="md"
+          onClose={() => setMessage('')}
+          withCloseButton
+        >
           {message}
-        </div>
+        </Alert>
       )}
 
-      {activeTab === 'current' && (
-        <div className="settings-section">
-          <h2>Your Current Trainer</h2>
+      <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs.List>
+          <Tabs.Tab value="current">Current Trainer</Tabs.Tab>
+          <Tabs.Tab value="requests">
+            Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+          </Tabs.Tab>
+          <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="current" pt="md">
+          <Title order={2} mb="md">Your Current Trainer</Title>
           {currentTrainer ? (
-            <div className="trainer-card">
-              <div className="trainer-info">
-                <div className="trainer-avatar">
-                  {currentTrainer.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="trainer-details">
-                  <h3>{currentTrainer.name}</h3>
-                  <p className="trainer-email">{currentTrainer.email}</p>
-                  {currentTrainer.phoneNumber && (
-                    <p className="trainer-phone">📞 {currentTrainer.phoneNumber}</p>
-                  )}
-                  {currentTrainer.bio && (
-                    <p className="trainer-bio">{currentTrainer.bio}</p>
-                  )}
-                  {currentTrainer.specialties && currentTrainer.specialties.length > 0 && (
-                    <div className="trainer-specialties">
-                      <strong>Specialties:</strong>
-                      <div className="specialty-tags">
-                        {Array.isArray(currentTrainer.specialties) 
-                          ? currentTrainer.specialties.map((spec, idx) => (
-                              <span key={idx} className="specialty-tag">{spec}</span>
-                            ))
-                          : Object.values(currentTrainer.specialties).map((spec, idx) => (
-                              <span key={idx} className="specialty-tag">{spec}</span>
-                            ))
-                        }
-                      </div>
-                    </div>
-                  )}
-                  {currentTrainer.hourly_rate && (
-                    <p className="trainer-rate">
-                      <strong>Rate:</strong> ${currentTrainer.hourly_rate}/hour
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="trainer-actions">
-                <button 
-                  className="btn-disconnect"
-                  onClick={handleDisconnectTrainer}
-                >
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="md">
+                <Group>
+                  <Avatar color="green" size="lg" radius="xl">
+                    {currentTrainer.name.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <div style={{ flex: 1 }}>
+                    <Title order={4}>{currentTrainer.name}</Title>
+                    <Text c="dimmed">{currentTrainer.email}</Text>
+                    {currentTrainer.phoneNumber && (
+                      <Text size="sm" c="dimmed">📞 {currentTrainer.phoneNumber}</Text>
+                    )}
+                  </div>
+                </Group>
+                {currentTrainer.bio && (
+                  <Text>{currentTrainer.bio}</Text>
+                )}
+                {currentTrainer.specialties && currentTrainer.specialties.length > 0 && (
+                  <div>
+                    <Text fw={500} mb="xs">Specialties:</Text>
+                    <Group gap="xs">
+                      {(Array.isArray(currentTrainer.specialties) 
+                        ? currentTrainer.specialties 
+                        : Object.values(currentTrainer.specialties)
+                      ).map((spec, idx) => (
+                        <Badge key={idx} variant="light">{spec}</Badge>
+                      ))}
+                    </Group>
+                  </div>
+                )}
+                {currentTrainer.hourly_rate && (
+                  <Text><Text span fw={500}>Rate:</Text> ${currentTrainer.hourly_rate}/hour</Text>
+                )}
+                <Button color="red" variant="outline" onClick={handleDisconnectTrainer}>
                   Disconnect from Trainer
-                </button>
-              </div>
-            </div>
+                </Button>
+              </Stack>
+            </Card>
           ) : (
-            <div className="no-trainer">
-              <p>You don't have a trainer assigned yet.</p>
-              <p>Use the "Find Trainer" tab to search for and connect with a trainer.</p>
-            </div>
+            <Paper p="xl" withBorder>
+              <Stack gap="xs" align="center">
+                <Text c="dimmed">You don't have a trainer assigned yet.</Text>
+                <Text c="dimmed" size="sm">Use the "Find Trainer" tab to search for and connect with a trainer.</Text>
+              </Stack>
+            </Paper>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {activeTab === 'requests' && (
-        <div className="settings-section">
-          <h2>Trainer Requests</h2>
+        <Tabs.Panel value="requests" pt="md">
+          <Title order={2} mb="md">Trainer Requests</Title>
           {pendingRequests.length > 0 ? (
-            <div className="requests-list">
+            <Stack gap="md">
               {pendingRequests.map(request => (
-                <div key={request.id} className={`request-card ${request.status}`}>
-                  <div className="request-header">
-                    <div>
-                      <h3>{request.trainerName}</h3>
-                      <p className="request-email">{request.trainerEmail}</p>
-                    </div>
-                    <span className={`request-status ${request.status}`}>
-                      {request.status === 'pending' && '⏳ Pending'}
-                      {request.status === 'approved' && '✓ Approved'}
-                      {request.status === 'rejected' && '✗ Rejected'}
-                    </span>
-                  </div>
-                  {request.message && (
-                    <div className="request-message">
-                      <strong>Your Message:</strong>
-                      <p>{request.message}</p>
-                    </div>
-                  )}
-                  {request.trainerResponse && (
-                    <div className="trainer-response-message">
-                      <strong>Trainer Response:</strong>
-                      <p>{request.trainerResponse}</p>
-                    </div>
-                  )}
-                  <div className="request-date">
-                    Sent: {new Date(request.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
+                <Card key={request.id} shadow="sm" padding="lg" radius="md" withBorder>
+                  <Stack gap="sm">
+                    <Group justify="space-between">
+                      <div>
+                        <Title order={4}>{request.trainerName}</Title>
+                        <Text size="sm" c="dimmed">{request.trainerEmail}</Text>
+                      </div>
+                      <Badge 
+                        color={
+                          request.status === 'approved' ? 'green' : 
+                          request.status === 'rejected' ? 'red' : 'yellow'
+                        }
+                      >
+                        {request.status === 'pending' && '⏳ Pending'}
+                        {request.status === 'approved' && '✓ Approved'}
+                        {request.status === 'rejected' && '✗ Rejected'}
+                      </Badge>
+                    </Group>
+                    {request.message && (
+                      <div>
+                        <Text fw={500} size="sm" mb="xs">Your Message:</Text>
+                        <Text size="sm">{request.message}</Text>
+                      </div>
+                    )}
+                    {request.trainerResponse && (
+                      <Alert color="blue" title="Trainer Response">
+                        {request.trainerResponse}
+                      </Alert>
+                    )}
+                    <Text size="xs" c="dimmed">
+                      Sent: {new Date(request.createdAt).toLocaleDateString()}
+                    </Text>
+                  </Stack>
+                </Card>
               ))}
-            </div>
+            </Stack>
           ) : (
-            <div className="no-requests">
-              <p>You don't have any trainer requests yet.</p>
-              <p>Use the "Find Trainer" tab to search for and request a trainer.</p>
-            </div>
+            <Paper p="xl" withBorder>
+              <Stack gap="xs" align="center">
+                <Text c="dimmed">You don't have any trainer requests yet.</Text>
+                <Text c="dimmed" size="sm">Use the "Find Trainer" tab to search for and request a trainer.</Text>
+              </Stack>
+            </Paper>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {activeTab === 'find' && (
-        <div className="settings-section">
-          <h2>Find a New Trainer</h2>
-          <form onSubmit={handleSearch} className="trainer-search-form">
-            <div className="search-input-group">
-              <input
-                type="text"
+        <Tabs.Panel value="find" pt="md">
+          <Title order={2} mb="md">Find a New Trainer</Title>
+          <form onSubmit={handleSearch}>
+            <Group mb="md">
+              <TextInput
                 placeholder="Search by name, specialty, or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
+                style={{ flex: 1 }}
               />
-              <button type="submit" disabled={searching || !searchQuery.trim()} className="btn-search">
-                {searching ? 'Searching...' : 'Search'}
-              </button>
-            </div>
+              <Button type="submit" loading={searching} disabled={!searchQuery.trim()}>
+                Search
+              </Button>
+            </Group>
           </form>
 
           {searchResults.length > 0 && (
-            <div className="trainer-results">
-              <h3>Search Results</h3>
-              <div className="trainer-list">
-                {searchResults.map(trainer => (
-                  <div key={trainer.id} className="trainer-result-card">
-                    <div className="trainer-result-info">
-                      <div className="trainer-avatar">
+            <Stack gap="md">
+              <Title order={3}>Search Results</Title>
+              {searchResults.map(trainer => (
+                <Card key={trainer.id} shadow="sm" padding="lg" radius="md" withBorder>
+                  <Group justify="space-between" align="flex-start">
+                    <Group>
+                      <Avatar color="green" size="md" radius="xl">
                         {trainer.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="trainer-result-details">
-                        <h4>{trainer.name}</h4>
-                        <p className="trainer-email">{trainer.email}</p>
+                      </Avatar>
+                      <Stack gap={4}>
+                        <Title order={4}>{trainer.name}</Title>
+                        <Text size="sm" c="dimmed">{trainer.email}</Text>
                         {trainer.phoneNumber && (
-                          <p className="trainer-phone">📞 {trainer.phoneNumber}</p>
+                          <Text size="sm" c="dimmed">📞 {trainer.phoneNumber}</Text>
                         )}
-                        {trainer.bio && (
-                          <p className="trainer-bio">{trainer.bio}</p>
-                        )}
+                        {trainer.bio && <Text size="sm">{trainer.bio}</Text>}
                         {trainer.specialties && trainer.specialties.length > 0 && (
-                          <div className="trainer-specialties">
-                            <strong>Specialties:</strong>
-                            <div className="specialty-tags">
-                              {Array.isArray(trainer.specialties)
-                                ? trainer.specialties.map((spec, idx) => (
-                                    <span key={idx} className="specialty-tag">{spec}</span>
-                                  ))
-                                : Object.values(trainer.specialties).map((spec, idx) => (
-                                    <span key={idx} className="specialty-tag">{spec}</span>
-                                  ))
-                              }
-                            </div>
-                          </div>
+                          <Group gap="xs" mt="xs">
+                            <Text size="sm" fw={500}>Specialties:</Text>
+                            {(Array.isArray(trainer.specialties) 
+                              ? trainer.specialties 
+                              : Object.values(trainer.specialties)
+                            ).map((spec, idx) => (
+                              <Badge key={idx} size="sm" variant="light">{spec}</Badge>
+                            ))}
+                          </Group>
                         )}
                         {trainer.hourly_rate && (
-                          <p className="trainer-rate">
-                            <strong>Rate:</strong> ${trainer.hourly_rate}/hour
-                          </p>
+                          <Text size="sm"><Text span fw={500}>Rate:</Text> ${trainer.hourly_rate}/hour</Text>
                         )}
                         {trainer.total_clients !== undefined && (
-                          <p className="trainer-stats">
-                            <strong>Clients:</strong> {trainer.active_clients || 0} active / {trainer.total_clients || 0} total
-                          </p>
+                          <Text size="sm" c="dimmed">
+                            <Text span fw={500}>Clients:</Text> {trainer.active_clients || 0} active / {trainer.total_clients || 0} total
+                          </Text>
                         )}
-                      </div>
-                    </div>
-                    <div className="trainer-result-actions">
-                      {currentTrainer && currentTrainer.id === trainer.id ? (
-                        <button className="btn-current" disabled>
-                          Current Trainer
-                        </button>
-                      ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
-                        <button className="btn-pending" disabled>
-                          Request Pending
-                        </button>
-                      ) : (
-                        <button
-                          className="btn-request"
-                          onClick={() => handleRequestTrainer(trainer.id)}
-                        >
-                          Request Trainer
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                      </Stack>
+                    </Group>
+                    {currentTrainer && currentTrainer.id === trainer.id ? (
+                      <Button disabled>Current Trainer</Button>
+                    ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
+                      <Button disabled variant="outline">Request Pending</Button>
+                    ) : (
+                      <Button onClick={() => handleRequestTrainer(trainer.id)}>
+                        Request Trainer
+                      </Button>
+                    )}
+                  </Group>
+                </Card>
+              ))}
+            </Stack>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
+      </Tabs>
 
-      {/* Request Modal */}
-      {showRequestModal && selectedTrainer && (
-        <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Request Trainer: {selectedTrainer.name}</h2>
-              <button className="modal-close" onClick={() => setShowRequestModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <p>Send a message to introduce yourself and explain your fitness goals. This helps the trainer understand if they can help you.</p>
-              <div className="form-group">
-                <label>Message (Optional but Recommended)</label>
-                <textarea
-                  value={requestMessage}
-                  onChange={(e) => setRequestMessage(e.target.value)}
-                  placeholder="Hi! I'm interested in working with you because... My goals are..."
-                  rows="5"
-                  className="request-textarea"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => {
-                setShowRequestModal(false)
-                setRequestMessage('')
-                setSelectedTrainer(null)
-              }}>
-                Cancel
-              </button>
-              <button className="btn-submit-request" onClick={submitTrainerRequest}>
-                Send Request
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Modal 
+        opened={opened} 
+        onClose={close} 
+        title={`Request Trainer: ${selectedTrainer?.name}`}
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Send a message to introduce yourself and explain your fitness goals. This helps the trainer understand if they can help you.
+          </Text>
+          <Textarea
+            label="Message (Optional but Recommended)"
+            placeholder="Hi! I'm interested in working with you because... My goals are..."
+            value={requestMessage}
+            onChange={(e) => setRequestMessage(e.target.value)}
+            rows={5}
+          />
+          <Group justify="flex-end">
+            <Button variant="outline" onClick={() => {
+              close()
+              setRequestMessage('')
+              setSelectedTrainer(null)
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={submitTrainerRequest}>
+              Send Request
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </Container>
   )
 }
 

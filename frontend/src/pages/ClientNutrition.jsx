@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Container, Title, Text, Stack, Card, Grid, Progress, Loader, Paper, Group } from '@mantine/core'
 import api from '../services/api'
 import './ClientNutrition.css'
 
@@ -28,7 +29,13 @@ function ClientNutrition() {
   }
 
   if (loading) {
-    return <div className="client-nutrition-container">Loading...</div>
+    return (
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
+    )
   }
 
   // Calculate today's totals from logs
@@ -42,104 +49,104 @@ function ClientNutrition() {
   }), { calories: 0, protein: 0, carbs: 0, fats: 0 })
 
   return (
-    <div className="client-nutrition-container">
-      <div className="nutrition-header">
-        <h1>My Nutrition</h1>
-      </div>
+    <Container size="xl" py="xl">
+      <Title order={1} mb="xl">My Nutrition</Title>
 
       {nutritionGoals ? (
         <>
-          <div className="nutrition-goals-section">
-            <h2>Daily Goals</h2>
-            <div className="goals-grid">
-              <div className="goal-card">
-                <div className="goal-label">Calories</div>
-                <div className="goal-value">{nutritionGoals.target_calories || 'Not set'} kcal</div>
-              </div>
-              <div className="goal-card">
-                <div className="goal-label">Protein</div>
-                <div className="goal-value">{nutritionGoals.target_protein || 'Not set'} g</div>
-              </div>
-              <div className="goal-card">
-                <div className="goal-label">Carbs</div>
-                <div className="goal-value">{nutritionGoals.target_carbs || 'Not set'} g</div>
-              </div>
-              <div className="goal-card">
-                <div className="goal-label">Fats</div>
-                <div className="goal-value">{nutritionGoals.target_fats || 'Not set'} g</div>
-              </div>
-            </div>
-          </div>
+          <Paper p="md" withBorder>
+            <Title order={3} mb="md">Daily Goals</Title>
+            <Grid>
+              <Grid.Col span={6} md={3}>
+                <Card withBorder>
+                  <Text size="sm" c="dimmed" mb="xs">Calories</Text>
+                  <Text size="xl" fw={700}>{nutritionGoals.target_calories || 'Not set'} kcal</Text>
+                </Card>
+              </Grid.Col>
+              <Grid.Col span={6} md={3}>
+                <Card withBorder>
+                  <Text size="sm" c="dimmed" mb="xs">Protein</Text>
+                  <Text size="xl" fw={700}>{nutritionGoals.target_protein || 'Not set'} g</Text>
+                </Card>
+              </Grid.Col>
+              <Grid.Col span={6} md={3}>
+                <Card withBorder>
+                  <Text size="sm" c="dimmed" mb="xs">Carbs</Text>
+                  <Text size="xl" fw={700}>{nutritionGoals.target_carbs || 'Not set'} g</Text>
+                </Card>
+              </Grid.Col>
+              <Grid.Col span={6} md={3}>
+                <Card withBorder>
+                  <Text size="sm" c="dimmed" mb="xs">Fats</Text>
+                  <Text size="xl" fw={700}>{nutritionGoals.target_fats || 'Not set'} g</Text>
+                </Card>
+              </Grid.Col>
+            </Grid>
+          </Paper>
 
-          <div className="today-progress-section">
-            <h2>Today's Progress</h2>
-            <div className="progress-grid">
-              <div className="progress-item">
-                <div className="progress-label">Calories</div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ 
-                      width: `${Math.min(100, (todayTotals.calories / (nutritionGoals.target_calories || 1)) * 100)}%` 
-                    }}
-                  />
-                </div>
-                <div className="progress-text">
-                  {todayTotals.calories.toFixed(0)} / {nutritionGoals.target_calories || 0} kcal
-                </div>
+          <Paper p="md" withBorder>
+            <Title order={3} mb="md">Today's Progress</Title>
+            <Stack gap="md">
+              <div>
+                <Group justify="space-between" mb="xs">
+                  <Text size="sm" fw={500}>Calories</Text>
+                  <Text size="sm">
+                    {todayTotals.calories.toFixed(0)} / {nutritionGoals.target_calories || 0} kcal
+                  </Text>
+                </Group>
+                <Progress 
+                  value={Math.min(100, (todayTotals.calories / (nutritionGoals.target_calories || 1)) * 100)} 
+                  color="green"
+                />
               </div>
-              <div className="progress-item">
-                <div className="progress-label">Protein</div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ 
-                      width: `${Math.min(100, (todayTotals.protein / (nutritionGoals.target_protein || 1)) * 100)}%` 
-                    }}
-                  />
-                </div>
-                <div className="progress-text">
-                  {todayTotals.protein.toFixed(1)} / {nutritionGoals.target_protein || 0} g
-                </div>
+              <div>
+                <Group justify="space-between" mb="xs">
+                  <Text size="sm" fw={500}>Protein</Text>
+                  <Text size="sm">
+                    {todayTotals.protein.toFixed(1)} / {nutritionGoals.target_protein || 0} g
+                  </Text>
+                </Group>
+                <Progress 
+                  value={Math.min(100, (todayTotals.protein / (nutritionGoals.target_protein || 1)) * 100)} 
+                  color="blue"
+                />
               </div>
-              <div className="progress-item">
-                <div className="progress-label">Carbs</div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ 
-                      width: `${Math.min(100, (todayTotals.carbs / (nutritionGoals.target_carbs || 1)) * 100)}%` 
-                    }}
-                  />
-                </div>
-                <div className="progress-text">
-                  {todayTotals.carbs.toFixed(1)} / {nutritionGoals.target_carbs || 0} g
-                </div>
+              <div>
+                <Group justify="space-between" mb="xs">
+                  <Text size="sm" fw={500}>Carbs</Text>
+                  <Text size="sm">
+                    {todayTotals.carbs.toFixed(1)} / {nutritionGoals.target_carbs || 0} g
+                  </Text>
+                </Group>
+                <Progress 
+                  value={Math.min(100, (todayTotals.carbs / (nutritionGoals.target_carbs || 1)) * 100)} 
+                  color="orange"
+                />
               </div>
-              <div className="progress-item">
-                <div className="progress-label">Fats</div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ 
-                      width: `${Math.min(100, (todayTotals.fats / (nutritionGoals.target_fats || 1)) * 100)}%` 
-                    }}
-                  />
-                </div>
-                <div className="progress-text">
-                  {todayTotals.fats.toFixed(1)} / {nutritionGoals.target_fats || 0} g
-                </div>
+              <div>
+                <Group justify="space-between" mb="xs">
+                  <Text size="sm" fw={500}>Fats</Text>
+                  <Text size="sm">
+                    {todayTotals.fats.toFixed(1)} / {nutritionGoals.target_fats || 0} g
+                  </Text>
+                </Group>
+                <Progress 
+                  value={Math.min(100, (todayTotals.fats / (nutritionGoals.target_fats || 1)) * 100)} 
+                  color="yellow"
+                />
               </div>
-            </div>
-          </div>
+            </Stack>
+          </Paper>
         </>
       ) : (
-        <div className="empty-state">
-          <p>No nutrition goals set yet</p>
-          <p className="empty-hint">Your trainer will set nutrition goals for you</p>
-        </div>
+        <Paper p="xl" withBorder>
+          <Stack gap="xs" align="center">
+            <Text c="dimmed">No nutrition goals set yet</Text>
+            <Text size="sm" c="dimmed">Your trainer will set nutrition goals for you</Text>
+          </Stack>
+        </Paper>
       )}
-    </div>
+    </Container>
   )
 }
 

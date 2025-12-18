@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { MantineProvider } from '@mantine/core'
+import { Notifications } from '@mantine/notifications'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './contexts/AuthContext'
+import { theme } from './theme'
 
 // Pages
 import Login from './pages/Login'
@@ -77,16 +80,19 @@ function AppRoutes() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <div className="App">
-            <Navbar />
-            <div className="main-content" id="main-content">
-              <AppRoutes />
+      <MantineProvider theme={theme}>
+        <Notifications position="top-right" />
+        <AuthProvider>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <div className="App">
+              <Navbar />
+              <div className="main-content" id="main-content">
+                <AppRoutes />
+              </div>
             </div>
-          </div>
-        </Router>
-      </AuthProvider>
+          </Router>
+        </AuthProvider>
+      </MantineProvider>
     </ErrorBoundary>
   )
 }

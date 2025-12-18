@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Loader, Paper, SimpleGrid } from '@mantine/core'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 import './ClientWorkouts.css'
@@ -23,53 +24,61 @@ function ClientWorkouts() {
   }
 
   if (loading) {
-    return <div className="client-workouts-container">Loading...</div>
+    return (
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
+    )
   }
 
   return (
-    <div className="client-workouts-container">
-      <div className="workouts-header">
-        <h1>My Workouts</h1>
-      </div>
+    <Container size="xl" py="xl">
+      <Title order={1} mb="xl">My Workouts</Title>
 
       {workouts.length === 0 ? (
-        <div className="empty-state">
-          <p>No workouts assigned yet</p>
-          <p className="empty-hint">Your trainer will assign workouts for you</p>
-        </div>
+        <Paper p="xl" withBorder>
+          <Stack gap="xs" align="center">
+            <Text c="dimmed">No workouts assigned yet</Text>
+            <Text size="sm" c="dimmed">Your trainer will assign workouts for you</Text>
+          </Stack>
+        </Paper>
       ) : (
-        <div className="workouts-grid">
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {workouts.map(workout => (
-            <div key={workout.id} className="workout-card">
-              <div className="workout-header">
-                <h3>{workout.name}</h3>
-                <span className={`workout-status ${workout.status || 'assigned'}`}>
-                  {workout.status || 'assigned'}
-                </span>
-              </div>
-              {workout.description && (
-                <p className="workout-description">{workout.description}</p>
-              )}
-              <div className="workout-meta">
-                {workout.assigned_date && (
-                  <div className="workout-date">
-                    Assigned: {new Date(workout.assigned_date).toLocaleDateString()}
-                  </div>
+            <Card key={workout.id} shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <Title order={4}>{workout.name}</Title>
+                  <Badge color={workout.status === 'completed' ? 'green' : 'blue'}>
+                    {workout.status || 'assigned'}
+                  </Badge>
+                </Group>
+                {workout.description && (
+                  <Text size="sm" c="dimmed">{workout.description}</Text>
                 )}
-                {workout.due_date && (
-                  <div className="workout-date">
-                    Due: {new Date(workout.due_date).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
-              <Link to={`/workout/${workout.id}`} className="view-workout-btn">
-                View Workout →
-              </Link>
-            </div>
+                <Group gap="md">
+                  {workout.assigned_date && (
+                    <Text size="xs" c="dimmed">
+                      Assigned: {new Date(workout.assigned_date).toLocaleDateString()}
+                    </Text>
+                  )}
+                  {workout.due_date && (
+                    <Text size="xs" c="dimmed">
+                      Due: {new Date(workout.due_date).toLocaleDateString()}
+                    </Text>
+                  )}
+                </Group>
+                <Button component={Link} to={`/workout/${workout.id}`} variant="light" fullWidth>
+                  View Workout →
+                </Button>
+              </Stack>
+            </Card>
           ))}
-        </div>
+        </SimpleGrid>
       )}
-    </div>
+    </Container>
   )
 }
 

@@ -1,23 +1,32 @@
 import { useState, useEffect } from 'react'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert } from '@mantine/core'
+import { useForm } from '@mantine/form'
+import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './Profile.css'
 
 function Profile() {
   const { user, fetchUser } = useAuth()
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    bio: '',
-    certifications: '',
-    specialties: ''
-  })
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+
+  const form = useForm({
+    initialValues: {
+      name: '',
+      email: '',
+      bio: '',
+      certifications: '',
+      specialties: ''
+    },
+    validate: {
+      name: (value) => (!value ? 'Name is required' : null),
+      email: (value) => (!value ? 'Email is required' : /^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+    },
+  })
 
   useEffect(() => {
     if (user) {
-      setFormData({
+      form.setValues({
         name: user.name || '',
         email: user.email || '',
         bio: user.bio || '',
@@ -27,108 +36,85 @@ function Profile() {
     }
   }, [user])
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (values) => {
     setLoading(true)
-    setMessage('')
 
     try {
       const updateData = {
-        ...formData,
-        certifications: formData.certifications.split(',').map(s => s.trim()).filter(s => s),
-        specialties: formData.specialties.split(',').map(s => s.trim()).filter(s => s)
+        ...values,
+        certifications: values.certifications.split(',').map(s => s.trim()).filter(s => s),
+        specialties: values.specialties.split(',').map(s => s.trim()).filter(s => s)
       }
       await api.put('/profile', updateData)
       await fetchUser()
-      setMessage('Profile updated successfully!')
+      notifications.show({
+        title: 'Profile Updated',
+        message: 'Your profile has been successfully updated!',
+        color: 'green',
+      })
     } catch (error) {
       console.error('Error updating profile:', error)
-      setMessage('Failed to update profile')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to update profile',
+        color: 'red',
+      })
     } finally {
       setLoading(false)
     }
   }
 
   if (!user) {
-    return <div>Loading...</div>
+    return (
+      <Group justify="center" py="xl">
+        <Loader size="lg" />
+      </Group>
+    )
   }
 
   return (
-    <div className="profile-container">
-      <div className="profile-card">
-        <h1>Profile Settings</h1>
-        {message && (
-          <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
-            {message}
-          </div>
-        )}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
+    <Container size="md" py="xl">
+      <Paper shadow="md" p="xl" radius="md" withBorder>
+        <Title order={1} mb="xl">Profile Settings</Title>
+        <form onSubmit={form.onSubmit(handleSubmit)}>
+          <Stack gap="md">
+            <TextInput
+              label="Name"
+              {...form.getInputProps('name')}
               required
             />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
+            <TextInput
+              label="Email"
               type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
+              {...form.getInputProps('email')}
               required
             />
-          </div>
-          {user.role === 'trainer' && (
-            <>
-              <div className="form-group">
-                <label>Bio</label>
-                <textarea
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  rows="4"
+            {user.role === 'trainer' && (
+              <>
+                <Textarea
+                  label="Bio"
+                  rows={4}
+                  {...form.getInputProps('bio')}
                 />
-              </div>
-              <div className="form-group">
-                <label>Certifications (comma-separated)</label>
-                <input
-                  type="text"
-                  name="certifications"
-                  value={formData.certifications}
-                  onChange={handleChange}
+                <TextInput
+                  label="Certifications (comma-separated)"
                   placeholder="NASM, ACE, etc."
+                  {...form.getInputProps('certifications')}
                 />
-              </div>
-              <div className="form-group">
-                <label>Specialties (comma-separated)</label>
-                <input
-                  type="text"
-                  name="specialties"
-                  value={formData.specialties}
-                  onChange={handleChange}
+                <TextInput
+                  label="Specialties (comma-separated)"
                   placeholder="Weight Loss, Strength Training, etc."
+                  {...form.getInputProps('specialties')}
                 />
-              </div>
-            </>
-          )}
-          <button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
+              </>
+            )}
+            <Button type="submit" loading={loading}>
+              Save Changes
+            </Button>
+          </Stack>
         </form>
-      </div>
-    </div>
+      </Paper>
+    </Container>
   )
 }
 

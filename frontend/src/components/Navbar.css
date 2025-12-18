@@ -1,4 +1,4 @@
-/* Vertical Sidebar Navigation */
+/* Vertical Sidebar Navigation - Mantine Enhanced */
 .navbar-sidebar {
   position: fixed;
   left: 0;
@@ -12,69 +12,17 @@
   overflow-y: auto;
 }
 
-.sidebar-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 1.5rem 0;
-}
-
-.sidebar-logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
-  text-decoration: none;
-  padding: 0 1.5rem;
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.sidebar-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  flex: 1;
-  padding: 0 1rem;
-}
-
-.sidebar-link {
-  color: white;
-  text-decoration: none;
+/* Override Mantine NavLink styles for sidebar */
+.navbar-sidebar [data-mantine-component="NavLink"] {
+  color: white !important;
   padding: 0.75rem 1rem;
   border-radius: 6px;
   transition: all 0.2s;
   font-size: 0.95rem;
 }
 
-.sidebar-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-link.active {
-  background-color: rgba(255, 255, 255, 0.2);
-  font-weight: 600;
-}
-
-.sidebar-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  margin-top: auto;
-}
-
-.logout-btn {
-  width: 100%;
-  background-color: #d32f2f;
-  color: white;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  font-size: 0.95rem;
-}
-
-.logout-btn:hover {
-  background-color: #b71c1c;
+.navbar-sidebar [data-mantine-component="NavLink"]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Keep old navbar classes for backward compatibility */

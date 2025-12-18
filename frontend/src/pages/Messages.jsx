@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Container, Title, Text, Stack, Card, Button, Group, Paper, TextInput, Grid, Loader, ScrollArea } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import './Messages.css'
 
@@ -38,7 +40,11 @@ function Messages() {
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      alert('Failed to send message')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to send message',
+        color: 'red',
+      })
     } finally {
       setLoading(false)
     }
@@ -62,67 +68,91 @@ function Messages() {
   }
 
   return (
-    <div className="messages-container">
-      <h1>Messages</h1>
-      <div className="messages-layout">
-        <div className="conversations-list">
-          <h2>Conversations</h2>
-          {messages.length === 0 ? (
-            <p>No conversations yet</p>
-          ) : (
-            <ul>
-              {messages.map(conv => (
-                <li
-                  key={conv.id}
-                  onClick={() => selectConversation(conv)}
-                  className={selectedConversation?.id === conv.id ? 'active' : ''}
-                >
-                  <div>
-                    <strong>{conv.name}</strong>
-                    <span className="conversation-preview">{conv.lastMessage}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+    <Container size="xl" py="xl">
+      <Title order={1} mb="xl">Messages</Title>
+      <Grid>
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <Paper p="md" withBorder style={{ height: '600px' }}>
+            <Title order={2} mb="md">Conversations</Title>
+            {messages.length === 0 ? (
+              <Text c="dimmed">No conversations yet</Text>
+            ) : (
+              <ScrollArea style={{ height: '500px' }}>
+                <Stack gap="xs">
+                  {messages.map(conv => (
+                    <Card
+                      key={conv.id}
+                      withBorder
+                      p="sm"
+                      onClick={() => selectConversation(conv)}
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-lime-0)' : 'transparent'
+                      }}
+                    >
+                      <Stack gap={4}>
+                        <Text fw={500}>{conv.name}</Text>
+                        <Text size="sm" c="dimmed" lineClamp={1}>{conv.lastMessage}</Text>
+                      </Stack>
+                    </Card>
+                  ))}
+                </Stack>
+              </ScrollArea>
+            )}
+          </Paper>
+        </Grid.Col>
 
-        <div className="conversation-view">
-          {selectedConversation ? (
-            <>
-              <div className="conversation-header">
-                <h2>{selectedConversation.name}</h2>
-              </div>
-              <div className="messages-list">
-                {selectedConversation.messages?.map(msg => (
-                  <div key={msg.id} className={`message ${msg.senderId === selectedConversation.id ? 'received' : 'sent'}`}>
-                    <p>{msg.content}</p>
-                    <span className="message-time">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={handleSendMessage} className="message-input-form">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                />
-                <button type="submit" disabled={loading || !newMessage.trim()}>
-                  Send
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="no-conversation">
-              <p>Select a conversation to start messaging</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        <Grid.Col span={{ base: 12, md: 8 }}>
+          <Paper p="md" withBorder style={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
+            {selectedConversation ? (
+              <>
+                <Title order={2} mb="md">{selectedConversation.name}</Title>
+                <ScrollArea style={{ flex: 1, marginBottom: '1rem' }}>
+                  <Stack gap="sm">
+                    {selectedConversation.messages?.map(msg => (
+                      <Card
+                        key={msg.id}
+                        p="sm"
+                        withBorder
+                        style={{
+                          alignSelf: msg.senderId === selectedConversation.id ? 'flex-start' : 'flex-end',
+                          maxWidth: '70%',
+                          marginLeft: msg.senderId === selectedConversation.id ? 0 : 'auto',
+                          marginRight: msg.senderId === selectedConversation.id ? 'auto' : 0,
+                          backgroundColor: msg.senderId === selectedConversation.id ? 'var(--mantine-color-gray-1)' : 'var(--mantine-color-lime-1)'
+                        }}
+                      >
+                        <Text size="sm">{msg.content}</Text>
+                        <Text size="xs" c="dimmed" mt={4}>
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </Text>
+                      </Card>
+                    ))}
+                  </Stack>
+                </ScrollArea>
+                <form onSubmit={handleSendMessage}>
+                  <Group>
+                    <TextInput
+                      style={{ flex: 1 }}
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                    />
+                    <Button type="submit" loading={loading} disabled={!newMessage.trim()}>
+                      Send
+                    </Button>
+                  </Group>
+                </form>
+              </>
+            ) : (
+              <Group justify="center" h="100%">
+                <Text c="dimmed">Select a conversation to start messaging</Text>
+              </Group>
+            )}
+          </Paper>
+        </Grid.Col>
+      </Grid>
+    </Container>
   )
 }
 

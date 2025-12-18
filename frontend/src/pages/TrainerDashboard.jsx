@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor } from '@mantine/core'
 import api from '../services/api'
 import './Dashboard.css'
 import './TrainerDashboard.css'
@@ -66,122 +67,137 @@ function TrainerDashboard() {
   }
 
   if (loading) {
-    return <div className="dashboard-container">Loading...</div>
+    return (
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
+    )
   }
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-layout">
-        {/* Left Sidebar - Total Revenue (vertical) */}
-        <div className="dashboard-panel revenue-panel">
-          <h2>Total Revenue</h2>
-          <div className="revenue-display">
-            <div className="revenue-amount">
-              ${revenue.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="revenue-breakdown">
-              <div className="revenue-item">
-                <span className="revenue-label">This Month</span>
-                <span className="revenue-value">${revenue.thisMonth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="revenue-item">
-                <span className="revenue-label">This Week</span>
-                <span className="revenue-value">${revenue.thisWeek.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            <Link to="/payments" className="revenue-link">
-              View Payment Details →
-            </Link>
-          </div>
-        </div>
+    <Container size="xl" py="xl">
+      <Grid gutter="md">
+        {/* Left Sidebar - Total Revenue */}
+        <Grid.Col span={{ base: 12, md: 3 }}>
+          <Paper p="md" shadow="sm" withBorder h="100%">
+            <Title order={3} mb="md">Total Revenue</Title>
+            <Stack gap="md">
+              <Text size="2rem" fw={700} c="green.5">
+                ${revenue.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+              <Stack gap="xs">
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">This Month</Text>
+                  <Text fw={500}>${revenue.thisMonth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">This Week</Text>
+                  <Text fw={500}>${revenue.thisWeek.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </Group>
+              </Stack>
+              <Anchor component={Link} to="/payments" size="sm" c="green.5">
+                View Payment Details →
+              </Anchor>
+            </Stack>
+          </Paper>
+        </Grid.Col>
 
         {/* Right Panels (main content area) */}
-        <div className="dashboard-right-panels">
-          {/* Upper Right Panel - Schedule with Upcoming Sessions (50% height) */}
-          <div className="dashboard-panel schedule-panel">
-            <div className="panel-header">
-              <h2>Schedule with Upcoming Sessions</h2>
-              <Link to="/trainer/clients" className="view-all-link">View All →</Link>
-            </div>
-            {upcomingSessions.length === 0 ? (
-              <div className="empty-state">
-                <p>No upcoming sessions scheduled</p>
-                <p className="empty-hint">Schedule sessions from client profiles</p>
-              </div>
-            ) : (
-              <div className="sessions-list">
-                {upcomingSessions.slice(0, 5).map(session => (
-                  <div key={session.id} className="session-item">
-                    <div className="session-date">
-                      <div className="session-day">{new Date(session.session_date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                      <div className="session-number">{new Date(session.session_date).getDate()}</div>
-                    </div>
-                    <div className="session-details">
-                      <div className="session-client">{session.client_name}</div>
-                      <div className="session-time">
-                        {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
-                          hour: 'numeric', 
-                          minute: '2-digit' 
-                        })}
-                      </div>
-                      {session.workout_name && (
-                        <div className="session-workout">{session.workout_name}</div>
-                      )}
-                    </div>
-                    <div className="session-status">
-                      <span className={`status-badge ${session.status || 'scheduled'}`}>
-                        {session.status || 'scheduled'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <Grid.Col span={{ base: 12, md: 9 }}>
+          <Stack gap="md">
+            {/* Upper Right Panel - Schedule with Upcoming Sessions */}
+            <Paper p="md" shadow="sm" withBorder>
+              <Group justify="space-between" mb="md">
+                <Title order={3}>Schedule with Upcoming Sessions</Title>
+                <Anchor component={Link} to="/trainer/clients" size="sm">View All →</Anchor>
+              </Group>
+              {upcomingSessions.length === 0 ? (
+                <Stack gap="xs" align="center" py="xl">
+                  <Text c="dimmed">No upcoming sessions scheduled</Text>
+                  <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
+                </Stack>
+              ) : (
+                <Stack gap="sm">
+                  {upcomingSessions.slice(0, 5).map(session => (
+                    <Paper key={session.id} p="sm" withBorder>
+                      <Group justify="space-between">
+                        <Group gap="md">
+                          <Stack gap={0} align="center" w={60}>
+                            <Text size="xs" c="dimmed">
+                              {new Date(session.session_date).toLocaleDateString('en-US', { weekday: 'short' })}
+                            </Text>
+                            <Text size="lg" fw={700}>
+                              {new Date(session.session_date).getDate()}
+                            </Text>
+                          </Stack>
+                          <Stack gap={2}>
+                            <Text fw={500}>{session.client_name}</Text>
+                            <Text size="sm" c="dimmed">
+                              {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit' 
+                              })}
+                            </Text>
+                            {session.workout_name && (
+                              <Text size="xs" c="dimmed">{session.workout_name}</Text>
+                            )}
+                          </Stack>
+                        </Group>
+                        <Badge color={session.status === 'completed' ? 'green' : 'blue'}>
+                          {session.status || 'scheduled'}
+                        </Badge>
+                      </Group>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
 
-          {/* Lower Right Panel - Clients (50% height) */}
-          <div className="dashboard-panel clients-panel">
-            <div className="panel-header">
-              <h2>Clients</h2>
-              <Link to="/trainer/clients" className="view-all-link">View All →</Link>
-            </div>
-            {clients.length === 0 ? (
-              <div className="empty-state">
-                <p>No clients yet</p>
-                <Link to="/trainer/add-client" className="btn-primary-small">
-                  Add Your First Client
-                </Link>
-              </div>
-            ) : (
-              <div className="clients-list-vertical">
-                {clients.map(client => {
-                  // Get next session from the map
-                  const nextSession = clientsWithSessions.get(client.id)
-                  return (
-                    <div 
-                      key={client.id} 
-                      className="client-item-vertical"
-                      onClick={() => navigate(`/trainer/clients/${client.id}`)}
-                    >
-                      <div className="client-name-vertical">
-                        {client.name}
-                      </div>
-                      <div className="client-session-vertical">
-                        {nextSession ? (
-                          `Next: ${new Date(nextSession.session_date).toLocaleDateString()}`
-                        ) : (
-                          'No session scheduled'
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* Lower Right Panel - Clients */}
+            <Paper p="md" shadow="sm" withBorder>
+              <Group justify="space-between" mb="md">
+                <Title order={3}>Clients</Title>
+                <Anchor component={Link} to="/trainer/clients" size="sm">View All →</Anchor>
+              </Group>
+              {clients.length === 0 ? (
+                <Stack gap="md" align="center" py="xl">
+                  <Text c="dimmed">No clients yet</Text>
+                  <Button component={Link} to="/trainer/add-client" variant="filled">
+                    Add Your First Client
+                  </Button>
+                </Stack>
+              ) : (
+                <Stack gap="xs">
+                  {clients.map(client => {
+                    const nextSession = clientsWithSessions.get(client.id)
+                    return (
+                      <Paper
+                        key={client.id}
+                        p="sm"
+                        withBorder
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/trainer/clients/${client.id}`)}
+                      >
+                        <Group justify="space-between">
+                          <Text fw={500}>{client.name}</Text>
+                          <Text size="sm" c="dimmed">
+                            {nextSession 
+                              ? `Next: ${new Date(nextSession.session_date).toLocaleDateString()}`
+                              : 'No session scheduled'}
+                          </Text>
+                        </Group>
+                      </Paper>
+                    )
+                  })}
+                </Stack>
+              )}
+            </Paper>
+          </Stack>
+        </Grid.Col>
+      </Grid>
+    </Container>
   )
 }
 

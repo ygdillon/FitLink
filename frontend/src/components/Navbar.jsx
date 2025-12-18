@@ -1,4 +1,5 @@
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { Stack, Button, Text, Divider, UnstyledButton } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
 import './Navbar.css'
 
@@ -16,102 +17,67 @@ function Navbar() {
     return null
   }
 
+  const NavButton = ({ to, label, children }) => {
+    const isActive = location.pathname === to || (to !== '/trainer' && location.pathname.startsWith(to))
+    return (
+      <UnstyledButton
+        component={NavLink}
+        to={to}
+        className={`sidebar-link ${isActive ? 'active' : ''}`}
+      >
+        {label || children}
+      </UnstyledButton>
+    )
+  }
+
   return (
     <nav className="navbar-sidebar">
-      <div className="sidebar-container">
-        <Link to="/" className="sidebar-logo">
+      <Stack gap="md" p="md" h="100%">
+        <Text
+          component={Link}
+          to="/"
+          fw={700}
+          size="xl"
+          c="white"
+          ta="center"
+          style={{ textDecoration: 'none' }}
+        >
           FitLink
-        </Link>
-        <div className="sidebar-menu">
+        </Text>
+
+        <Stack gap={4} style={{ flex: 1 }}>
           {user.role === 'trainer' ? (
             <>
-              <NavLink 
-                to="/trainer" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                My Space
-              </NavLink>
-              <NavLink 
-                to="/trainer/clients" 
-                className={({ isActive, isPending }) => {
-                  const active = isActive || location.pathname.startsWith('/trainer/clients')
-                  return `sidebar-link ${active ? 'active' : ''}`
-                }}
-              >
-                Clients
-              </NavLink>
-              <NavLink 
-                to="/trainer/requests" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Requests
-              </NavLink>
-              <NavLink 
-                to="/messages" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Messages
-              </NavLink>
-              <NavLink 
-                to="/payments" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Payments
-              </NavLink>
+              <NavButton to="/trainer">My Space</NavButton>
+              <NavButton to="/trainer/clients">Clients</NavButton>
+              <NavButton to="/trainer/requests">Requests</NavButton>
+              <NavButton to="/messages">Messages</NavButton>
+              <NavButton to="/payments">Payments</NavButton>
             </>
           ) : (
             <>
-              <NavLink 
-                to="/client" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                My Space
-              </NavLink>
-              <NavLink 
-                to="/client/workouts" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Workouts
-              </NavLink>
-              <NavLink 
-                to="/client/progress" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Progress
-              </NavLink>
-              <NavLink 
-                to="/client/nutrition" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Nutrition
-              </NavLink>
-              <NavLink 
-                to="/check-in" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Check-in
-              </NavLink>
-              <NavLink 
-                to="/settings" 
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                Settings
-              </NavLink>
+              <NavButton to="/client">My Space</NavButton>
+              <NavButton to="/client/workouts">Workouts</NavButton>
+              <NavButton to="/client/progress">Progress</NavButton>
+              <NavButton to="/client/nutrition">Nutrition</NavButton>
+              <NavButton to="/check-in">Check-in</NavButton>
+              <NavButton to="/settings">Settings</NavButton>
             </>
           )}
-          <NavLink 
-            to="/profile" 
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-          >
-            Profile
-          </NavLink>
-        </div>
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            Logout
-          </button>
-        </div>
-      </div>
+          <NavButton to="/profile">Profile</NavButton>
+        </Stack>
+
+        <Divider color="rgba(255, 255, 255, 0.2)" />
+
+        <Button
+          onClick={handleLogout}
+          color="red"
+          variant="filled"
+          fullWidth
+        >
+          Logout
+        </Button>
+      </Stack>
     </nav>
   )
 }

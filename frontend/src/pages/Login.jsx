@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import { Container, Paper, Title, TextInput, PasswordInput, Button, Text, Stack, Alert, Box, Anchor } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
-import './Login.css'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -27,38 +27,59 @@ function Login() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h1>Login</h1>
-        {error && <div className="error-message">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        <p>
-          Don't have an account? <a href="/register">Register</a>
-        </p>
-      </div>
-    </div>
+    <Box style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '2rem', backgroundColor: '#F5F9F0' }}>
+      <Container size={420} my={40}>
+        <Paper shadow="md" p={30} radius="md" withBorder>
+          <Title order={1} ta="center" mb="xl">
+            Login
+          </Title>
+          
+          {error && (
+            <Alert color="red" mb="md">
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <Stack gap="md">
+              <TextInput
+                label="Email"
+                placeholder="your@email.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                size="md"
+              />
+              
+              <PasswordInput
+                label="Password"
+                placeholder="Your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                size="md"
+              />
+
+              <Button 
+                type="submit" 
+                fullWidth 
+                loading={loading}
+                size="md"
+                mt="md"
+                color="lime.8"
+              >
+                {loading ? 'Logging in...' : 'Login'}
+              </Button>
+            </Stack>
+          </form>
+
+          <Text ta="center" mt="md" size="sm">
+            Don't have an account? <Anchor component={Link} to="/register" c="lime.8" fw={500}>Register</Anchor>
+          </Text>
+        </Paper>
+      </Container>
+    </Box>
   )
 }
 

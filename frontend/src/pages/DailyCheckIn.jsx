@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Container, Paper, Title, Text, Stack, Group, Radio, Textarea, Button, Alert, Badge, Box } from '@mantine/core'
 import api from '../services/api'
-import './DailyCheckIn.css'
 
 function DailyCheckIn() {
   const [formData, setFormData] = useState({
@@ -81,175 +81,161 @@ function DailyCheckIn() {
   })
 
   return (
-    <div className="check-in-container">
-      <div className="check-in-card">
-        <h1>Daily Check-In</h1>
-        <p className="check-in-date">{today}</p>
+    <Container size={600} py="xl">
+      <Paper shadow="md" p="xl" radius="md" withBorder>
+        <Title order={1} mb="xs">Daily Check-In</Title>
+        <Text c="dimmed" mb="xl">{today}</Text>
 
         {submitted && todayCheckIn && (
-          <div className="submitted-message">
-            <h2>✓ Check-in Complete!</h2>
-            <div className="check-in-summary">
-              <div className="summary-item">
-                <strong>Workout:</strong> {todayCheckIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
-                {todayCheckIn.workout_rating && (
-                  <span className="workout-rating-display">
-                    {' '}• Rating: <span className="rating-value">{todayCheckIn.workout_rating}/10</span>
-                  </span>
+          <Stack gap="md">
+            <Alert color="green" title="✓ Check-in Complete!">
+              Your check-in has been submitted successfully.
+            </Alert>
+            
+            <Paper p="md" withBorder>
+              <Stack gap="sm">
+                <Group>
+                  <Text fw={500}>Workout:</Text>
+                  <Text>{todayCheckIn.workout_completed ? '✓ Completed' : '✗ Not completed'}</Text>
+                  {todayCheckIn.workout_rating && (
+                    <Badge color="green" variant="light">
+                      Rating: {todayCheckIn.workout_rating}/10
+                    </Badge>
+                  )}
+                </Group>
+                <Group>
+                  <Text fw={500}>Diet:</Text>
+                  <Text>{todayCheckIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}</Text>
+                </Group>
+                {todayCheckIn.notes && (
+                  <div>
+                    <Text fw={500} mb="xs">Notes:</Text>
+                    <Text>{todayCheckIn.notes}</Text>
+                  </div>
                 )}
-              </div>
-              <div className="summary-item">
-                <strong>Diet:</strong> {todayCheckIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
-              </div>
-              {todayCheckIn.notes && (
-                <div className="summary-item">
-                  <strong>Notes:</strong> {todayCheckIn.notes}
-                </div>
-              )}
-              {todayCheckIn.trainer_response && (
-                <div className="trainer-response">
-                  <strong>Trainer Response:</strong>
-                  <p>{todayCheckIn.trainer_response}</p>
-                </div>
-              )}
-            </div>
-            <button onClick={() => {
-              setSubmitted(false)
-              setFormData({
-                workout_completed: todayCheckIn.workout_completed,
-                diet_stuck_to: todayCheckIn.diet_stuck_to,
-                workout_rating: todayCheckIn.workout_rating || null,
-                notes: todayCheckIn.notes || ''
-              })
-            }} className="btn-edit">
+                {todayCheckIn.trainer_response && (
+                  <Alert color="blue" title="Trainer Response">
+                    {todayCheckIn.trainer_response}
+                  </Alert>
+                )}
+              </Stack>
+            </Paper>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSubmitted(false)
+                setFormData({
+                  workout_completed: todayCheckIn.workout_completed,
+                  diet_stuck_to: todayCheckIn.diet_stuck_to,
+                  workout_rating: todayCheckIn.workout_rating || null,
+                  notes: todayCheckIn.notes || ''
+                })
+              }}
+            >
               Edit Check-in
-            </button>
-          </div>
+            </Button>
+          </Stack>
         )}
 
         {!submitted && (
           <form onSubmit={handleSubmit}>
-            <div className="check-in-questions">
-              <div className="question-group">
-                <label>Did you complete your workout today? *</label>
-                <div className="radio-group">
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="workout_completed"
-                      value="true"
-                      checked={formData.workout_completed === true}
-                      onChange={handleChange}
-                      required
-                    />
-                    <span>Yes ✓</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="workout_completed"
-                      value="false"
-                      checked={formData.workout_completed === false}
-                      onChange={handleChange}
-                      required
-                    />
-                    <span>No ✗</span>
-                  </label>
-                </div>
-              </div>
+            <Stack gap="lg">
+              <Radio.Group
+                label="Did you complete your workout today? *"
+                value={formData.workout_completed?.toString()}
+                onChange={(value) => setFormData({ ...formData, workout_completed: value === 'true' })}
+                required
+              >
+                <Group mt="xs">
+                  <Radio value="true" label="Yes ✓" />
+                  <Radio value="false" label="No ✗" />
+                </Group>
+              </Radio.Group>
 
-              <div className="question-group">
-                <label>Did you stick to your diet plan today? *</label>
-                <div className="radio-group">
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="diet_stuck_to"
-                      value="true"
-                      checked={formData.diet_stuck_to === true}
-                      onChange={handleChange}
-                      required
-                    />
-                    <span>Yes ✓</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="diet_stuck_to"
-                      value="false"
-                      checked={formData.diet_stuck_to === false}
-                      onChange={handleChange}
-                      required
-                    />
-                    <span>No ✗</span>
-                  </label>
-                </div>
-              </div>
+              <Radio.Group
+                label="Did you stick to your diet plan today? *"
+                value={formData.diet_stuck_to?.toString()}
+                onChange={(value) => setFormData({ ...formData, diet_stuck_to: value === 'true' })}
+                required
+              >
+                <Group mt="xs">
+                  <Radio value="true" label="Yes ✓" />
+                  <Radio value="false" label="No ✗" />
+                </Group>
+              </Radio.Group>
 
               {formData.workout_completed === true && (
-                <div className="question-group">
-                  <label>Rate your workout today (1-10) *</label>
-                  <div className="rating-container">
-                    <div className="rating-scale">
+                <Box>
+                  <Text fw={500} mb="xs">Rate your workout today (1-10) *</Text>
+                  <Box mt="md">
+                    <Group gap="xs" mb="xs">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(rating => (
-                        <label key={rating} className="rating-option">
-                          <input
-                            type="radio"
-                            name="workout_rating"
-                            value={rating}
-                            checked={formData.workout_rating === rating}
-                            onChange={(e) => setFormData({ ...formData, workout_rating: parseInt(e.target.value) })}
-                            required={formData.workout_completed === true}
-                          />
-                          <span className={`rating-number ${formData.workout_rating === rating ? 'selected' : ''}`}>
+                        <Radio
+                          key={rating}
+                          value={rating.toString()}
+                          checked={formData.workout_rating === rating}
+                          onChange={() => setFormData({ ...formData, workout_rating: rating })}
+                          styles={{ radio: { display: 'none' } }}
+                        >
+                          <Button
+                            variant={formData.workout_rating === rating ? 'filled' : 'outline'}
+                            color={formData.workout_rating === rating ? 'green' : 'gray'}
+                            size="sm"
+                            style={{ minWidth: 45 }}
+                          >
                             {rating}
-                          </span>
-                        </label>
+                          </Button>
+                        </Radio>
                       ))}
-                    </div>
-                    <div className="rating-labels">
-                      <span className="rating-label-left">Very Easy</span>
-                      <span className="rating-label-right">Very Hard</span>
-                    </div>
+                    </Group>
+                    <Group justify="space-between" mb="xs">
+                      <Text size="xs" c="dimmed">Very Easy</Text>
+                      <Text size="xs" c="dimmed">Very Hard</Text>
+                    </Group>
                     {formData.workout_rating && (
-                      <div className="rating-feedback">
-                        {formData.workout_rating <= 3 && <span className="rating-text">Easy workout</span>}
-                        {formData.workout_rating >= 4 && formData.workout_rating <= 6 && <span className="rating-text">Moderate workout</span>}
-                        {formData.workout_rating >= 7 && formData.workout_rating <= 8 && <span className="rating-text">Challenging workout</span>}
-                        {formData.workout_rating >= 9 && <span className="rating-text">Extremely challenging</span>}
-                      </div>
+                      <Alert color="blue" size="sm">
+                        {formData.workout_rating <= 3 && 'Easy workout'}
+                        {formData.workout_rating >= 4 && formData.workout_rating <= 6 && 'Moderate workout'}
+                        {formData.workout_rating >= 7 && formData.workout_rating <= 8 && 'Challenging workout'}
+                        {formData.workout_rating >= 9 && 'Extremely challenging'}
+                      </Alert>
                     )}
-                  </div>
-                  <small>This helps your trainer understand the intensity and adjust your program if needed.</small>
-                </div>
+                  </Box>
+                  <Text size="xs" c="dimmed" mt="xs">
+                    This helps your trainer understand the intensity and adjust your program if needed.
+                  </Text>
+                </Box>
               )}
 
-              <div className="question-group">
-                <label>Notes (optional)</label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows="4"
-                  placeholder="How did it go? Any challenges? What went well?"
-                />
-                <small>If you didn't complete your workout or stick to your diet, let your trainer know what happened.</small>
-              </div>
-            </div>
+              <Textarea
+                label="Notes (optional)"
+                placeholder="How did it go? Any challenges? What went well?"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={4}
+                description="If you didn't complete your workout or stick to your diet, let your trainer know what happened."
+              />
 
-            {message && (
-              <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
-                {message}
-              </div>
-            )}
+              {message && (
+                <Alert color={message.includes('success') ? 'green' : 'red'}>
+                  {message}
+                </Alert>
+              )}
 
-            <button type="submit" disabled={loading} className="btn-submit">
-              {loading ? 'Submitting...' : 'Submit Check-in'}
-            </button>
+              <Button
+                type="submit"
+                fullWidth
+                loading={loading}
+                size="md"
+              >
+                Submit Check-in
+              </Button>
+            </Stack>
           </form>
         )}
-      </div>
-    </div>
+      </Paper>
+    </Container>
   )
 }
 

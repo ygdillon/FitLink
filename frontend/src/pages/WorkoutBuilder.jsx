@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Select, Checkbox, Button, Group, Card, NumberInput } from '@mantine/core'
+import { useForm } from '@mantine/form'
+import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import './WorkoutBuilder.css'
 
@@ -33,8 +36,7 @@ function WorkoutBuilder() {
     setExercises(exercises.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (values) => {
     setLoading(true)
 
     try {
@@ -45,135 +47,121 @@ function WorkoutBuilder() {
         is_template: isTemplate,
         exercises: exercises.filter(ex => ex.name.trim() !== '')
       })
+      notifications.show({
+        title: 'Workout Created',
+        message: 'Workout has been successfully created!',
+        color: 'green',
+      })
       navigate('/trainer/workouts')
     } catch (error) {
       console.error('Error creating workout:', error)
-      alert('Failed to create workout')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to create workout',
+        color: 'red',
+      })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="workout-builder-container">
-      <div className="workout-builder-card">
-        <h1>Create Workout</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Workout Name</label>
-            <input
-              type="text"
+    <Container size="lg" py="xl">
+      <Paper shadow="md" p="xl" radius="md" withBorder>
+        <Title order={1} mb="xl">Create Workout</Title>
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }}>
+          <Stack gap="md">
+            <TextInput
+              label="Workout Name"
               value={workoutName}
               onChange={(e) => setWorkoutName(e.target.value)}
               required
             />
-          </div>
-          <div className="form-group">
-            <label>Description</label>
-            <textarea
+            <Textarea
+              label="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows="3"
+              rows={3}
             />
-          </div>
-          <div className="form-group">
-            <label>Category (optional)</label>
-            <select
+            <Select
+              label="Category (optional)"
+              placeholder="Select category"
+              data={['Strength', 'Cardio', 'HIIT', 'Flexibility', 'Full Body', 'Upper Body', 'Lower Body', 'Core']}
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">Select category...</option>
-              <option value="strength">Strength</option>
-              <option value="cardio">Cardio</option>
-              <option value="hiit">HIIT</option>
-              <option value="flexibility">Flexibility</option>
-              <option value="full-body">Full Body</option>
-              <option value="upper-body">Upper Body</option>
-              <option value="lower-body">Lower Body</option>
-              <option value="core">Core</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={isTemplate}
-                onChange={(e) => setIsTemplate(e.target.checked)}
-              />
-              Save as Template (reusable workout)
-            </label>
-          </div>
+              onChange={setCategory}
+            />
+            <Checkbox
+              label="Save as Template (reusable workout)"
+              checked={isTemplate}
+              onChange={(e) => setIsTemplate(e.target.checked)}
+            />
 
-          <div className="exercises-section">
-            <div className="exercises-header">
-              <h2>Exercises</h2>
-              <button type="button" onClick={addExercise} className="btn-add">
-                + Add Exercise
-              </button>
+            <div>
+              <Group justify="space-between" mb="md">
+                <Title order={3}>Exercises</Title>
+                <Button type="button" onClick={addExercise} variant="outline">
+                  + Add Exercise
+                </Button>
+              </Group>
+
+              <Stack gap="md">
+                {exercises.map((exercise, index) => (
+                  <Card key={index} withBorder p="md">
+                    <Group justify="flex-end" mb="xs">
+                      <Button type="button" variant="subtle" color="red" size="xs" onClick={() => removeExercise(index)}>
+                        Remove
+                      </Button>
+                    </Group>
+                    <Stack gap="sm">
+                      <TextInput
+                        placeholder="Exercise name"
+                        value={exercise.name}
+                        onChange={(e) => updateExercise(index, 'name', e.target.value)}
+                        required
+                      />
+                      <Group grow>
+                        <NumberInput
+                          placeholder="Sets"
+                          value={exercise.sets}
+                          onChange={(value) => updateExercise(index, 'sets', value)}
+                        />
+                        <TextInput
+                          placeholder="Reps"
+                          value={exercise.reps}
+                          onChange={(e) => updateExercise(index, 'reps', e.target.value)}
+                        />
+                        <TextInput
+                          placeholder="Weight (optional)"
+                          value={exercise.weight}
+                          onChange={(e) => updateExercise(index, 'weight', e.target.value)}
+                        />
+                        <TextInput
+                          placeholder="Rest (optional)"
+                          value={exercise.rest}
+                          onChange={(e) => updateExercise(index, 'rest', e.target.value)}
+                        />
+                      </Group>
+                      <Textarea
+                        placeholder="Notes (optional)"
+                        value={exercise.notes}
+                        onChange={(e) => updateExercise(index, 'notes', e.target.value)}
+                        rows={2}
+                      />
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
             </div>
 
-            {exercises.map((exercise, index) => (
-              <div key={index} className="exercise-card">
-                <button
-                  type="button"
-                  onClick={() => removeExercise(index)}
-                  className="btn-remove"
-                >
-                  ×
-                </button>
-                <div className="exercise-form">
-                  <input
-                    type="text"
-                    placeholder="Exercise name"
-                    value={exercise.name}
-                    onChange={(e) => updateExercise(index, 'name', e.target.value)}
-                    required
-                  />
-                  <div className="exercise-details">
-                    <input
-                      type="number"
-                      placeholder="Sets"
-                      value={exercise.sets}
-                      onChange={(e) => updateExercise(index, 'sets', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Reps"
-                      value={exercise.reps}
-                      onChange={(e) => updateExercise(index, 'reps', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Weight (optional)"
-                      value={exercise.weight}
-                      onChange={(e) => updateExercise(index, 'weight', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Rest (optional)"
-                      value={exercise.rest}
-                      onChange={(e) => updateExercise(index, 'rest', e.target.value)}
-                    />
-                  </div>
-                  <textarea
-                    placeholder="Notes (optional)"
-                    value={exercise.notes}
-                    onChange={(e) => updateExercise(index, 'notes', e.target.value)}
-                    rows="2"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" disabled={loading || exercises.length === 0}>
-              {loading ? 'Creating...' : 'Create Workout'}
-            </button>
-          </div>
+            <Group justify="flex-end">
+              <Button type="submit" loading={loading} disabled={exercises.length === 0}>
+                Create Workout
+              </Button>
+            </Group>
+          </Stack>
         </form>
-      </div>
-    </div>
+      </Paper>
+    </Container>
   )
 }
 

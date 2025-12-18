@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, SimpleGrid } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './Payments.css'
@@ -46,123 +48,156 @@ function Payments() {
       window.location.href = response.data.onboardingUrl
     } catch (error) {
       console.error('Error connecting Stripe:', error)
-      alert('Failed to setup payment account')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to setup payment account',
+        color: 'red',
+      })
     }
   }
 
   const handleCancelSubscription = async (subscriptionId) => {
-    if (!confirm('Are you sure you want to cancel this subscription?')) {
+    if (!window.confirm('Are you sure you want to cancel this subscription?')) {
       return
     }
 
     try {
       await api.post(`/payments/subscriptions/${subscriptionId}/cancel`)
       fetchData()
-      alert('Subscription cancelled successfully')
+      notifications.show({
+        title: 'Subscription Cancelled',
+        message: 'Subscription has been cancelled successfully',
+        color: 'yellow',
+      })
     } catch (error) {
       console.error('Error cancelling subscription:', error)
-      alert('Failed to cancel subscription')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to cancel subscription',
+        color: 'red',
+      })
     }
   }
 
   if (loading) {
-    return <div className="payments-container">Loading...</div>
+    return (
+      <Group justify="center" py="xl">
+        <Loader size="lg" />
+      </Group>
+    )
   }
 
   return (
-    <div className="payments-container">
-      <h1>Payments</h1>
+    <Container size="xl" py="xl">
+      <Title order={1} mb="xl">Payments</Title>
 
       {user.role === 'trainer' && (
-        <div className="stripe-connect-section">
-          <h2>Payment Setup</h2>
+        <Paper p="md" withBorder mb="xl">
+          <Title order={2} mb="md">Payment Setup</Title>
           {!stripeStatus?.connected ? (
-            <div className="connect-card">
-              <p>Connect your Stripe account to receive payments directly from clients with zero platform fees.</p>
-              <button onClick={handleConnectStripe} className="btn-connect">
+            <Stack gap="md">
+              <Text>Connect your Stripe account to receive payments directly from clients with zero platform fees.</Text>
+              <Button onClick={handleConnectStripe}>
                 Connect Stripe Account
-              </button>
-            </div>
+              </Button>
+            </Stack>
           ) : (
-            <div className="status-card">
-              <div className="status-item">
-                <strong>Status:</strong> {stripeStatus.onboardingCompleted ? 'Active' : 'Pending Setup'}
-              </div>
-              <div className="status-item">
-                <strong>Charges Enabled:</strong> {stripeStatus.chargesEnabled ? 'Yes' : 'No'}
-              </div>
-              <div className="status-item">
-                <strong>Payouts Enabled:</strong> {stripeStatus.payoutsEnabled ? 'Yes' : 'No'}
-              </div>
+            <Stack gap="sm">
+              <Group>
+                <Text fw={500}>Status:</Text>
+                <Badge color={stripeStatus.onboardingCompleted ? 'green' : 'yellow'}>
+                  {stripeStatus.onboardingCompleted ? 'Active' : 'Pending Setup'}
+                </Badge>
+              </Group>
+              <Group>
+                <Text fw={500}>Charges Enabled:</Text>
+                <Badge color={stripeStatus.chargesEnabled ? 'green' : 'red'}>
+                  {stripeStatus.chargesEnabled ? 'Yes' : 'No'}
+                </Badge>
+              </Group>
+              <Group>
+                <Text fw={500}>Payouts Enabled:</Text>
+                <Badge color={stripeStatus.payoutsEnabled ? 'green' : 'red'}>
+                  {stripeStatus.payoutsEnabled ? 'Yes' : 'No'}
+                </Badge>
+              </Group>
               {!stripeStatus.onboardingCompleted && (
-                <p className="warning">Complete your Stripe onboarding to receive payments.</p>
+                <Alert color="yellow">
+                  Complete your Stripe onboarding to receive payments.
+                </Alert>
               )}
-            </div>
+            </Stack>
           )}
-        </div>
+        </Paper>
       )}
 
       {user.role === 'client' && subscriptions.length > 0 && (
-        <div className="subscriptions-section">
-          <h2>Active Subscriptions</h2>
-          <div className="subscriptions-list">
+        <Paper p="md" withBorder mb="xl">
+          <Title order={2} mb="md">Active Subscriptions</Title>
+          <Stack gap="md">
             {subscriptions.map(sub => (
-              <div key={sub.id} className="subscription-card">
-                <div className="subscription-header">
+              <Card key={sub.id} withBorder>
+                <Group justify="space-between" mb="xs">
                   <div>
-                    <h3>{sub.trainer_name}</h3>
-                    <p>${sub.amount}/{sub.billing_cycle}</p>
+                    <Title order={4}>{sub.trainer_name}</Title>
+                    <Text size="sm" c="dimmed">${sub.amount}/{sub.billing_cycle}</Text>
                   </div>
-                  <span className={`status-badge ${sub.status}`}>{sub.status}</span>
-                </div>
-                <div className="subscription-details">
-                  <p>Next billing: {new Date(sub.current_period_end).toLocaleDateString()}</p>
+                  <Badge color={sub.status === 'active' ? 'green' : 'gray'}>
+                    {sub.status}
+                  </Badge>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm">Next billing: {new Date(sub.current_period_end).toLocaleDateString()}</Text>
                   {sub.status === 'active' && (
-                    <button
+                    <Button
+                      variant="outline"
+                      color="red"
+                      size="sm"
                       onClick={() => handleCancelSubscription(sub.id)}
-                      className="btn-cancel"
                     >
                       Cancel Subscription
-                    </button>
+                    </Button>
                   )}
-                </div>
-              </div>
+                </Group>
+              </Card>
             ))}
-          </div>
-        </div>
+          </Stack>
+        </Paper>
       )}
 
-      <div className="payments-history-section">
-        <h2>Payment History</h2>
+      <Paper p="md" withBorder>
+        <Title order={2} mb="md">Payment History</Title>
         {payments.length === 0 ? (
-          <p>No payments yet</p>
+          <Text c="dimmed">No payments yet</Text>
         ) : (
-          <div className="payments-list">
+          <Stack gap="md">
             {payments.map(payment => (
-              <div key={payment.id} className="payment-card">
-                <div className="payment-header">
+              <Card key={payment.id} withBorder>
+                <Group justify="space-between" mb="xs">
                   <div>
-                    <h3>
+                    <Title order={4}>
                       {user.role === 'trainer' ? payment.client_name : payment.trainer_name}
-                    </h3>
-                    <p className="payment-type">{payment.payment_type}</p>
+                    </Title>
+                    <Text size="sm" c="dimmed">{payment.payment_type}</Text>
                   </div>
-                  <div className="payment-amount">
+                  <Text size="lg" fw={700}>
                     ${payment.amount} {payment.currency.toUpperCase()}
-                  </div>
-                </div>
-                <div className="payment-footer">
-                  <span className={`status-badge ${payment.status}`}>{payment.status}</span>
-                  <span className="payment-date">
+                  </Text>
+                </Group>
+                <Group justify="space-between">
+                  <Badge color={payment.status === 'completed' ? 'green' : 'yellow'}>
+                    {payment.status}
+                  </Badge>
+                  <Text size="sm" c="dimmed">
                     {new Date(payment.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
+                  </Text>
+                </Group>
+              </Card>
             ))}
-          </div>
+          </Stack>
         )}
-      </div>
-    </div>
+      </Paper>
+    </Container>
   )
 }
 

@@ -1,28 +1,45 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Modal, TextInput, NumberInput, Select, Textarea, Checkbox, Paper, Loader, Alert, Anchor } from '@mantine/core'
+import { DatePickerInput, TimeInput } from '@mantine/dates'
+import { useDisclosure } from '@mantine/hooks'
+import { useForm } from '@mantine/form'
+import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import './ClientSchedule.css'
 
 function ClientSchedule({ clientId, clientName }) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
+  const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false)
+  const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const [selectedSession, setSelectedSession] = useState(null)
   const [workouts, setWorkouts] = useState([])
-  const [formData, setFormData] = useState({
-    workoutId: '',
-    sessionDate: '',
-    sessionTime: '',
-    duration: 60,
-    sessionType: 'in_person',
-    location: '',
-    meetingLink: '',
-    notes: '',
-    isRecurring: false,
-    recurringPattern: 'weekly',
-    recurringEndDate: '',
-    dayOfWeek: ''
+  
+  const today = new Date()
+  const threeMonthsLater = new Date()
+  threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3)
+  
+  const form = useForm({
+    initialValues: {
+      workoutId: '',
+      sessionDate: today,
+      sessionTime: new Date(today.setHours(9, 0, 0, 0)),
+      duration: 60,
+      sessionType: 'in_person',
+      location: '',
+      meetingLink: '',
+      notes: '',
+      isRecurring: false,
+      recurringPattern: 'weekly',
+      recurringEndDate: threeMonthsLater,
+      dayOfWeek: ''
+    },
+    validate: {
+      sessionDate: (value) => (!value ? 'Date is required' : null),
+      sessionTime: (value) => (!value ? 'Time is required' : null),
+      sessionType: (value) => (!value ? 'Session type is required' : null),
+    },
   })
 
   useEffect(() => {
@@ -50,131 +67,145 @@ function ClientSchedule({ clientId, clientName }) {
     }
   }
 
-  const handleCreateSession = async (e) => {
-    e.preventDefault()
+  const handleCreateSession = async (values) => {
     try {
+      const sessionDate = values.sessionDate instanceof Date 
+        ? values.sessionDate.toISOString().split('T')[0]
+        : values.sessionDate
+      const sessionTime = values.sessionTime instanceof Date
+        ? values.sessionTime.toTimeString().slice(0, 5)
+        : values.sessionTime
+      const recurringEndDate = values.recurringEndDate instanceof Date
+        ? values.recurringEndDate.toISOString().split('T')[0]
+        : values.recurringEndDate
+      
       const payload = {
         clientId: parseInt(clientId),
-        workoutId: formData.workoutId || null,
-        sessionDate: formData.sessionDate,
-        sessionTime: formData.sessionTime,
-        duration: formData.duration,
-        sessionType: formData.sessionType,
-        location: formData.location || null,
-        meetingLink: formData.meetingLink || null,
-        notes: formData.notes || null
+        workoutId: values.workoutId || null,
+        sessionDate,
+        sessionTime,
+        duration: values.duration,
+        sessionType: values.sessionType,
+        location: values.location || null,
+        meetingLink: values.meetingLink || null,
+        notes: values.notes || null
       }
       
-      if (formData.isRecurring) {
+      if (values.isRecurring) {
         payload.isRecurring = true
-        payload.recurringPattern = formData.recurringPattern
-        payload.recurringEndDate = formData.recurringEndDate
-        payload.dayOfWeek = parseInt(formData.dayOfWeek)
+        payload.recurringPattern = values.recurringPattern
+        payload.recurringEndDate = recurringEndDate
+        payload.dayOfWeek = values.sessionDate instanceof Date ? values.sessionDate.getDay() : parseInt(values.dayOfWeek)
       }
       
       const response = await api.post('/schedule/trainer/sessions', payload)
       
-      if (formData.isRecurring && response.data.sessions) {
-        alert(`Successfully created ${response.data.sessions.length} recurring sessions!`)
+      if (values.isRecurring && response.data.sessions) {
+        notifications.show({
+          title: 'Sessions Created',
+          message: `Successfully created ${response.data.sessions.length} recurring sessions!`,
+          color: 'green',
+        })
       } else {
-        alert('Session scheduled successfully!')
+        notifications.show({
+          title: 'Session Scheduled',
+          message: 'Session scheduled successfully!',
+          color: 'green',
+        })
       }
       
-      setShowCreateModal(false)
-      resetForm()
+      closeCreate()
+      form.reset()
       fetchSessions()
     } catch (error) {
       console.error('Error creating session:', error)
-      alert(error.response?.data?.message || 'Failed to schedule session')
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to schedule session',
+        color: 'red',
+      })
     }
   }
 
-  const handleUpdateSession = async (e) => {
-    e.preventDefault()
+  const handleUpdateSession = async (values) => {
     try {
-      await api.put(`/schedule/trainer/sessions/${selectedSession.id}`, formData)
-      alert('Session updated successfully!')
-      setShowEditModal(false)
+      const sessionDate = values.sessionDate instanceof Date 
+        ? values.sessionDate.toISOString().split('T')[0]
+        : values.sessionDate
+      const sessionTime = values.sessionTime instanceof Date
+        ? values.sessionTime.toTimeString().slice(0, 5)
+        : values.sessionTime
+      
+      await api.put(`/schedule/trainer/sessions/${selectedSession.id}`, {
+        ...values,
+        sessionDate,
+        sessionTime
+      })
+      notifications.show({
+        title: 'Session Updated',
+        message: 'Session updated successfully!',
+        color: 'green',
+      })
+      closeEdit()
       setSelectedSession(null)
-      resetForm()
+      form.reset()
       fetchSessions()
     } catch (error) {
       console.error('Error updating session:', error)
-      alert(error.response?.data?.message || 'Failed to update session')
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to update session',
+        color: 'red',
+      })
     }
   }
 
   const handleCancelSession = async (sessionId) => {
-    if (!confirm('Are you sure you want to cancel this session?')) return
+    if (!window.confirm('Are you sure you want to cancel this session?')) return
     
     try {
       await api.post(`/schedule/trainer/sessions/${sessionId}/cancel`, {
         reason: 'Cancelled by trainer'
       })
-      alert('Session cancelled')
+      notifications.show({
+        title: 'Session Cancelled',
+        message: 'Session has been cancelled',
+        color: 'yellow',
+      })
       fetchSessions()
     } catch (error) {
       console.error('Error cancelling session:', error)
-      alert('Failed to cancel session')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to cancel session',
+        color: 'red',
+      })
     }
   }
 
   const openEditModal = (session) => {
     setSelectedSession(session)
-    setFormData({
+    const sessionDate = new Date(session.session_date)
+    const [hours, minutes] = session.session_time.split(':')
+    const sessionTime = new Date(sessionDate)
+    sessionTime.setHours(parseInt(hours), parseInt(minutes))
+    
+    form.setValues({
       workoutId: session.workout_id || '',
-      sessionDate: session.session_date,
-      sessionTime: session.session_time,
+      sessionDate: sessionDate,
+      sessionTime: sessionTime,
       duration: session.duration || 60,
       sessionType: session.session_type || 'in_person',
       location: session.location || '',
       meetingLink: session.meeting_link || '',
-      notes: session.notes || ''
-    })
-    setShowEditModal(true)
-  }
-
-  const resetForm = () => {
-    const today = new Date().toISOString().split('T')[0]
-    const threeMonthsLater = new Date()
-    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3)
-    const endDate = threeMonthsLater.toISOString().split('T')[0]
-    
-    setFormData({
-      workoutId: '',
-      sessionDate: today,
-      sessionTime: '',
-      duration: 60,
-      sessionType: 'in_person',
-      location: '',
-      meetingLink: '',
-      notes: '',
+      notes: session.notes || '',
       isRecurring: false,
       recurringPattern: 'weekly',
-      recurringEndDate: endDate,
+      recurringEndDate: threeMonthsLater,
       dayOfWeek: ''
     })
+    openEdit()
   }
-  
-  // Get day of week from selected date
-  const getDayOfWeek = (dateString) => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.getDay().toString()
-  }
-  
-  // Update day of week when date changes and recurring is enabled
-  useEffect(() => {
-    if (formData.sessionDate && formData.isRecurring) {
-      const dayOfWeek = getDayOfWeek(formData.sessionDate)
-      if (formData.dayOfWeek !== dayOfWeek) {
-        setFormData(prev => ({
-          ...prev,
-          dayOfWeek: dayOfWeek
-        }))
-      }
-    }
-  }, [formData.sessionDate, formData.isRecurring])
 
   const upcomingSessions = sessions.filter(s => 
     new Date(s.session_date) >= new Date().setHours(0,0,0,0) && 
@@ -195,418 +226,317 @@ function ClientSchedule({ clientId, clientName }) {
   })
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <Group justify="center" py="xl">
+        <Loader size="lg" />
+      </Group>
+    )
   }
 
   return (
-    <div className="client-schedule-container">
-      <div className="schedule-header">
-        <h2>Schedule for {clientName}</h2>
-        <button 
+    <Stack gap="md">
+      <Group justify="space-between">
+        <Title order={2}>Schedule for {clientName}</Title>
+        <Button 
           onClick={() => {
-            const today = new Date().toISOString().split('T')[0]
-            const threeMonthsLater = new Date()
-            threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3)
-            const endDate = threeMonthsLater.toISOString().split('T')[0]
-            const defaultTime = '09:00'
-            setFormData({ 
-              ...formData, 
-              sessionDate: today, 
-              sessionTime: defaultTime,
-              recurringEndDate: endDate
+            form.setValues({
+              ...form.values,
+              sessionDate: today,
+              sessionTime: new Date(today.setHours(9, 0, 0, 0)),
+              recurringEndDate: threeMonthsLater
             })
-            setShowCreateModal(true)
+            openCreate()
           }}
-          className="btn-primary"
         >
           + Schedule Session
-        </button>
-      </div>
+        </Button>
+      </Group>
 
       {/* Upcoming Sessions */}
-      <div className="sessions-section">
-        <h3>Upcoming Sessions ({upcomingSessions.length})</h3>
+      <div>
+        <Title order={3} mb="md">Upcoming Sessions ({upcomingSessions.length})</Title>
         {upcomingSessions.length === 0 ? (
-          <div className="empty-state">
-            <p>No upcoming sessions scheduled.</p>
-            <p>Click "Schedule Session" to book a session with {clientName}.</p>
-          </div>
+          <Paper p="xl" withBorder>
+            <Stack gap="xs" align="center">
+              <Text c="dimmed">No upcoming sessions scheduled.</Text>
+              <Text size="sm" c="dimmed">Click "Schedule Session" to book a session with {clientName}.</Text>
+            </Stack>
+          </Paper>
         ) : (
-          <div className="sessions-list">
+          <Stack gap="sm">
             {upcomingSessions.map(session => (
-              <div key={session.id} className="session-card upcoming">
-                <div className="session-date-time">
-                  <div className="session-date">
-                    {new Date(session.session_date).toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </div>
-                  <div className="session-time">
-                    {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
-                      hour: 'numeric', 
-                      minute: '2-digit' 
-                    })} ({session.duration} min)
-                  </div>
-                </div>
-                <div className="session-details">
-                  <div className="session-type-badge">
-                    {session.session_type === 'online' ? '🌐 Online' : 
-                     session.session_type === 'hybrid' ? '🔄 Hybrid' : 
-                     '📍 In-Person'}
-                  </div>
-                  {session.workout_name && (
-                    <div className="session-workout">Workout: {session.workout_name}</div>
-                  )}
-                  {session.location && (
-                    <div className="session-location">📍 {session.location}</div>
-                  )}
-                  {session.meeting_link && (
-                    <div className="session-link">
-                      <a href={session.meeting_link} target="_blank" rel="noopener noreferrer">
-                        Join Meeting →
-                      </a>
-                    </div>
-                  )}
-                  {session.notes && (
-                    <div className="session-notes">{session.notes}</div>
-                  )}
-                  <div className="session-status">
-                    <span className={`status-badge ${session.status}`}>
-                      {session.status}
-                    </span>
-                  </div>
-                </div>
-                <div className="session-actions">
-                  <button 
-                    onClick={() => openEditModal(session)}
-                    className="btn-edit"
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    onClick={() => handleCancelSession(session.id)}
-                    className="btn-cancel"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <Card key={session.id} shadow="sm" padding="lg" radius="md" withBorder>
+                <Group justify="space-between" align="flex-start">
+                  <Stack gap="xs">
+                    <Group gap="md">
+                      <div>
+                        <Text fw={500}>
+                          {new Date(session.session_date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </Text>
+                        <Text size="sm" c="dimmed">
+                          {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit' 
+                          })} ({session.duration} min)
+                        </Text>
+                      </div>
+                      <Badge variant="light">
+                        {session.session_type === 'online' ? '🌐 Online' : 
+                         session.session_type === 'hybrid' ? '🔄 Hybrid' : 
+                         '📍 In-Person'}
+                      </Badge>
+                      <Badge color={session.status === 'completed' ? 'green' : 'blue'}>
+                        {session.status}
+                      </Badge>
+                    </Group>
+                    <Stack gap={4}>
+                      {session.workout_name && (
+                        <Text size="sm"><Text span fw={500}>Workout:</Text> {session.workout_name}</Text>
+                      )}
+                      {session.location && (
+                        <Text size="sm">📍 {session.location}</Text>
+                      )}
+                      {session.meeting_link && (
+                        <Anchor href={session.meeting_link} target="_blank" rel="noopener noreferrer" size="sm">
+                          Join Meeting →
+                        </Anchor>
+                      )}
+                      {session.notes && (
+                        <Text size="sm" c="dimmed">{session.notes}</Text>
+                      )}
+                    </Stack>
+                  </Stack>
+                  <Group>
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(session)}>
+                      Edit
+                    </Button>
+                    <Button variant="outline" color="red" size="sm" onClick={() => handleCancelSession(session.id)}>
+                      Cancel
+                    </Button>
+                  </Group>
+                </Group>
+              </Card>
             ))}
-          </div>
+          </Stack>
         )}
       </div>
 
       {/* Past Sessions */}
       {pastSessions.length > 0 && (
-        <div className="sessions-section">
-          <h3>Past Sessions ({pastSessions.length})</h3>
-          <div className="sessions-list past">
+        <div>
+          <Title order={3} mb="md">Past Sessions ({pastSessions.length})</Title>
+          <Group gap="xs">
             {pastSessions.slice(0, 10).map(session => (
-              <div key={session.id} className="session-card past">
-                <div className="session-date-time">
-                  <div className="session-date">
+              <Card key={session.id} padding="sm" radius="md" withBorder>
+                <Stack gap={4}>
+                  <Text size="sm" fw={500}>
                     {new Date(session.session_date).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric',
                       year: 'numeric'
                     })}
-                  </div>
-                  <div className="session-time">
+                  </Text>
+                  <Text size="xs" c="dimmed">
                     {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
                       hour: 'numeric', 
                       minute: '2-digit' 
                     })}
-                  </div>
-                </div>
-                <div className="session-status">
-                  <span className={`status-badge ${session.status}`}>
+                  </Text>
+                  <Badge size="sm" color={session.status === 'completed' ? 'green' : 'gray'}>
                     {session.status}
-                  </span>
-                </div>
-              </div>
+                  </Badge>
+                </Stack>
+              </Card>
             ))}
-          </div>
+          </Group>
         </div>
       )}
 
-      {/* Create Session Modal */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => { setShowCreateModal(false); resetForm() }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Schedule New Session</h2>
-              <button className="modal-close" onClick={() => { setShowCreateModal(false); resetForm() }}>×</button>
-            </div>
-            <form onSubmit={handleCreateSession}>
-              <div className="form-group">
-                <label>Date *</label>
-                <input
-                  type="date"
-                  value={formData.sessionDate}
-                  onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
-                  required
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div className="form-group">
-                <label>Time *</label>
-                <input
-                  type="time"
-                  value={formData.sessionTime}
-                  onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Duration (minutes)</label>
-                  <input
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                    min="15"
-                    max="180"
-                    step="15"
+      <Modal opened={createOpened} onClose={closeCreate} title="Schedule New Session" size="lg">
+        <form onSubmit={form.onSubmit(handleCreateSession)}>
+          <Stack gap="md">
+            <DatePickerInput
+              label="Date *"
+              placeholder="Select date"
+              minDate={new Date()}
+              {...form.getInputProps('sessionDate')}
+              required
+            />
+            <TimeInput
+              label="Time *"
+              {...form.getInputProps('sessionTime')}
+              required
+            />
+            <Group grow>
+              <NumberInput
+                label="Duration (minutes)"
+                min={15}
+                max={180}
+                step={15}
+                {...form.getInputProps('duration')}
+              />
+              <Select
+                label="Type *"
+                data={['In-Person', 'Online', 'Hybrid']}
+                {...form.getInputProps('sessionType')}
+                required
+              />
+            </Group>
+            {form.values.sessionType === 'In-Person' && (
+              <TextInput
+                label="Location"
+                placeholder="Gym address or location"
+                {...form.getInputProps('location')}
+              />
+            )}
+            {form.values.sessionType === 'Online' && (
+              <TextInput
+                label="Meeting Link"
+                type="url"
+                placeholder="Zoom, Google Meet, or other meeting link"
+                {...form.getInputProps('meetingLink')}
+              />
+            )}
+            <Select
+              label="Workout (optional)"
+              placeholder="No specific workout"
+              data={workouts.map(w => ({ value: w.id.toString(), label: w.name }))}
+              {...form.getInputProps('workoutId')}
+            />
+            <Textarea
+              label="Notes"
+              placeholder="Any special instructions or notes for this session..."
+              rows={3}
+              {...form.getInputProps('notes')}
+            />
+            
+            <Checkbox
+              label="Repeat this session weekly"
+              {...form.getInputProps('isRecurring', { type: 'checkbox' })}
+            />
+            
+            {form.values.isRecurring && (
+              <Stack gap="md">
+                <Group grow>
+                  <Select
+                    label="Repeat Pattern"
+                    data={['Every Week', 'Every 2 Weeks', 'Every Month']}
+                    {...form.getInputProps('recurringPattern')}
                   />
-                </div>
-                <div className="form-group">
-                  <label>Type *</label>
-                  <select
-                    value={formData.sessionType}
-                    onChange={(e) => setFormData({ ...formData, sessionType: e.target.value })}
-                    required
-                  >
-                    <option value="in_person">In-Person</option>
-                    <option value="online">Online</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </div>
-              </div>
-              {formData.sessionType === 'in_person' && (
-                <div className="form-group">
-                  <label>Location</label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Gym address or location"
+                  <DatePickerInput
+                    label="End Date *"
+                    minDate={form.values.sessionDate}
+                    {...form.getInputProps('recurringEndDate')}
+                    required={form.values.isRecurring}
                   />
-                </div>
-              )}
-              {formData.sessionType === 'online' && (
-                <div className="form-group">
-                  <label>Meeting Link</label>
-                  <input
-                    type="url"
-                    value={formData.meetingLink}
-                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-                    placeholder="Zoom, Google Meet, or other meeting link"
-                  />
-                </div>
-              )}
-              <div className="form-group">
-                <label>Workout (optional)</label>
-                <select
-                  value={formData.workoutId}
-                  onChange={(e) => setFormData({ ...formData, workoutId: e.target.value })}
-                >
-                  <option value="">No specific workout</option>
-                  {workouts.map(workout => (
-                    <option key={workout.id} value={workout.id}>{workout.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows="3"
-                  placeholder="Any special instructions or notes for this session..."
-                />
-              </div>
-              
-              {/* Recurring Session Options */}
-              <div className="recurring-section">
-                <div className="form-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={formData.isRecurring}
-                      onChange={(e) => {
-                        const isRecurring = e.target.checked
-                        setFormData({
-                          ...formData,
-                          isRecurring,
-                          dayOfWeek: isRecurring ? getDayOfWeek(formData.sessionDate) : ''
-                        })
-                      }}
-                    />
-                    Repeat this session weekly
-                  </label>
-                </div>
-                
-                {formData.isRecurring && (
-                  <>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Repeat Pattern</label>
-                        <select
-                          value={formData.recurringPattern}
-                          onChange={(e) => setFormData({ ...formData, recurringPattern: e.target.value })}
-                        >
-                          <option value="weekly">Every Week</option>
-                          <option value="biweekly">Every 2 Weeks</option>
-                          <option value="monthly">Every Month</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>End Date *</label>
-                        <input
-                          type="date"
-                          value={formData.recurringEndDate}
-                          onChange={(e) => setFormData({ ...formData, recurringEndDate: e.target.value })}
-                          required={formData.isRecurring}
-                          min={formData.sessionDate}
-                        />
-                      </div>
-                    </div>
-                    <div className="recurring-info">
-                      <p>
-                        <strong>Schedule:</strong> Every {formData.recurringPattern === 'weekly' ? 'week' : 
-                                                          formData.recurringPattern === 'biweekly' ? '2 weeks' : 
-                                                          'month'} on {
-                        ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][parseInt(formData.dayOfWeek) || 0]
-                      } at {formData.sessionTime || 'selected time'} until {formData.recurringEndDate ? new Date(formData.recurringEndDate).toLocaleDateString() : 'end date'}
-                      </p>
-                    </div>
-                  </>
+                </Group>
+                {form.values.sessionDate && form.values.sessionTime && (
+                  <Alert color="blue" size="sm">
+                    <Text size="sm">
+                      Schedule: Every {form.values.recurringPattern === 'Every Week' ? 'week' : 
+                                     form.values.recurringPattern === 'Every 2 Weeks' ? '2 weeks' : 
+                                     'month'} on {
+                      ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+                        form.values.sessionDate instanceof Date ? form.values.sessionDate.getDay() : 0
+                      ]
+                    } at {form.values.sessionTime instanceof Date 
+                      ? form.values.sessionTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                      : form.values.sessionTime} until {form.values.recurringEndDate instanceof Date
+                        ? form.values.recurringEndDate.toLocaleDateString()
+                        : 'end date'}
+                    </Text>
+                  </Alert>
                 )}
-              </div>
-              
-              <div className="form-actions">
-                <button type="button" onClick={() => { setShowCreateModal(false); resetForm() }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Schedule Session
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              </Stack>
+            )}
+            
+            <Group justify="flex-end">
+              <Button variant="outline" onClick={closeCreate}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Schedule Session
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
 
-      {/* Edit Session Modal */}
-      {showEditModal && selectedSession && (
-        <div className="modal-overlay" onClick={() => { setShowEditModal(false); setSelectedSession(null); resetForm() }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Edit Session</h2>
-              <button className="modal-close" onClick={() => { setShowEditModal(false); setSelectedSession(null); resetForm() }}>×</button>
-            </div>
-            <form onSubmit={handleUpdateSession}>
-              <div className="form-group">
-                <label>Date *</label>
-                <input
-                  type="date"
-                  value={formData.sessionDate}
-                  onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
+      <Modal opened={editOpened} onClose={() => { closeEdit(); setSelectedSession(null); form.reset() }} title="Edit Session" size="lg">
+        {selectedSession && (
+          <form onSubmit={form.onSubmit(handleUpdateSession)}>
+            <Stack gap="md">
+              <DatePickerInput
+                label="Date *"
+                placeholder="Select date"
+                {...form.getInputProps('sessionDate')}
+                required
+              />
+              <TimeInput
+                label="Time *"
+                leftSection={<IconClock size={16} />}
+                {...form.getInputProps('sessionTime')}
+                required
+              />
+              <Group grow>
+                <NumberInput
+                  label="Duration (minutes)"
+                  min={15}
+                  max={180}
+                  step={15}
+                  {...form.getInputProps('duration')}
+                />
+                <Select
+                  label="Type *"
+                  data={['In-Person', 'Online', 'Hybrid']}
+                  {...form.getInputProps('sessionType')}
                   required
                 />
-              </div>
-              <div className="form-group">
-                <label>Time *</label>
-                <input
-                  type="time"
-                  value={formData.sessionTime}
-                  onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
-                  required
+              </Group>
+              {form.values.sessionType === 'In-Person' && (
+                <TextInput
+                  label="Location"
+                  placeholder="Gym address or location"
+                  {...form.getInputProps('location')}
                 />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Duration (minutes)</label>
-                  <input
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                    min="15"
-                    max="180"
-                    step="15"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Type *</label>
-                  <select
-                    value={formData.sessionType}
-                    onChange={(e) => setFormData({ ...formData, sessionType: e.target.value })}
-                    required
-                  >
-                    <option value="in_person">In-Person</option>
-                    <option value="online">Online</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </div>
-              </div>
-              {formData.sessionType === 'in_person' && (
-                <div className="form-group">
-                  <label>Location</label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Gym address or location"
-                  />
-                </div>
               )}
-              {formData.sessionType === 'online' && (
-                <div className="form-group">
-                  <label>Meeting Link</label>
-                  <input
-                    type="url"
-                    value={formData.meetingLink}
-                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-                    placeholder="Zoom, Google Meet, or other meeting link"
-                  />
-                </div>
-              )}
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={formData.status || selectedSession.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="scheduled">Scheduled</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows="3"
+              {form.values.sessionType === 'Online' && (
+                <TextInput
+                  label="Meeting Link"
+                  type="url"
+                  placeholder="Zoom, Google Meet, or other meeting link"
+                  {...form.getInputProps('meetingLink')}
                 />
-              </div>
-              <div className="form-actions">
-                <button type="button" onClick={() => { setShowEditModal(false); setSelectedSession(null); resetForm() }}>
+              )}
+              <Select
+                label="Status"
+                data={['Scheduled', 'Confirmed', 'Completed', 'Cancelled']}
+                value={form.values.status || selectedSession.status}
+                onChange={(value) => form.setFieldValue('status', value)}
+              />
+              <Textarea
+                label="Notes"
+                rows={3}
+                {...form.getInputProps('notes')}
+              />
+              <Group justify="flex-end">
+                <Button variant="outline" onClick={() => { closeEdit(); setSelectedSession(null); form.reset() }}>
                   Cancel
-                </button>
-                <button type="submit" className="btn-primary">
+                </Button>
+                <Button type="submit">
                   Update Session
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        )}
+      </Modal>
+    </Stack>
   )
 }
 

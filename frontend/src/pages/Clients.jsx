@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Container, Title, Text, Stack, Group, Button, TextInput, Select, Paper, Grid, Badge, Avatar, Loader, Alert, Card } from '@mantine/core'
 import api from '../services/api'
 import './Clients.css'
 
@@ -39,191 +40,168 @@ function Clients() {
 
   if (loading) {
     return (
-      <div className="clients-container" style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', padding: '2rem' }}>
-        <div style={{ padding: '2rem', textAlign: 'center', fontSize: '18px' }}>Loading clients...</div>
-      </div>
+      <Container size="xl" py="xl">
+        <Group justify="center">
+          <Loader size="lg" />
+        </Group>
+      </Container>
     )
   }
 
   if (error) {
     return (
-      <div className="clients-container" style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', padding: '2rem' }}>
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#e74c3c' }}>
-          <h2 style={{ fontSize: '24px', marginBottom: '1rem' }}>Error loading clients</h2>
-          <p style={{ fontSize: '16px', marginBottom: '1rem' }}>{error}</p>
-          <button 
-            onClick={fetchClients} 
-            style={{ 
-              padding: '0.75rem 1.5rem', 
-              border: 'none', 
-              borderRadius: '4px', 
-              backgroundColor: '#3498db', 
-              color: 'white', 
-              cursor: 'pointer', 
-              fontSize: '1rem',
-              marginTop: '1rem' 
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
+      <Container size="xl" py="xl">
+        <Alert color="red" title="Error loading clients" mb="md">
+          {error}
+        </Alert>
+        <Button onClick={fetchClients}>Retry</Button>
+      </Container>
     )
   }
 
   return (
-    <div className="clients-container" style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <div className="clients-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ color: '#2c3e50', margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>My Clients</h1>
-        <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
-          <button 
-            onClick={() => navigate('/trainer/add-client')}
-            className="btn-primary"
-            style={{ padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', backgroundColor: '#3498db', color: 'white', cursor: 'pointer', fontSize: '1rem' }}
-          >
+    <Container size="xl" py="xl">
+      <Group justify="space-between" mb="xl">
+        <Title order={1}>My Clients</Title>
+        <Group>
+          <Button onClick={() => navigate('/trainer/add-client')}>
             + Add New Client
-          </button>
-          <button 
-            onClick={() => {/* TODO: Implement find clients */}}
-            className="btn-secondary"
-            style={{ padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', backgroundColor: '#95a5a6', color: 'white', cursor: 'pointer', fontSize: '1rem' }}
-          >
+          </Button>
+          <Button variant="outline" disabled>
             Find Clients
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Group>
+      </Group>
 
       {/* Add/Find Clients Section */}
-      <div className="add-find-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '3rem' }}>
-        <div className="action-card" style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h2 style={{ color: '#2c3e50', marginBottom: '0.5rem' }}>Add New Client</h2>
-          <p style={{ color: '#666', marginBottom: '1.5rem' }}>Invite a new client and complete their onboarding to get started with personalized training.</p>
-          <button 
-            onClick={() => navigate('/trainer/add-client')}
-            className="btn-action"
-            style={{ backgroundColor: '#3498db', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Add Client →
-          </button>
-        </div>
-        <div className="action-card" style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h2 style={{ color: '#2c3e50', marginBottom: '0.5rem' }}>Find Clients</h2>
-          <p style={{ color: '#666', marginBottom: '1.5rem' }}>Discover potential clients looking for trainers. Connect and grow your client base.</p>
-          <button 
-            onClick={() => {/* TODO: Implement find clients feature */}}
-            className="btn-action"
-            disabled
-            style={{ backgroundColor: '#95a5a6', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', cursor: 'not-allowed', opacity: 0.6 }}
-          >
-            Coming Soon
-          </button>
-        </div>
-      </div>
+      <Grid gutter="md" mb="xl">
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Title order={3} mb="xs">Add New Client</Title>
+            <Text c="dimmed" mb="md">
+              Invite a new client and complete their onboarding to get started with personalized training.
+            </Text>
+            <Button onClick={() => navigate('/trainer/add-client')} fullWidth>
+              Add Client →
+            </Button>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Title order={3} mb="xs">Find Clients</Title>
+            <Text c="dimmed" mb="md">
+              Discover potential clients looking for trainers. Connect and grow your client base.
+            </Text>
+            <Button variant="outline" fullWidth disabled>
+              Coming Soon
+            </Button>
+          </Card>
+        </Grid.Col>
+      </Grid>
 
       {/* Clients List */}
-      <div className="clients-list-section" style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <div className="list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ color: '#2c3e50', margin: 0 }}>Current Clients ({filteredClients.length})</h2>
-          <div className="filters" style={{ display: 'flex', gap: '1rem' }}>
-            <input
-              type="text"
+      <Paper shadow="sm" p="lg" radius="md" withBorder>
+        <Group justify="space-between" mb="md">
+          <Title order={3}>Current Clients ({filteredClients.length})</Title>
+          <Group>
+            <TextInput
               placeholder="Search clients..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-              style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', minWidth: '200px' }}
+              style={{ minWidth: 200 }}
             />
-            <select
+            <Select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="filter-select"
-              style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', background: 'white', cursor: 'pointer' }}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-        </div>
+              onChange={(value) => setFilterStatus(value)}
+              data={[
+                { value: 'all', label: 'All Status' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' }
+              ]}
+            />
+          </Group>
+        </Group>
 
         {filteredClients.length === 0 ? (
-          <div className="empty-state" style={{ textAlign: 'center', padding: '4rem 2rem', color: '#666' }}>
-            <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No clients found.</p>
-            {clients.length === 0 ? (
-              <p>Get started by adding your first client!</p>
-            ) : (
-              <p>Try adjusting your search or filter.</p>
-            )}
-          </div>
+          <Stack align="center" py="xl">
+            <Text c="dimmed" size="lg">No clients found.</Text>
+            <Text c="dimmed" size="sm">
+              {clients.length === 0 
+                ? 'Get started by adding your first client!'
+                : 'Try adjusting your search or filter.'}
+            </Text>
+          </Stack>
         ) : (
-          <div className="clients-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <Grid gutter="md">
             {filteredClients.map(client => (
-              <div 
-                key={client.id} 
-                className="client-card"
-                onClick={() => navigate(`/trainer/clients/${client.id}`)}
-                style={{ background: '#f8f9fa', borderRadius: '8px', padding: '1.5rem', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
-              >
-                <div className="client-card-header">
-                  <div className="client-avatar">
-                    {client.name?.charAt(0).toUpperCase() || 'C'}
-                  </div>
-                  <div className="client-info">
-                    <h3>{client.name}</h3>
-                    <p className="client-email">{client.email}</p>
-                  </div>
-                  <span className={`status-badge ${client.status || 'active'}`}>
-                    {client.status || 'active'}
-                  </span>
-                </div>
-                
-                <div className="client-card-body">
-                  {client.primary_goal ? (
-                    <>
-                      <div className="client-goal">
-                        <strong>Goal:</strong> {client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </div>
-                      {client.goal_target && (
-                        <div className="client-target">
-                          <strong>Target:</strong> {client.goal_target}
+              <Grid.Col key={client.id} span={{ base: 12, sm: 6, md: 4 }}>
+                <Card
+                  shadow="sm"
+                  padding="lg"
+                  radius="md"
+                  withBorder
+                  style={{ cursor: 'pointer', height: '100%' }}
+                  onClick={() => navigate(`/trainer/clients/${client.id}`)}
+                >
+                  <Stack gap="sm">
+                    <Group justify="space-between">
+                      <Group gap="sm">
+                        <Avatar color="green" radius="xl">
+                          {client.name?.charAt(0).toUpperCase() || 'C'}
+                        </Avatar>
+                        <div>
+                          <Text fw={500}>{client.name}</Text>
+                          <Text size="sm" c="dimmed">{client.email}</Text>
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="client-goal missing">
-                      <strong>⚠️ No Goal Set</strong>
-                    </div>
-                  )}
-                  {client.training_preference && (
-                    <div className="client-preference">
-                      <strong>Training:</strong> {client.training_preference}
-                    </div>
-                  )}
-                </div>
+                      </Group>
+                      <Badge color={client.status === 'active' ? 'green' : 'gray'}>
+                        {client.status || 'active'}
+                      </Badge>
+                    </Group>
 
-                <div className="client-card-footer">
-                  <div className="client-meta">
-                    {client.onboarding_completed && (
-                      <span className="badge-complete">✓ Onboarded</span>
+                    {client.primary_goal ? (
+                      <Stack gap={4}>
+                        <Text size="sm">
+                          <Text span fw={500}>Goal:</Text>{' '}
+                          {client.primary_goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </Text>
+                        {client.goal_target && (
+                          <Text size="sm">
+                            <Text span fw={500}>Target:</Text> {client.goal_target}
+                          </Text>
+                        )}
+                      </Stack>
+                    ) : (
+                      <Badge color="yellow" variant="light">⚠️ No Goal Set</Badge>
                     )}
-                    {client.checked_in_today > 0 && (
-                      <span className="badge-checkin">✓ Checked in today</span>
+
+                    {client.training_preference && (
+                      <Text size="sm" c="dimmed">
+                        <Text span fw={500}>Training:</Text> {client.training_preference}
+                      </Text>
                     )}
+
+                    <Group gap="xs" mt="auto">
+                      {client.onboarding_completed && (
+                        <Badge size="sm" color="green" variant="light">✓ Onboarded</Badge>
+                      )}
+                      {client.checked_in_today > 0 && (
+                        <Badge size="sm" color="blue" variant="light">✓ Checked in today</Badge>
+                      )}
+                    </Group>
                     {client.start_date && (
-                      <span className="client-date">
+                      <Text size="xs" c="dimmed">
                         Started: {new Date(client.start_date).toLocaleDateString()}
-                      </span>
+                      </Text>
                     )}
-                  </div>
-                </div>
-              </div>
+                  </Stack>
+                </Card>
+              </Grid.Col>
             ))}
-          </div>
+          </Grid>
         )}
-      </div>
-    </div>
+      </Paper>
+    </Container>
   )
 }
 

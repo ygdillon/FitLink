@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import { Container, Paper, Title, TextInput, PasswordInput, Select, Button, Text, Stack, Alert, Box, Anchor } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
-import './Register.css'
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -66,87 +66,109 @@ function Register() {
   }
 
   return (
-    <div className="register-container">
-      <div className="register-card">
-        <h1>Register</h1>
-        {error && <div className="error-message">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Role</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              required
-            >
-              <option value="client">Client</option>
-              <option value="trainer">Trainer</option>
-            </select>
-          </div>
-          {formData.role === 'trainer' && (
-            <div className="form-group">
-              <label>Phone Number *</label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                placeholder="e.g., (555) 123-4567"
-                required
-              />
-              <small>Required for trainers so clients can contact you</small>
-            </div>
+    <Box style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '2rem', backgroundColor: '#F5F9F0' }}>
+      <Container size={420} my={40}>
+        <Paper shadow="md" p={30} radius="md" withBorder>
+          <Title order={1} ta="center" mb="xl">
+            Register
+          </Title>
+          
+          {error && (
+            <Alert color="red" mb="md">
+              {error}
+            </Alert>
           )}
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={6}
-            />
-          </div>
-          <div className="form-group">
-            <label>Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Registering...' : 'Register'}
-          </button>
-        </form>
-        <p>
-          Already have an account? <a href="/login">Login</a>
-        </p>
-      </div>
-    </div>
+
+          <form onSubmit={handleSubmit}>
+            <Stack gap="md">
+              <TextInput
+                label="Name"
+                placeholder="Your name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                size="md"
+              />
+
+              <TextInput
+                label="Email"
+                placeholder="your@email.com"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                size="md"
+              />
+
+              <Select
+                label="Role"
+                name="role"
+                value={formData.role}
+                onChange={(value) => setFormData({ ...formData, role: value })}
+                data={[
+                  { value: 'client', label: 'Client' },
+                  { value: 'trainer', label: 'Trainer' }
+                ]}
+                required
+                size="md"
+              />
+
+              {formData.role === 'trainer' && (
+                <TextInput
+                  label="Phone Number"
+                  placeholder="(555) 123-4567"
+                  type="tel"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  required
+                  size="md"
+                  description="Required for trainers so clients can contact you"
+                />
+              )}
+
+              <PasswordInput
+                label="Password"
+                placeholder="Your password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                size="md"
+              />
+
+              <PasswordInput
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                size="md"
+              />
+
+              <Button 
+                type="submit" 
+                fullWidth 
+                loading={loading}
+                size="md"
+                mt="md"
+                color="lime.8"
+              >
+                {loading ? 'Registering...' : 'Register'}
+              </Button>
+            </Stack>
+          </form>
+
+          <Text ta="center" mt="md" size="sm">
+            Already have an account? <Anchor component={Link} to="/login" c="lime.8" fw={500}>Login</Anchor>
+          </Text>
+        </Paper>
+      </Container>
+    </Box>
   )
 }
 
