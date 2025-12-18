@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { MantineProvider } from '@mantine/core'
+import { MantineProvider, ColorSchemeScript } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './contexts/AuthContext'
@@ -80,7 +80,7 @@ function AppRoutes() {
 function App() {
   return (
     <ErrorBoundary>
-      <MantineProvider theme={theme}>
+      <MantineProvider theme={theme} defaultColorScheme="light">
         <Notifications position="top-right" />
         <AuthProvider>
           <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

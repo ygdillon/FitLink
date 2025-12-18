@@ -93,28 +93,28 @@ function TrainerRequests() {
         <Button
           variant={filter === 'pending' ? 'filled' : 'outline'}
           onClick={() => setFilter('pending')}
-          color="lime.8"
+          color="robinhoodGreen"
         >
           Pending {pendingCount > 0 && `(${pendingCount})`}
         </Button>
         <Button
           variant={filter === 'all' ? 'filled' : 'outline'}
           onClick={() => setFilter('all')}
-          color="lime.8"
+          color="robinhoodGreen"
         >
           All Requests
         </Button>
         <Button
           variant={filter === 'approved' ? 'filled' : 'outline'}
           onClick={() => setFilter('approved')}
-          color="lime.8"
+          color="robinhoodGreen"
         >
           Approved
         </Button>
         <Button
           variant={filter === 'rejected' ? 'filled' : 'outline'}
           onClick={() => setFilter('rejected')}
-          color="lime.8"
+          color="robinhoodGreen"
         >
           Rejected
         </Button>

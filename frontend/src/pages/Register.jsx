@@ -156,7 +156,7 @@ function Register() {
                 loading={loading}
                 size="md"
                 mt="md"
-                color="lime.8"
+                color="robinhoodGreen"
               >
                 {loading ? 'Registering...' : 'Register'}
               </Button>
@@ -164,7 +164,7 @@ function Register() {
           </form>
 
           <Text ta="center" mt="md" size="sm">
-            Already have an account? <Anchor component={Link} to="/login" c="lime.8" fw={500}>Login</Anchor>
+            Already have an account? <Anchor component={Link} to="/login" c="robinhoodGreen.6" fw={500}>Login</Anchor>
           </Text>
         </Paper>
       </Container>

@@ -67,7 +67,7 @@ function Login() {
                 loading={loading}
                 size="md"
                 mt="md"
-                color="lime.8"
+                color="robinhoodGreen"
               >
                 {loading ? 'Logging in...' : 'Login'}
               </Button>
@@ -75,7 +75,7 @@ function Login() {
           </form>
 
           <Text ta="center" mt="md" size="sm">
-            Don't have an account? <Anchor component={Link} to="/register" c="lime.8" fw={500}>Register</Anchor>
+            Don't have an account? <Anchor component={Link} to="/register" c="robinhoodGreen.6" fw={500}>Register</Anchor>
           </Text>
         </Paper>
       </Container>

@@ -87,7 +87,7 @@ function Messages() {
                       onClick={() => selectConversation(conv)}
                       style={{
                         cursor: 'pointer',
-                        backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-lime-0)' : 'transparent'
+                        backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-robinhoodGreen-0)' : 'transparent'
                       }}
                     >
                       <Stack gap={4}>
@@ -119,7 +119,7 @@ function Messages() {
                           maxWidth: '70%',
                           marginLeft: msg.senderId === selectedConversation.id ? 0 : 'auto',
                           marginRight: msg.senderId === selectedConversation.id ? 'auto' : 0,
-                          backgroundColor: msg.senderId === selectedConversation.id ? 'var(--mantine-color-gray-1)' : 'var(--mantine-color-lime-1)'
+                          backgroundColor: msg.senderId === selectedConversation.id ? 'var(--mantine-color-gray-1)' : 'var(--mantine-color-robinhoodGreen-1)'
                         }}
                       >
                         <Text size="sm">{msg.content}</Text>

@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { Stack, Button, Text, Divider, UnstyledButton } from '@mantine/core'
+import { Stack, Button, Text, Divider, UnstyledButton, Group } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
+import ThemeToggle from './ThemeToggle'
 import './Navbar.css'
 
 function Navbar() {
@@ -33,17 +34,20 @@ function Navbar() {
   return (
     <nav className="navbar-sidebar">
       <Stack gap="md" p="md" h="100%">
-        <Text
-          component={Link}
-          to="/"
-          fw={700}
-          size="xl"
-          c="white"
-          ta="center"
-          style={{ textDecoration: 'none' }}
-        >
-          FitLink
-        </Text>
+        <Group justify="space-between" align="center">
+          <Text
+            component={Link}
+            to="/"
+            fw={700}
+            size="xl"
+            c="white"
+            ta="center"
+            style={{ textDecoration: 'none', flex: 1 }}
+          >
+            FitLink
+          </Text>
+          <ThemeToggle />
+        </Group>
 
         <Stack gap={4} style={{ flex: 1 }}>
           {user.role === 'trainer' ? (
