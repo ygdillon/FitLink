@@ -48,6 +48,7 @@ function AppRoutes() {
       
       <Route element={<ProtectedRoute />}>
         <Route path="/trainer" element={<TrainerDashboard />} />
+        <Route path="/trainer/clients/:clientId" element={<Clients />} />
         <Route path="/trainer/clients" element={<Clients />} />
         <Route path="/trainer/requests" element={<TrainerRequests />} />
         
@@ -68,7 +69,6 @@ function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/trainer/add-client" element={<AddClient />} />
-        <Route path="/trainer/clients/:clientId" element={<ClientProfile />} />
         <Route path="/trainer/clients/:clientId/progress" element={<ClientProgress />} />
         <Route path="/check-in" element={<DailyCheckIn />} />
         <Route path="/" element={<Navigate to={user?.role === 'trainer' ? '/trainer' : '/client'} />} />

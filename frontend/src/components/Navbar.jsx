@@ -5,26 +5,23 @@ import ThemeToggle from './ThemeToggle'
 import './Navbar.css'
 
 function Navbar() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const location = useLocation()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
 
   if (!user) {
     return null
   }
 
-  const NavButton = ({ to, label, children }) => {
-    const isActive = location.pathname === to || (to !== '/trainer' && location.pathname.startsWith(to))
+  const NavButton = ({ to, label, children, end = false }) => {
+    // For exact routes like /client or /trainer, use end prop to match exactly
+    // For sub-routes like /client/workouts, allow matching deeper paths
+    const isExactRoute = to === '/client' || to === '/trainer'
     return (
       <UnstyledButton
         component={NavLink}
         to={to}
-        className={`sidebar-link ${isActive ? 'active' : ''}`}
+        end={isExactRoute ? true : end}
+        className="sidebar-link"
       >
         {label || children}
       </UnstyledButton>
@@ -57,6 +54,7 @@ function Navbar() {
               <NavButton to="/trainer/requests">Requests</NavButton>
               <NavButton to="/messages">Messages</NavButton>
               <NavButton to="/payments">Payments</NavButton>
+              <NavButton to="/settings">Settings</NavButton>
             </>
           ) : (
             <>
@@ -70,17 +68,6 @@ function Navbar() {
           )}
           <NavButton to="/profile">Profile</NavButton>
         </Stack>
-
-        <Divider color="rgba(255, 255, 255, 0.2)" />
-
-        <Button
-          onClick={handleLogout}
-          color="red"
-          variant="filled"
-          fullWidth
-        >
-          Logout
-        </Button>
       </Stack>
     </nav>
   )

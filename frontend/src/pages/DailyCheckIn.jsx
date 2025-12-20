@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Container, Paper, Title, Text, Stack, Group, Radio, Textarea, Button, Alert, Badge, Box } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 
 function DailyCheckIn() {
+  const location = useLocation()
   const [formData, setFormData] = useState({
     workout_completed: null,
     diet_stuck_to: null,
@@ -13,10 +16,19 @@ function DailyCheckIn() {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [message, setMessage] = useState('')
+  const [fromWorkout, setFromWorkout] = useState(false)
 
   useEffect(() => {
+    // Check if coming from workout completion
+    if (location.state?.fromWorkout) {
+      setFromWorkout(true)
+      setFormData(prev => ({
+        ...prev,
+        workout_completed: true
+      }))
+    }
     fetchTodayCheckIn()
-  }, [])
+  }, [location])
 
   const fetchTodayCheckIn = async () => {
     try {
@@ -64,10 +76,21 @@ function DailyCheckIn() {
       await api.post('/client/check-in', formData)
       setSubmitted(true)
       setMessage('Check-in submitted successfully!')
+      notifications.show({
+        title: 'Check-in Submitted',
+        message: 'Your trainer will review your check-in and provide feedback.',
+        color: 'green',
+      })
       fetchTodayCheckIn()
+      setFromWorkout(false) // Clear the fromWorkout flag after submission
     } catch (error) {
       console.error('Error submitting check-in:', error)
       setMessage('Failed to submit check-in')
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to submit check-in. Please try again.',
+        color: 'red',
+      })
     } finally {
       setLoading(false)
     }
@@ -85,6 +108,12 @@ function DailyCheckIn() {
       <Paper shadow="md" p="xl" radius="md" withBorder>
         <Title order={1} mb="xs">Daily Check-In</Title>
         <Text c="dimmed" mb="xl">{today}</Text>
+        
+        {fromWorkout && (
+          <Alert color="green" mb="md" title="Workout Completed!">
+            Great job! Let's complete your check-in to help your trainer track your progress.
+          </Alert>
+        )}
 
         {submitted && todayCheckIn && (
           <Stack gap="md">

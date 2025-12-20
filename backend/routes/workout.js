@@ -75,7 +75,20 @@ router.post('/:id/complete', authenticate, async (req, res) => {
       [userId, id]
     )
 
-    res.json({ message: 'Workout marked as complete' })
+    // Check if check-in is required (no check-in for today yet)
+    const today = new Date().toISOString().split('T')[0]
+    const checkInResult = await pool.query(
+      'SELECT id FROM daily_check_ins WHERE client_id = $1 AND check_in_date = $2',
+      [userId, today]
+    )
+
+    const requiresCheckIn = checkInResult.rows.length === 0
+
+    res.json({ 
+      message: 'Workout marked as complete',
+      requiresCheckIn: requiresCheckIn,
+      workoutId: id
+    })
   } catch (error) {
     console.error('Error completing workout:', error)
     res.status(500).json({ message: 'Failed to complete workout' })

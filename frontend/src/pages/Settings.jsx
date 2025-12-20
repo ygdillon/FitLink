@@ -1,21 +1,30 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Container, Title, Text, Tabs, Paper, Card, Avatar, Badge, Button, TextInput, Textarea, Modal, Stack, Group, Alert, Loader, Divider } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './Settings.css'
 
 function Settings() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [currentTrainer, setCurrentTrainer] = useState(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [message, setMessage] = useState('')
-  const [activeTab, setActiveTab] = useState('current') // 'current', 'find', or 'requests'
+  const [activeTab, setActiveTab] = useState(user?.role === 'client' ? 'current' : 'account') // 'current', 'find', 'requests', or 'account'
   const [pendingRequests, setPendingRequests] = useState([])
   const [requestMessage, setRequestMessage] = useState('')
   const [opened, { open, close }] = useDisclosure(false)
   const [selectedTrainer, setSelectedTrainer] = useState(null)
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   useEffect(() => {
     fetchCurrentTrainer()
@@ -155,14 +164,20 @@ function Settings() {
 
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List>
-          <Tabs.Tab value="current">Current Trainer</Tabs.Tab>
-          <Tabs.Tab value="requests">
-            Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
-          </Tabs.Tab>
-          <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
+          {user?.role === 'client' && (
+            <>
+              <Tabs.Tab value="current">Current Trainer</Tabs.Tab>
+              <Tabs.Tab value="requests">
+                Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+              </Tabs.Tab>
+              <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
+            </>
+          )}
+          <Tabs.Tab value="account">Account</Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="current" pt="md">
+        {user?.role === 'client' && (
+          <Tabs.Panel value="current" pt="md">
           <Title order={2} mb="md">Your Current Trainer</Title>
           {currentTrainer ? (
             <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -211,9 +226,11 @@ function Settings() {
               </Stack>
             </Paper>
           )}
-        </Tabs.Panel>
+          </Tabs.Panel>
+        )}
 
-        <Tabs.Panel value="requests" pt="md">
+        {user?.role === 'client' && (
+          <Tabs.Panel value="requests" pt="md">
           <Title order={2} mb="md">Trainer Requests</Title>
           {pendingRequests.length > 0 ? (
             <Stack gap="md">
@@ -262,76 +279,107 @@ function Settings() {
               </Stack>
             </Paper>
           )}
-        </Tabs.Panel>
+          </Tabs.Panel>
+        )}
 
-        <Tabs.Panel value="find" pt="md">
-          <Title order={2} mb="md">Find a New Trainer</Title>
-          <form onSubmit={handleSearch}>
-            <Group mb="md">
-              <TextInput
-                placeholder="Search by name, specialty, or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <Button type="submit" loading={searching} disabled={!searchQuery.trim()}>
-                Search
-              </Button>
-            </Group>
-          </form>
+        {user?.role === 'client' && (
+          <Tabs.Panel value="find" pt="md">
+            <Title order={2} mb="md">Find a New Trainer</Title>
+            <form onSubmit={handleSearch}>
+              <Group mb="md">
+                <TextInput
+                  placeholder="Search by name, specialty, or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <Button type="submit" loading={searching} disabled={!searchQuery.trim()}>
+                  Search
+                </Button>
+              </Group>
+            </form>
 
-          {searchResults.length > 0 && (
-            <Stack gap="md">
-              <Title order={3}>Search Results</Title>
-              {searchResults.map(trainer => (
-                <Card key={trainer.id} shadow="sm" padding="lg" radius="md" withBorder>
-                  <Group justify="space-between" align="flex-start">
-                    <Group>
-                      <Avatar color="green" size="md" radius="xl">
-                        {trainer.name.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <Stack gap={4}>
-                        <Title order={4}>{trainer.name}</Title>
-                        <Text size="sm" c="dimmed">{trainer.email}</Text>
-                        {trainer.phoneNumber && (
-                          <Text size="sm" c="dimmed">📞 {trainer.phoneNumber}</Text>
-                        )}
-                        {trainer.bio && <Text size="sm">{trainer.bio}</Text>}
-                        {trainer.specialties && trainer.specialties.length > 0 && (
-                          <Group gap="xs" mt="xs">
-                            <Text size="sm" fw={500}>Specialties:</Text>
-                            {(Array.isArray(trainer.specialties) 
-                              ? trainer.specialties 
-                              : Object.values(trainer.specialties)
-                            ).map((spec, idx) => (
-                              <Badge key={idx} size="sm" variant="light">{spec}</Badge>
-                            ))}
-                          </Group>
-                        )}
-                        {trainer.hourly_rate && (
-                          <Text size="sm"><Text span fw={500}>Rate:</Text> ${trainer.hourly_rate}/hour</Text>
-                        )}
-                        {trainer.total_clients !== undefined && (
-                          <Text size="sm" c="dimmed">
-                            <Text span fw={500}>Clients:</Text> {trainer.active_clients || 0} active / {trainer.total_clients || 0} total
-                          </Text>
-                        )}
-                      </Stack>
+            {searchResults.length > 0 && (
+              <Stack gap="md">
+                <Title order={3}>Search Results</Title>
+                {searchResults.map(trainer => (
+                  <Card key={trainer.id} shadow="sm" padding="lg" radius="md" withBorder>
+                    <Group justify="space-between" align="flex-start">
+                      <Group>
+                        <Avatar color="green" size="md" radius="xl">
+                          {trainer.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Stack gap={4}>
+                          <Title order={4}>{trainer.name}</Title>
+                          <Text size="sm" c="dimmed">{trainer.email}</Text>
+                          {trainer.phoneNumber && (
+                            <Text size="sm" c="dimmed">📞 {trainer.phoneNumber}</Text>
+                          )}
+                          {trainer.bio && <Text size="sm">{trainer.bio}</Text>}
+                          {trainer.specialties && trainer.specialties.length > 0 && (
+                            <Group gap="xs" mt="xs">
+                              <Text size="sm" fw={500}>Specialties:</Text>
+                              {(Array.isArray(trainer.specialties) 
+                                ? trainer.specialties 
+                                : Object.values(trainer.specialties)
+                              ).map((spec, idx) => (
+                                <Badge key={idx} size="sm" variant="light">{spec}</Badge>
+                              ))}
+                            </Group>
+                          )}
+                          {trainer.hourly_rate && (
+                            <Text size="sm"><Text span fw={500}>Rate:</Text> ${trainer.hourly_rate}/hour</Text>
+                          )}
+                          {trainer.total_clients !== undefined && (
+                            <Text size="sm" c="dimmed">
+                              <Text span fw={500}>Clients:</Text> {trainer.active_clients || 0} active / {trainer.total_clients || 0} total
+                            </Text>
+                          )}
+                        </Stack>
+                      </Group>
+                      {currentTrainer && currentTrainer.id === trainer.id ? (
+                        <Button disabled>Current Trainer</Button>
+                      ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
+                        <Button disabled variant="outline">Request Pending</Button>
+                      ) : (
+                        <Button onClick={() => handleRequestTrainer(trainer.id)}>
+                          Request Trainer
+                        </Button>
+                      )}
                     </Group>
-                    {currentTrainer && currentTrainer.id === trainer.id ? (
-                      <Button disabled>Current Trainer</Button>
-                    ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
-                      <Button disabled variant="outline">Request Pending</Button>
-                    ) : (
-                      <Button onClick={() => handleRequestTrainer(trainer.id)}>
-                        Request Trainer
-                      </Button>
-                    )}
-                  </Group>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </Stack>
+            )}
+          </Tabs.Panel>
+        )}
+
+        <Tabs.Panel value="account" pt="md">
+          <Title order={2} mb="md">Account Settings</Title>
+          <Paper p="lg" withBorder>
+            <Stack gap="md">
+              <div>
+                <Title order={4} mb="xs">Account Information</Title>
+                <Text c="dimmed" mb="md">Manage your account settings and preferences</Text>
+              </div>
+              
+              <Divider />
+              
+              <div>
+                <Title order={4} mb="xs">Sign Out</Title>
+                <Text c="dimmed" mb="md" size="sm">
+                  Sign out of your FitLink account. You'll need to sign in again to access your account.
+                </Text>
+                <Button 
+                  color="red" 
+                  variant="filled" 
+                  onClick={handleLogout}
+                >
+                  Sign Out
+                </Button>
+              </div>
             </Stack>
-          )}
+          </Paper>
         </Tabs.Panel>
       </Tabs>
 

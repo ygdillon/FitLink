@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Container, Paper, Title, Text, Stack, Card, Badge, Button, Group, Loader, Alert } from '@mantine/core'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Container, Paper, Title, Text, Stack, Card, Badge, Button, Group, Loader, Alert, Modal } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import './WorkoutView.css'
 
 function WorkoutView() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [workout, setWorkout] = useState(null)
   const [loading, setLoading] = useState(true)
   const [completed, setCompleted] = useState(false)
+  const [requiresCheckIn, setRequiresCheckIn] = useState(false)
+  const [checkInModalOpened, { open: openCheckInModal, close: closeCheckInModal }] = useDisclosure(false)
 
   useEffect(() => {
     fetchWorkout()
@@ -28,13 +32,19 @@ function WorkoutView() {
 
   const handleComplete = async () => {
     try {
-      await api.post(`/workouts/${id}/complete`)
+      const response = await api.post(`/workouts/${id}/complete`)
       setCompleted(true)
-      notifications.show({
-        title: 'Workout Completed',
-        message: 'Workout has been marked as complete!',
-        color: 'green',
-      })
+      
+      if (response.data.requiresCheckIn) {
+        setRequiresCheckIn(true)
+        openCheckInModal()
+      } else {
+        notifications.show({
+          title: 'Workout Completed',
+          message: 'Workout has been marked as complete!',
+          color: 'green',
+        })
+      }
     } catch (error) {
       console.error('Error completing workout:', error)
       notifications.show({
@@ -43,6 +53,11 @@ function WorkoutView() {
         color: 'red',
       })
     }
+  }
+
+  const handleGoToCheckIn = () => {
+    closeCheckInModal()
+    navigate('/check-in', { state: { fromWorkout: true, workoutId: id } })
   }
 
   if (loading) {
@@ -101,7 +116,7 @@ function WorkoutView() {
           </div>
 
           {!completed ? (
-            <Button onClick={handleComplete} size="lg" fullWidth>
+            <Button onClick={handleComplete} size="lg" fullWidth color="robinhoodGreen">
               Mark as Complete
             </Button>
           ) : (
@@ -111,6 +126,30 @@ function WorkoutView() {
           )}
         </Stack>
       </Paper>
+
+      <Modal
+        opened={checkInModalOpened}
+        onClose={closeCheckInModal}
+        title="Workout Completed!"
+        centered
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+      >
+        <Stack gap="md">
+          <Text>
+            Great job completing your workout! To help your trainer track your progress and adjust your program, 
+            please complete a quick check-in.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="outline" onClick={closeCheckInModal}>
+              Skip for Now
+            </Button>
+            <Button onClick={handleGoToCheckIn} color="robinhoodGreen">
+              Complete Check-in
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Container>
   )
 }

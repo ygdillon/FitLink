@@ -32,26 +32,24 @@ function ClientProfile() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
-        <Group justify="center">
-          <Loader size="lg" />
-        </Group>
-      </Container>
+      <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader size="lg" />
+      </Box>
     )
   }
 
   if (!client) {
     return (
-      <Container size="xl" py="xl">
+      <Box p="xl">
         <Alert color="red" title="Client Not Found">
           The requested client could not be found.
         </Alert>
-      </Container>
+      </Box>
     )
   }
 
   return (
-    <Container size="xl" py="xl">
+    <Box style={{ height: '100%', overflow: 'auto' }} p="xl">
       <Group justify="space-between" mb="xl">
         <Title order={1}>{client.name}</Title>
         <Badge color={client.status === 'active' ? 'green' : 'gray'} size="lg">
@@ -298,7 +296,7 @@ function ClientProfile() {
             </Tabs.Panel>
           </Box>
       </Tabs>
-    </Container>
+    </Box>
   )
 }
 
