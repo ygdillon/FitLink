@@ -122,46 +122,49 @@ function Messages() {
   }
 
   return (
-    <Container size="xl" py="xl">
-      <Title order={1} mb="xl">Messages</Title>
-      <Grid>
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          <Paper p="md" withBorder style={{ height: '600px' }}>
-            <Title order={2} mb="md">Conversations</Title>
-            {messages.length === 0 ? (
-              <Text c="dimmed">No conversations yet</Text>
-            ) : (
-              <ScrollArea style={{ height: '500px' }}>
-                <Stack gap="xs">
-                  {messages.map(conv => (
-                    <Card
-                      key={conv.id}
-                      withBorder
-                      p="sm"
-                      onClick={() => selectConversation(conv)}
-                      style={{
-                        cursor: 'pointer',
-                        backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-robinhoodGreen-0)' : 'transparent'
-                      }}
-                    >
-                      <Stack gap={4}>
-                        <Text fw={500}>{conv.name}</Text>
-                        <Text size="sm" c="dimmed" lineClamp={1}>{conv.lastMessage}</Text>
-                      </Stack>
-                    </Card>
-                  ))}
-                </Stack>
-              </ScrollArea>
-            )}
-          </Paper>
-        </Grid.Col>
+    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', overflow: 'hidden' }}>
+      <Box style={{ flexShrink: 0, paddingBottom: '1rem' }}>
+        <Title order={1}>Messages</Title>
+      </Box>
+      <Box style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+        <Grid gutter="md" style={{ width: '100%', height: '100%', margin: 0 }}>
+          <Grid.Col span={{ base: 12, md: 4 }} style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Paper p="md" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Title order={2} mb="md" style={{ flexShrink: 0 }}>Conversations</Title>
+              {messages.length === 0 ? (
+                <Text c="dimmed">No conversations yet</Text>
+              ) : (
+                <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+                  <Stack gap="xs">
+                    {messages.map(conv => (
+                      <Card
+                        key={conv.id}
+                        withBorder
+                        p="sm"
+                        onClick={() => selectConversation(conv)}
+                        style={{
+                          cursor: 'pointer',
+                          backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-robinhoodGreen-0)' : 'transparent'
+                        }}
+                      >
+                        <Stack gap={4}>
+                          <Text fw={500}>{conv.name}</Text>
+                          <Text size="sm" c="dimmed" lineClamp={1}>{conv.lastMessage}</Text>
+                        </Stack>
+                      </Card>
+                    ))}
+                  </Stack>
+                </ScrollArea>
+              )}
+            </Paper>
+          </Grid.Col>
 
-        <Grid.Col span={{ base: 12, md: 8 }}>
-          <Paper p="md" withBorder style={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
+          <Grid.Col span={{ base: 12, md: 8 }} style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Paper p="md" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {selectedConversation ? (
               <>
-                <Title order={2} mb="md">{selectedConversation.name}</Title>
-                <ScrollArea style={{ flex: 1, marginBottom: '1rem' }}>
+                <Title order={2} mb="md" style={{ flexShrink: 0 }}>{selectedConversation.name}</Title>
+                <ScrollArea style={{ flex: 1, minHeight: 0 }}>
                   <Stack gap="sm" style={{ padding: '0.5rem' }}>
                     {selectedConversation.messages?.map(msg => {
                       // Check if message is from current user (sender_id matches user.id)
@@ -206,7 +209,7 @@ function Messages() {
                     })}
                   </Stack>
                 </ScrollArea>
-                <form onSubmit={handleSendMessage}>
+                <form onSubmit={handleSendMessage} style={{ flexShrink: 0, marginTop: '1rem' }}>
                   <Group>
                     <TextInput
                       style={{ flex: 1 }}
@@ -225,10 +228,11 @@ function Messages() {
                 <Text c="dimmed">Select a conversation to start messaging</Text>
               </Group>
             )}
-          </Paper>
-        </Grid.Col>
-      </Grid>
-    </Container>
+            </Paper>
+          </Grid.Col>
+        </Grid>
+      </Box>
+    </Box>
   )
 }
 

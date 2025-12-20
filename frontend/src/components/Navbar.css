@@ -1,4 +1,45 @@
-/* Robinhood-inspired Sidebar - Clean, Modern, Professional */
+/* AppShell Navbar Styles */
+.nav-link {
+  border-radius: var(--mantine-radius-md);
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover:not([data-active]) {
+  background-color: var(--mantine-color-robinhoodGreen-1);
+  color: var(--mantine-color-robinhoodGreen-7);
+}
+
+.nav-link[data-active] {
+  background-color: var(--mantine-color-robinhoodGreen-6);
+  color: white;
+}
+
+.nav-link[data-active] .mantine-NavLink-label {
+  color: white;
+  font-weight: 600;
+}
+
+/* Header styles */
+[data-mantine-color-scheme="light"] [data-mantine-component="AppShell"] [data-mantine-component="Header"] {
+  background-color: white;
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+}
+
+[data-mantine-color-scheme="dark"] [data-mantine-component="AppShell"] [data-mantine-component="Header"] {
+  background-color: var(--mantine-color-charcoalGray-8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Navbar styles */
+[data-mantine-color-scheme="light"] [data-mantine-component="AppShell"] [data-mantine-component="Navbar"] {
+  background-color: var(--mantine-color-charcoalGray-8);
+}
+
+[data-mantine-color-scheme="dark"] [data-mantine-component="AppShell"] [data-mantine-component="Navbar"] {
+  background-color: var(--mantine-color-charcoalGray-9);
+}
+
+/* Keep old styles for backward compatibility */
 .navbar-sidebar {
   position: fixed;
   left: 0;
@@ -19,7 +60,6 @@
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Override Mantine NavLink styles for sidebar */
 .navbar-sidebar .sidebar-link {
   color: rgba(255, 255, 255, 0.9) !important;
   padding: 0.75rem 1rem;
@@ -41,48 +81,4 @@
   background-color: var(--mantine-color-robinhoodGreen-6) !important;
   color: white !important;
   font-weight: 600;
-}
-
-/* Keep old navbar classes for backward compatibility */
-.navbar {
-  background-color: var(--mantine-color-charcoalGray-8);
-  color: white;
-  padding: 1rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-[data-mantine-color-scheme="dark"] .navbar {
-  background-color: var(--mantine-color-charcoalGray-9);
-}
-
-.navbar-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.navbar-logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
-  text-decoration: none;
-}
-
-.navbar-menu {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-}
-
-.navbar-menu a {
-  color: white;
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.navbar-menu a:hover {
-  opacity: 0.9;
 }

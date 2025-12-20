@@ -84,16 +84,25 @@ function App() {
         <Notifications position="top-right" />
         <AuthProvider>
           <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <div className="App">
-              <Navbar />
-              <div className="main-content" id="main-content">
-                <AppRoutes />
-              </div>
-            </div>
+            <AppWithNavbar />
           </Router>
         </AuthProvider>
       </MantineProvider>
     </ErrorBoundary>
+  )
+}
+
+function AppWithNavbar() {
+  const { user } = useAuth()
+  
+  if (!user) {
+    return <AppRoutes />
+  }
+  
+  return (
+    <Navbar>
+      <AppRoutes />
+    </Navbar>
   )
 }
 

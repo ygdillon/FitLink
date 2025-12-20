@@ -24,18 +24,10 @@ code {
 
 .App {
   min-height: 100vh;
-  display: flex;
 }
 
-/* Main content area with sidebar offset */
+/* AppShell handles layout, so we don't need manual margins */
 .main-content {
-  margin-left: 240px;
-  flex: 1;
   min-height: 100vh;
-}
-
-/* Override margin when navbar is not visible (login/register pages) */
-.App:not(:has(.navbar-sidebar)) .main-content {
-  margin-left: 0;
 }
 

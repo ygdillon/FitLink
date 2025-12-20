@@ -1,78 +1,169 @@
-import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { Stack, Button, Text, Divider, UnstyledButton, Group } from '@mantine/core'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { 
+  AppShell, 
+  Group, 
+  Text, 
+  UnstyledButton, 
+  Stack, 
+  NavLink as MantineNavLink,
+  Button,
+  Burger,
+  Avatar,
+  useMantineTheme
+} from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
 import ThemeToggle from './ThemeToggle'
+import { useState } from 'react'
 import './Navbar.css'
 
-function Navbar() {
-  const { user } = useAuth()
-  const location = useLocation()
+function Navbar({ children }) {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const theme = useMantineTheme()
+  const [mobileOpened, setMobileOpened] = useState(false)
+  const [desktopOpened, setDesktopOpened] = useState(true)
 
   if (!user) {
-    return null
+    return children
   }
 
-  const NavButton = ({ to, label, children, end = false }) => {
-    // For exact routes like /client or /trainer, use end prop to match exactly
-    // For sub-routes like /client/workouts, allow matching deeper paths
-    const isExactRoute = to === '/client' || to === '/trainer'
-    return (
-      <UnstyledButton
-        component={NavLink}
-        to={to}
-        end={isExactRoute ? true : end}
-        className="sidebar-link"
-      >
-        {label || children}
-      </UnstyledButton>
-    )
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
   }
+
+  // Trainer navigation items
+  const trainerNavItems = [
+    { label: 'My Space', to: '/trainer' },
+    { label: 'Clients', to: '/trainer/clients' },
+    { label: 'Requests', to: '/trainer/requests' },
+    { label: 'Payments', to: '/payments' },
+  ]
+
+  // Client navigation items
+  const clientNavItems = [
+    { label: 'My Space', to: '/client' },
+    { label: 'Workouts', to: '/client/workouts' },
+    { label: 'Progress', to: '/client/progress' },
+    { label: 'Nutrition', to: '/client/nutrition' },
+    { label: 'Check-in', to: '/check-in' },
+  ]
+
+  const navItems = user.role === 'trainer' ? trainerNavItems : clientNavItems
 
   return (
-    <nav className="navbar-sidebar">
-      <Stack gap="md" p="md" h="100%">
-        <Group justify="space-between" align="center">
-          <Text
-            component={Link}
-            to="/"
-            fw={700}
-            size="xl"
-            c="white"
-            ta="center"
-            style={{ textDecoration: 'none', flex: 1 }}
-          >
-            FitLink
-          </Text>
-          <ThemeToggle />
+    <AppShell
+      navbar={{
+        width: 280,
+        breakpoint: 'sm',
+        collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
+      }}
+      header={{ height: 60 }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md" justify="space-between">
+          <Group gap="md">
+            <Burger
+              opened={mobileOpened}
+              onClick={() => setMobileOpened(!mobileOpened)}
+              hiddenFrom="sm"
+              size="sm"
+            />
+            <Text
+              component={Link}
+              to="/"
+              fw={700}
+              size="xl"
+              c="robinhoodGreen"
+              style={{ textDecoration: 'none' }}
+            >
+              FitLink
+            </Text>
+            <UnstyledButton
+              component={Link}
+              to="/profile"
+              visibleFrom="sm"
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <Group gap="xs">
+                <Avatar color="robinhoodGreen" radius="xl" size="sm">
+                  {user.name?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
+                <Stack gap={0} style={{ lineHeight: 1.2 }}>
+                  <Text size="sm" fw={500}>
+                    {user.name || 'User'}
+                  </Text>
+                  <Text size="xs" c="dimmed" lineClamp={1} style={{ maxWidth: '200px' }}>
+                    {user.email}
+                  </Text>
+                </Stack>
+              </Group>
+            </UnstyledButton>
+          </Group>
+          
+          <Group gap="md">
+            <ThemeToggle />
+            <Button
+              component={NavLink}
+              to="/profile"
+              variant="subtle"
+              size="sm"
+            >
+              Profile
+            </Button>
+            <Button
+              component={NavLink}
+              to="/messages"
+              variant="subtle"
+              size="sm"
+            >
+              Messages
+            </Button>
+            <Button
+              component={NavLink}
+              to="/settings"
+              variant="subtle"
+              size="sm"
+            >
+              Settings
+            </Button>
+            <Button
+              variant="subtle"
+              size="sm"
+              color="red"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </Group>
         </Group>
+      </AppShell.Header>
 
-        <Stack gap={4} style={{ flex: 1 }}>
-          {user.role === 'trainer' ? (
-            <>
-              <NavButton to="/trainer">My Space</NavButton>
-              <NavButton to="/trainer/clients">Clients</NavButton>
-              <NavButton to="/trainer/requests">Requests</NavButton>
-              <NavButton to="/messages">Messages</NavButton>
-              <NavButton to="/payments">Payments</NavButton>
-              <NavButton to="/settings">Settings</NavButton>
-            </>
-          ) : (
-            <>
-              <NavButton to="/client">My Space</NavButton>
-              <NavButton to="/client/workouts">Workouts</NavButton>
-              <NavButton to="/client/progress">Progress</NavButton>
-              <NavButton to="/client/nutrition">Nutrition</NavButton>
-              <NavButton to="/check-in">Check-in</NavButton>
-              <NavButton to="/messages">Messages</NavButton>
-              <NavButton to="/settings">Settings</NavButton>
-            </>
-          )}
-          <NavButton to="/profile">Profile</NavButton>
+      <AppShell.Navbar p="md">
+        <Stack gap={4}>
+          {navItems.map((item) => {
+            // Use exact matching for base routes to prevent highlighting on sub-routes
+            const isExactRoute = item.to === '/client' || item.to === '/trainer'
+            return (
+              <MantineNavLink
+                key={item.to}
+                component={NavLink}
+                to={item.to}
+                label={item.label}
+                end={isExactRoute}
+                className="nav-link"
+              />
+            )
+          })}
         </Stack>
-      </Stack>
-    </nav>
+      </AppShell.Navbar>
+
+      <AppShell.Main>
+        {children}
+      </AppShell.Main>
+    </AppShell>
   )
 }
 
 export default Navbar
-
