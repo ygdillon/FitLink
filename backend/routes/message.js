@@ -71,23 +71,72 @@ router.get('/:userId', async (req, res) => {
 // Send message
 router.post('/', async (req, res) => {
   try {
+    console.log('📨 Received message request:', {
+      senderId: req.user.id,
+      receiverId: req.body.receiverId,
+      contentLength: req.body.content?.length,
+      hasContent: !!req.body.content
+    })
+
     const { receiverId, content } = req.body
 
     if (!receiverId || !content) {
+      console.log('❌ Missing required fields:', { receiverId: !!receiverId, content: !!content })
       return res.status(400).json({ message: 'Receiver ID and content are required' })
     }
 
+    // Validate receiverId is a number
+    const receiverIdNum = parseInt(receiverId)
+    if (isNaN(receiverIdNum)) {
+      console.log('❌ Invalid receiver ID:', receiverId)
+      return res.status(400).json({ message: 'Invalid receiver ID' })
+    }
+
+    // Verify receiver exists
+    const receiverCheck = await pool.query('SELECT id FROM users WHERE id = $1', [receiverIdNum])
+    if (receiverCheck.rows.length === 0) {
+      console.log('❌ Receiver does not exist:', receiverIdNum)
+      return res.status(400).json({ message: 'Receiver user does not exist' })
+    }
+
+    console.log('✅ Inserting message into database...')
     const result = await pool.query(
       `INSERT INTO messages (sender_id, receiver_id, content)
        VALUES ($1, $2, $3)
        RETURNING id, sender_id, receiver_id, content, timestamp`,
-      [req.user.id, receiverId, content]
+      [req.user.id, receiverIdNum, content.trim()]
     )
 
+    console.log('✅ Message sent successfully:', result.rows[0].id)
     res.status(201).json(result.rows[0])
   } catch (error) {
-    console.error('Error sending message:', error)
-    res.status(500).json({ message: 'Failed to send message' })
+    console.error('❌ Error sending message:', error)
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint,
+      table: error.table
+    })
+    
+    // Provide more specific error messages
+    if (error.code === '42P01') {
+      return res.status(500).json({ 
+        message: 'Messages table does not exist. Please run: node backend/ensure-messages-table.js' 
+      })
+    }
+    if (error.code === '23503') {
+      return res.status(400).json({ message: 'Invalid receiver ID - user does not exist' })
+    }
+    if (error.code === '23505') {
+      return res.status(400).json({ message: 'Duplicate message' })
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to send message',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      code: error.code
+    })
   }
 })
 

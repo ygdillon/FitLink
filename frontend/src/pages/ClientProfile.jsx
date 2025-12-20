@@ -50,28 +50,60 @@ function ClientProfile() {
 
   return (
     <Box style={{ height: '100%', overflow: 'auto' }} p="xl">
-      <Group justify="space-between" mb="xl">
-        <Title order={1}>{client.name}</Title>
-        <Badge color={client.status === 'active' ? 'green' : 'gray'} size="lg">
-          {client.status || 'active'}
-        </Badge>
-      </Group>
+      <Stack gap="md">
+        <Group justify="space-between">
+          <Title order={1}>{client.name}</Title>
+          <Badge color={client.status === 'active' ? 'green' : 'gray'} size="lg">
+            {client.status || 'active'}
+          </Badge>
+        </Group>
 
-      <Tabs value={activeTab} onChange={setActiveTab} orientation="vertical" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-        <Box style={{ flex: '0 0 180px' }}>
-          <Tabs.List>
-            <Tabs.Tab value="overview">Overview</Tabs.Tab>
-            <Tabs.Tab value="goals">Goals</Tabs.Tab>
-            <Tabs.Tab value="progress">Progress</Tabs.Tab>
-            <Tabs.Tab value="check-ins">Check-ins</Tabs.Tab>
-            <Tabs.Tab value="workouts">Workouts</Tabs.Tab>
-            <Tabs.Tab value="schedule">Schedule</Tabs.Tab>
-            <Tabs.Tab value="nutrition">Nutrition</Tabs.Tab>
-            <Tabs.Tab value="payments">Payments</Tabs.Tab>
-          </Tabs.List>
-        </Box>
+        <Tabs 
+          value={activeTab} 
+          onChange={setActiveTab}
+          className="clientProfileTabs"
+        >
+          <Paper 
+            p="xs" 
+            withBorder 
+            shadow="md"
+            style={{ 
+              backgroundColor: 'white',
+              borderRadius: 'var(--mantine-radius-md)',
+              border: '1px solid var(--mantine-color-gray-3)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <Tabs.List className="clientProfileTabsList" style={{ flexWrap: 'nowrap', overflowX: 'auto' }}>
+              <Tabs.Tab value="overview" className="clientProfileTab">
+                Overview
+              </Tabs.Tab>
+              <Tabs.Tab value="goals" className="clientProfileTab">
+                Goals
+              </Tabs.Tab>
+              <Tabs.Tab value="progress" className="clientProfileTab">
+                Progress
+              </Tabs.Tab>
+              <Tabs.Tab value="check-ins" className="clientProfileTab">
+                Check-ins
+              </Tabs.Tab>
+              <Tabs.Tab value="workouts" className="clientProfileTab">
+                Workouts
+              </Tabs.Tab>
+              <Tabs.Tab value="schedule" className="clientProfileTab">
+                Schedule
+              </Tabs.Tab>
+              <Tabs.Tab value="nutrition" className="clientProfileTab">
+                Nutrition
+              </Tabs.Tab>
+              <Tabs.Tab value="payments" className="clientProfileTab">
+                Payments
+              </Tabs.Tab>
+            </Tabs.List>
+          </Paper>
 
-        <Box style={{ flex: 1, minWidth: 0 }}>
+          <Box>
             <Tabs.Panel value="overview">
               <Stack gap="md">
                 <Paper p="md" withBorder>
@@ -295,7 +327,8 @@ function ClientProfile() {
               </Paper>
             </Tabs.Panel>
           </Box>
-      </Tabs>
+        </Tabs>
+      </Stack>
     </Box>
   )
 }

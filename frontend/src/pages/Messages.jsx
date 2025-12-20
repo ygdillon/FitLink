@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Container, Title, Text, Stack, Card, Button, Group, Paper, TextInput, Grid, Loader, ScrollArea } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Button, Group, Paper, TextInput, Grid, Loader, ScrollArea, Box } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
+import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './Messages.css'
 
 function Messages() {
+  const { user } = useAuth()
   const [messages, setMessages] = useState([])
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [newMessage, setNewMessage] = useState('')
@@ -25,24 +27,61 @@ function Messages() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!newMessage.trim() || !selectedConversation) return
+    if (!newMessage.trim() || !selectedConversation) {
+      console.log('❌ Cannot send: missing message or conversation', {
+        hasMessage: !!newMessage.trim(),
+        hasConversation: !!selectedConversation,
+        selectedConversation
+      })
+      return
+    }
+
+    if (!selectedConversation.id) {
+      console.error('❌ Selected conversation has no ID:', selectedConversation)
+      notifications.show({
+        title: 'Error',
+        message: 'Invalid conversation selected',
+        color: 'red',
+      })
+      return
+    }
+
+    console.log('📤 Sending message:', {
+      receiverId: selectedConversation.id,
+      receiverIdType: typeof selectedConversation.id,
+      receiverName: selectedConversation.name,
+      content: newMessage,
+      contentLength: newMessage.length,
+      selectedConversation
+    })
 
     setLoading(true)
     try {
-      await api.post('/messages', {
+      const response = await api.post('/messages', {
         receiverId: selectedConversation.id,
         content: newMessage
       })
+      console.log('✅ Message sent successfully:', response.data)
       setNewMessage('')
       fetchConversations()
       if (selectedConversation) {
         fetchConversationMessages(selectedConversation.id)
       }
+      notifications.show({
+        title: 'Success',
+        message: 'Message sent successfully',
+        color: 'green',
+      })
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('❌ Error sending message:', error)
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      console.error('Full error:', error)
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to send message'
       notifications.show({
         title: 'Error',
-        message: 'Failed to send message',
+        message: `${errorMessage} (Status: ${error.response?.status || 'Unknown'})`,
         color: 'red',
       })
     } finally {
@@ -53,9 +92,15 @@ function Messages() {
   const fetchConversationMessages = async (userId) => {
     try {
       const response = await api.get(`/messages/${userId}`)
-      setSelectedConversation({
-        ...selectedConversation,
-        messages: response.data
+      setSelectedConversation(prev => {
+        if (!prev || prev.id !== userId) {
+          // If the conversation changed, don't update
+          return prev
+        }
+        return {
+          ...prev,
+          messages: response.data
+        }
       })
     } catch (error) {
       console.error('Error fetching conversation:', error)
@@ -63,7 +108,16 @@ function Messages() {
   }
 
   const selectConversation = (conversation) => {
-    setSelectedConversation(conversation)
+    console.log('📋 Selecting conversation:', conversation)
+    if (!conversation || !conversation.id) {
+      console.error('❌ Invalid conversation selected:', conversation)
+      return
+    }
+    // Set the conversation first, then fetch messages
+    setSelectedConversation({
+      ...conversation,
+      messages: [] // Initialize with empty messages array
+    })
     fetchConversationMessages(conversation.id)
   }
 
@@ -108,26 +162,48 @@ function Messages() {
               <>
                 <Title order={2} mb="md">{selectedConversation.name}</Title>
                 <ScrollArea style={{ flex: 1, marginBottom: '1rem' }}>
-                  <Stack gap="sm">
-                    {selectedConversation.messages?.map(msg => (
-                      <Card
-                        key={msg.id}
-                        p="sm"
-                        withBorder
-                        style={{
-                          alignSelf: msg.senderId === selectedConversation.id ? 'flex-start' : 'flex-end',
-                          maxWidth: '70%',
-                          marginLeft: msg.senderId === selectedConversation.id ? 0 : 'auto',
-                          marginRight: msg.senderId === selectedConversation.id ? 'auto' : 0,
-                          backgroundColor: msg.senderId === selectedConversation.id ? 'var(--mantine-color-gray-1)' : 'var(--mantine-color-robinhoodGreen-1)'
-                        }}
-                      >
-                        <Text size="sm">{msg.content}</Text>
-                        <Text size="xs" c="dimmed" mt={4}>
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </Text>
-                      </Card>
-                    ))}
+                  <Stack gap="sm" style={{ padding: '0.5rem' }}>
+                    {selectedConversation.messages?.map(msg => {
+                      // Check if message is from current user (sender_id matches user.id)
+                      const isFromCurrentUser = msg.sender_id === user?.id
+                      return (
+                        <Box
+                          key={msg.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: isFromCurrentUser ? 'flex-end' : 'flex-start',
+                            width: '100%'
+                          }}
+                        >
+                          <Card
+                            p="sm"
+                            withBorder
+                            style={{
+                              maxWidth: '70%',
+                              backgroundColor: isFromCurrentUser 
+                                ? 'var(--mantine-color-robinhoodGreen-6)' 
+                                : 'var(--mantine-color-gray-1)',
+                              color: isFromCurrentUser ? 'white' : 'inherit',
+                              borderRadius: 'var(--mantine-radius-md)'
+                            }}
+                          >
+                            <Text size="sm" c={isFromCurrentUser ? 'white' : 'inherit'}>
+                              {msg.content}
+                            </Text>
+                            <Text 
+                              size="xs" 
+                              c={isFromCurrentUser ? 'rgba(255, 255, 255, 0.8)' : 'dimmed'} 
+                              mt={4}
+                            >
+                              {new Date(msg.timestamp).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </Text>
+                          </Card>
+                        </Box>
+                      )
+                    })}
                   </Stack>
                 </ScrollArea>
                 <form onSubmit={handleSendMessage}>

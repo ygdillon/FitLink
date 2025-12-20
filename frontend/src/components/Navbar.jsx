@@ -63,6 +63,7 @@ function Navbar() {
               <NavButton to="/client/progress">Progress</NavButton>
               <NavButton to="/client/nutrition">Nutrition</NavButton>
               <NavButton to="/check-in">Check-in</NavButton>
+              <NavButton to="/messages">Messages</NavButton>
               <NavButton to="/settings">Settings</NavButton>
             </>
           )}
