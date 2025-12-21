@@ -141,6 +141,86 @@ router.post('/generate', authenticate, requireRole(['trainer']), async (req, res
   }
 })
 
+// Get AI recommendations for a workout being created
+router.post('/recommendations', authenticate, requireRole(['trainer']), async (req, res) => {
+  try {
+    const { clientId, currentWorkout } = req.body
+
+    if (!clientId) {
+      return res.status(400).json({ message: 'Client ID is required' })
+    }
+
+    // Fetch client profile data
+    const clientResult = await pool.query(
+      `SELECT 
+        c.*, 
+        u.name as client_name,
+        u.email as client_email
+       FROM clients c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = $1 AND c.trainer_id = $2`,
+      [clientId, req.user.id]
+    )
+
+    if (clientResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found or not assigned to you' })
+    }
+
+    const client = clientResult.rows[0]
+
+    // Parse JSONB fields
+    let secondaryGoals = client.secondary_goals
+    if (secondaryGoals && typeof secondaryGoals === 'string') {
+      secondaryGoals = JSON.parse(secondaryGoals)
+    }
+
+    // Build recommendations prompt
+    const prompt = buildRecommendationsPrompt(client, currentWorkout)
+
+    // Call OpenAI API
+    const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+    
+    const completion = await openai.chat.completions.create({
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert personal trainer. Provide helpful, specific recommendations for improving workouts. Return valid JSON format only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' }
+    })
+
+    const aiResponse = JSON.parse(completion.choices[0].message.content)
+
+    res.json({
+      exerciseSuggestions: aiResponse.exerciseSuggestions || [],
+      modifications: aiResponse.modifications || [],
+      generalTips: aiResponse.generalTips || ''
+    })
+  } catch (error) {
+    console.error('Error getting AI recommendations:', error)
+    
+    if (error.status === 429 || error.code === 'insufficient_quota' || error.type === 'insufficient_quota') {
+      return res.status(429).json({ 
+        message: 'OpenAI API quota exceeded. Please add credits to your account.',
+        error: 'INSUFFICIENT_QUOTA',
+        helpUrl: 'https://platform.openai.com/account/billing'
+      })
+    }
+
+    res.status(500).json({ 
+      message: 'Failed to get recommendations',
+      error: error.message 
+    })
+  }
+})
+
 // Customize existing workout with AI
 router.post('/customize', authenticate, requireRole(['trainer']), async (req, res) => {
   try {

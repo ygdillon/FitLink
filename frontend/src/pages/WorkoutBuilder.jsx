@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Select, Checkbox, Button, Group, Card, NumberInput } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Select, Checkbox, Button, Group, Card, NumberInput, Modal } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import api from '../services/api'
+import AIRecommendations from '../components/AIRecommendations'
 import './WorkoutBuilder.css'
 
 function WorkoutBuilder() {
@@ -13,7 +15,23 @@ function WorkoutBuilder() {
   const [isTemplate, setIsTemplate] = useState(false)
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(false)
+  const [clients, setClients] = useState([])
+  const [selectedClientId, setSelectedClientId] = useState('')
+  const [recommendationsOpened, { open: openRecommendations, close: closeRecommendations }] = useDisclosure(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    fetchClients()
+  }, [])
+
+  const fetchClients = async () => {
+    try {
+      const response = await api.get('/trainer/clients')
+      setClients(response.data)
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+    }
+  }
 
   const addExercise = () => {
     setExercises([...exercises, {
@@ -34,6 +52,26 @@ function WorkoutBuilder() {
 
   const removeExercise = (index) => {
     setExercises(exercises.filter((_, i) => i !== index))
+  }
+
+  const handleApplyRecommendation = (recommendation) => {
+    // Add the recommended exercise to the workout
+    setExercises([...exercises, {
+      name: recommendation.name,
+      sets: recommendation.sets || '',
+      reps: recommendation.reps || '',
+      weight: recommendation.weight || '',
+      rest: recommendation.rest || '',
+      notes: recommendation.notes || recommendation.reason || ''
+    }])
+    
+    notifications.show({
+      title: 'Exercise Added',
+      message: `${recommendation.name} has been added to your workout`,
+      color: 'green',
+    })
+    
+    closeRecommendations()
   }
 
   const handleSubmit = async (values) => {
@@ -104,6 +142,34 @@ function WorkoutBuilder() {
               onChange={(e) => setIsTemplate(e.target.checked)}
             />
 
+            <Group gap="md">
+              <Select
+                label="Select Client (for AI Recommendations)"
+                placeholder="Choose a client..."
+                data={clients.map(client => {
+                  const clientUserId = client.user_id || client.id
+                  return {
+                    value: clientUserId.toString(),
+                    label: `${client.name || 'Client'} (${client.email})`
+                  }
+                })}
+                value={selectedClientId}
+                onChange={setSelectedClientId}
+                searchable
+                style={{ flex: 1 }}
+              />
+              <Button 
+                type="button"
+                onClick={openRecommendations}
+                disabled={!selectedClientId}
+                color="robinhoodGreen"
+                variant="light"
+                style={{ marginTop: '1.5rem' }}
+              >
+                Get AI Recommendations
+              </Button>
+            </Group>
+
             <div>
               <Group justify="space-between" mb="md">
                 <Title order={3}>Exercises</Title>
@@ -168,6 +234,24 @@ function WorkoutBuilder() {
             </Group>
           </Stack>
         </form>
+
+        <AIRecommendations
+          opened={recommendationsOpened}
+          onClose={(recommendation) => {
+            if (recommendation) {
+              handleApplyRecommendation(recommendation)
+            } else {
+              closeRecommendations()
+            }
+          }}
+          clientId={selectedClientId}
+          currentWorkout={{
+            name: workoutName,
+            description,
+            category,
+            exercises
+          }}
+        />
     </>
   )
 
