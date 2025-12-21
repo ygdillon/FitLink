@@ -107,16 +107,36 @@ router.post('/generate', authenticate, requireRole(['trainer']), async (req, res
   } catch (error) {
     console.error('Error generating AI workout:', error)
     
-    if (error.response?.status === 401) {
+    // Handle specific OpenAI API errors
+    if (error.status === 401 || error.code === 'invalid_api_key') {
       return res.status(500).json({ 
-        message: 'AI service authentication failed. Please check API key configuration.',
-        error: 'OPENAI_AUTH_ERROR'
+        message: 'AI service authentication failed. Please check your API key configuration.',
+        error: 'OPENAI_AUTH_ERROR',
+        details: 'Your OpenAI API key is invalid or missing.'
+      })
+    }
+
+    if (error.status === 429 || error.code === 'insufficient_quota' || error.type === 'insufficient_quota') {
+      return res.status(429).json({ 
+        message: 'OpenAI API quota exceeded. Please add credits to your account.',
+        error: 'INSUFFICIENT_QUOTA',
+        details: 'Your OpenAI account has run out of credits. Visit https://platform.openai.com/account/billing to add credits.',
+        helpUrl: 'https://platform.openai.com/account/billing'
+      })
+    }
+
+    if (error.status === 404 || error.code === 'model_not_found') {
+      return res.status(500).json({ 
+        message: 'AI model not available. Please check your OpenAI account access.',
+        error: 'MODEL_NOT_FOUND',
+        details: 'The requested AI model is not available with your current API key.'
       })
     }
 
     res.status(500).json({ 
       message: 'Failed to generate workout',
-      error: error.message 
+      error: error.message || 'UNKNOWN_ERROR',
+      details: 'An unexpected error occurred while generating the workout.'
     })
   }
 })

@@ -82,12 +82,35 @@ function AIWorkoutGenerator({ onWorkoutGenerated, onCancel }) {
       })
     } catch (error) {
       console.error('Error generating workout:', error)
-      const errorMessage = error.response?.data?.message || 'Failed to generate workout'
+      const errorData = error.response?.data || {}
+      const errorMessage = errorData.message || 'Failed to generate workout'
       
-      if (error.response?.data?.error === 'OPENAI_AUTH_ERROR') {
+      if (errorData.error === 'OPENAI_AUTH_ERROR') {
         notifications.show({
           title: 'Configuration Error',
-          message: 'AI service is not configured. Please contact support.',
+          message: 'AI service is not configured. Please check your API key.',
+          color: 'red',
+        })
+      } else if (errorData.error === 'INSUFFICIENT_QUOTA' || error.response?.status === 429) {
+        notifications.show({
+          title: 'Quota Exceeded',
+          message: 'Your OpenAI account has run out of credits. Please add credits to continue.',
+          color: 'orange',
+          autoClose: 10000,
+        })
+        // Show additional help
+        setTimeout(() => {
+          notifications.show({
+            title: 'How to Add Credits',
+            message: 'Visit https://platform.openai.com/account/billing to add credits to your OpenAI account.',
+            color: 'blue',
+            autoClose: 15000,
+          })
+        }, 2000)
+      } else if (errorData.error === 'MODEL_NOT_FOUND') {
+        notifications.show({
+          title: 'Model Not Available',
+          message: 'The AI model is not available with your current API key.',
           color: 'red',
         })
       } else {
