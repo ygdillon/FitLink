@@ -33,18 +33,58 @@ function Navbar({ children }) {
     navigate('/login')
   }
 
+  // Icon components
+  const HomeIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+
+  const PeopleIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+
+  const RequestIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="12" y1="18" x2="12" y2="12" />
+      <line x1="9" y1="15" x2="15" y2="15" />
+    </svg>
+  )
+
+  const AnalyticsIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
+
+  const DollarIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  )
+
   // Trainer navigation items
   const trainerNavItems = [
-    { label: 'Dashboard', to: '/trainer' },
-    { label: 'Clients', to: '/trainer/clients' },
-    { label: 'Requests', to: '/trainer/requests' },
-    { label: 'Analytics', to: '/trainer/analytics' },
-    { label: 'Payments', to: '/payments' },
+    { label: 'Dashboard', to: '/trainer', icon: <HomeIcon /> },
+    { label: 'Clients', to: '/trainer/clients', icon: <PeopleIcon /> },
+    { label: 'Requests', to: '/trainer/requests', icon: <RequestIcon /> },
+    { label: 'Analytics', to: '/trainer/analytics', icon: <AnalyticsIcon /> },
+    { label: 'Payments', to: '/payments', icon: <DollarIcon /> },
   ]
 
   // Client navigation items
   const clientNavItems = [
-    { label: 'Dashboard', to: '/client' },
+    { label: 'Dashboard', to: '/client', icon: <HomeIcon /> },
     { label: 'Workouts', to: '/client/workouts' },
     { label: 'Progress', to: '/client/progress' },
     { label: 'Nutrition', to: '/client/nutrition' },
@@ -150,6 +190,7 @@ function Navbar({ children }) {
                 component={NavLink}
                 to={item.to}
                 label={item.label}
+                leftSection={item.icon}
                 end={isExactRoute}
                 className="nav-link"
                 style={{ padding: '0.5rem 0.75rem' }}
