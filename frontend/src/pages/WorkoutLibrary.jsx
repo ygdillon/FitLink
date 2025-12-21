@@ -25,6 +25,7 @@ function WorkoutLibrary() {
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'library') // 'create', 'assign', 'library'
   
   // Check if we're coming from dropdown navigation (has tab param)
+  // If tab param exists, hide tabs and show only that section
   const isDirectNavigation = !!tabFromUrl
   
   // Update active tab when URL param changes
@@ -33,15 +34,10 @@ function WorkoutLibrary() {
     setActiveTab(tab)
   }, [searchParams])
   
-  // Update URL when tab changes (only if not from direct navigation)
+  // Update URL when tab changes
   const handleTabChange = (value) => {
     setActiveTab(value)
-    if (!isDirectNavigation) {
-      setSearchParams({ tab: value })
-    } else {
-      // If coming from dropdown, remove tab param to show full tabs view
-      setSearchParams({})
-    }
+    setSearchParams({ tab: value })
   }
   
   const assignForm = useForm({
