@@ -35,7 +35,7 @@ function Navbar({ children }) {
 
   // Trainer navigation items
   const trainerNavItems = [
-    { label: 'My Space', to: '/trainer' },
+    { label: 'Dashboard', to: '/trainer' },
     { label: 'Clients', to: '/trainer/clients' },
     { label: 'Requests', to: '/trainer/requests' },
     { label: 'Analytics', to: '/trainer/analytics' },
@@ -44,7 +44,7 @@ function Navbar({ children }) {
 
   // Client navigation items
   const clientNavItems = [
-    { label: 'My Space', to: '/client' },
+    { label: 'Dashboard', to: '/client' },
     { label: 'Workouts', to: '/client/workouts' },
     { label: 'Progress', to: '/client/progress' },
     { label: 'Nutrition', to: '/client/nutrition' },
