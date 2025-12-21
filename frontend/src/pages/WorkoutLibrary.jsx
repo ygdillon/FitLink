@@ -7,6 +7,7 @@ import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 import WorkoutBuilder from './WorkoutBuilder'
+import AIWorkoutGenerator from '../components/AIWorkoutGenerator'
 import './WorkoutLibrary.css'
 
 function WorkoutLibrary() {
