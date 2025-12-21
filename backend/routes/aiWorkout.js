@@ -67,9 +67,11 @@ router.post('/generate', authenticate, requireRole(['trainer']), async (req, res
     // Build AI prompt
     const prompt = buildWorkoutPrompt(client, workoutHistory.rows, workoutPreferences)
 
-    // Call OpenAI API
+    // Call OpenAI API - Use gpt-3.5-turbo for wider access, or gpt-4 if available
+    const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+    
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: model,
       messages: [
         {
           role: 'system',
@@ -96,7 +98,7 @@ router.post('/generate', authenticate, requireRole(['trainer']), async (req, res
       ai_metadata: {
         client_id: clientId,
         generated_at: new Date().toISOString(),
-        model: 'gpt-4',
+        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
         preferences: workoutPreferences
       }
     }
@@ -174,9 +176,11 @@ router.post('/customize', authenticate, requireRole(['trainer']), async (req, re
     // Build customization prompt
     const prompt = buildCustomizationPrompt(workout, client, modifications)
 
-    // Call OpenAI API
+    // Call OpenAI API - Use gpt-3.5-turbo for wider access, or gpt-4 if available
+    const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+    
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: model,
       messages: [
         {
           role: 'system',
