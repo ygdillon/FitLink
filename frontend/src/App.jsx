@@ -28,6 +28,7 @@ import Settings from './pages/Settings'
 import TrainerRequests from './pages/TrainerRequests'
 import ClientOnboarding from './pages/ClientOnboarding'
 import Analytics from './pages/Analytics'
+import Alerts from './pages/Alerts'
 
 // Components
 import Navbar from './components/Navbar'
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="/trainer/clients" element={<Clients />} />
         <Route path="/trainer/requests" element={<TrainerRequests />} />
         <Route path="/trainer/analytics" element={<Analytics />} />
+        <Route path="/trainer/alerts" element={<Alerts />} />
         
         <Route element={<ClientRouteGuard />}>
           <Route path="/client/onboarding" element={<ClientOnboarding />} />

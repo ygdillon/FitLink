@@ -13,6 +13,7 @@ import {
 } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
 import { useState } from 'react'
+import AlertsBadge from './AlertsBadge'
 import './Navbar.css'
 
 function Navbar({ children }) {
@@ -121,6 +122,7 @@ function Navbar({ children }) {
             >
               Messages
             </Button>
+            {user?.role === 'trainer' && <AlertsBadge />}
             <Button
               component={NavLink}
               to="/settings"

@@ -80,6 +80,7 @@ router.post('/check-in', async (req, res) => {
       [req.user.id, today]
     )
 
+    let checkInResult
     if (existing.rows.length > 0) {
       // Update existing check-in
       const result = await pool.query(
@@ -116,7 +117,8 @@ router.post('/check-in', async (req, res) => {
           existing.rows[0].id
         ]
       )
-      res.json(result.rows[0])
+      checkInResult = result.rows[0]
+      res.json(checkInResult)
     } else {
       // Create new check-in
       const result = await pool.query(
@@ -144,7 +146,65 @@ router.post('/check-in', async (req, res) => {
           progress_photo || null
         ]
       )
-      res.status(201).json(result.rows[0])
+      checkInResult = result.rows[0]
+      res.status(201).json(checkInResult)
+    }
+
+    // Create alerts for trainer if needed
+    try {
+      // Get client's trainer
+      const clientInfo = await pool.query(
+        'SELECT trainer_id, name FROM clients c JOIN users u ON c.user_id = u.id WHERE c.user_id = $1',
+        [req.user.id]
+      )
+
+      if (clientInfo.rows.length > 0 && clientInfo.rows[0].trainer_id) {
+        const trainerId = clientInfo.rows[0].trainer_id
+        const clientName = clientInfo.rows[0].name
+
+        // Alert for low workout rating (rating <= 4)
+        if (workout_rating !== null && workout_rating <= 4) {
+          await pool.query(
+            `INSERT INTO trainer_alerts (trainer_id, client_id, alert_type, title, message, severity, related_checkin_id, metadata)
+             VALUES ($1, $2, 'low_rating', $3, $4, 'high', $5, $6)`,
+            [
+              trainerId,
+              req.user.id,
+              `Low Workout Rating from ${clientName}`,
+              `${clientName} rated their workout ${workout_rating}/10. This may indicate they're struggling or need support.`,
+              checkInResult.id,
+              JSON.stringify({ rating: workout_rating, workout_completed: workout_completed })
+            ]
+          )
+        }
+
+        // Alert for pain report
+        if (pain_experienced === true) {
+          const painMessage = pain_location 
+            ? `${clientName} reported pain in ${pain_location} (intensity: ${pain_intensity || 'N/A'}/10).`
+            : `${clientName} reported experiencing pain during their workout.`
+          
+          await pool.query(
+            `INSERT INTO trainer_alerts (trainer_id, client_id, alert_type, title, message, severity, related_checkin_id, metadata)
+             VALUES ($1, $2, 'pain_report', $3, $4, 'urgent', $5, $6)`,
+            [
+              trainerId,
+              req.user.id,
+              `Pain Report from ${clientName}`,
+              painMessage,
+              checkInResult.id,
+              JSON.stringify({ 
+                pain_location: pain_location, 
+                pain_intensity: pain_intensity,
+                workout_completed: workout_completed
+              })
+            ]
+          )
+        }
+      }
+    } catch (alertError) {
+      // Don't fail the check-in if alert creation fails
+      console.error('Error creating alert:', alertError)
     }
   } catch (error) {
     console.error('Error creating check-in:', error)

@@ -329,16 +329,21 @@ async function getCheckInAnalytics(trainerId, dateFilter) {
     [trainerId]
   )
 
-  // Expected check-ins (simplified - based on active clients)
-  const expectedCheckInsResult = await pool.query(
-    `SELECT COUNT(DISTINCT c.user_id) * ${dateFilter.includes('30') ? '30' : dateFilter.includes('7') ? '7' : '1'} as expected
-     FROM clients c
-     WHERE c.trainer_id = $1`,
+  // Calculate completion rate based on workouts completed (since check-ins are required after workouts)
+  const workoutsCompletedResult = await pool.query(
+    `SELECT COUNT(*) as count
+     FROM workout_assignments wa
+     JOIN workouts w ON wa.workout_id = w.id
+     JOIN clients c ON wa.client_id = c.user_id
+     WHERE w.trainer_id = $1 AND wa.status = 'completed' ${dateFilter.replace('created_at', 'wa.completed_date')}`,
     [trainerId]
   )
+  
+  const workoutsCompleted = parseInt(workoutsCompletedResult.rows[0]?.count || 0)
   const totalCheckIns = parseInt(totalCheckInsResult.rows[0]?.count || 0)
-  const expectedCheckIns = parseInt(expectedCheckInsResult.rows[0]?.expected || 1)
-  const completionRate = expectedCheckIns > 0 ? (totalCheckIns / expectedCheckIns) * 100 : 0
+  
+  // Completion rate: check-ins / workouts completed (since check-ins are required after workouts)
+  const completionRate = workoutsCompleted > 0 ? (totalCheckIns / workoutsCompleted) * 100 : 0
 
   // Average sleep quality
   const avgSleepQualityResult = await pool.query(
