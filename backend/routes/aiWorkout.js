@@ -308,6 +308,63 @@ router.post('/customize', authenticate, requireRole(['trainer']), async (req, re
   }
 })
 
+// Helper function to build recommendations prompt
+function buildRecommendationsPrompt(client, currentWorkout) {
+  const exercisesList = currentWorkout.exercises && currentWorkout.exercises.length > 0
+    ? currentWorkout.exercises.map((ex, i) => 
+        `${i + 1}. ${ex.name || 'Unnamed exercise'}${ex.sets ? ` (${ex.sets} sets, ${ex.reps} reps)` : ''}`
+      ).join('\n')
+    : 'No exercises added yet'
+
+  return `You are an expert personal trainer. A trainer is creating a workout for a client and needs your recommendations.
+
+CLIENT PROFILE:
+- Name: ${client.client_name}
+- Age: ${client.age || 'Not specified'}
+- Gender: ${client.gender || 'Not specified'}
+- Experience Level: ${client.previous_experience || 'Not specified'}
+- Primary Goal: ${client.primary_goal || 'Not specified'}
+- Injuries: ${client.injuries || 'None reported'}
+- Activity Level: ${client.activity_level || 'Not specified'}
+
+CURRENT WORKOUT BEING CREATED:
+- Name: ${currentWorkout.name || 'Untitled'}
+- Category: ${currentWorkout.category || 'Not specified'}
+- Description: ${currentWorkout.description || 'None'}
+- Current Exercises:
+${exercisesList}
+
+Provide recommendations in this JSON format:
+{
+  "exerciseSuggestions": [
+    {
+      "name": "Exercise Name",
+      "sets": 3,
+      "reps": "10-12",
+      "weight": "bodyweight or suggested weight",
+      "rest": "60 seconds",
+      "notes": "Form cues and tips",
+      "reason": "Why this exercise is recommended for this client"
+    }
+  ],
+  "modifications": [
+    {
+      "exercise": "Exercise name or 'General'",
+      "suggestion": "Specific modification recommendation",
+      "reason": "Why this modification is needed"
+    }
+  ],
+  "generalTips": "Overall tips for this workout based on the client's profile"
+}
+
+Focus on:
+1. Exercises that align with the client's goals and experience
+2. Modifications needed based on injuries or limitations
+3. Exercises that complement what's already in the workout
+4. Progression suggestions if the client is a beginner
+5. Safety considerations`
+}
+
 // Helper function to build workout generation prompt
 function buildWorkoutPrompt(client, workoutHistory, preferences = {}) {
   const {
