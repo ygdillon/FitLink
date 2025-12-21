@@ -30,12 +30,10 @@ function Clients() {
     if (clientId && clients.length > 0) {
       const clientExists = clients.some(c => c.id.toString() === clientId.toString())
       if (!clientExists) {
-        // Client doesn't exist, navigate to first client
-        if (clients.length > 0) {
-          navigate(`/trainer/clients/${clients[0].id}`, { replace: true })
-        } else {
-          navigate('/trainer/clients', { replace: true })
-        }
+        console.log(`[DEBUG] Client ${clientId} not found in clients list. Redirecting to first client.`)
+        // Client doesn't exist, navigate to first client immediately
+        const firstClientId = clients[0].id
+        navigate(`/trainer/clients/${firstClientId}`, { replace: true })
       }
     }
   }, [clientId, clients, navigate])
@@ -52,11 +50,12 @@ function Clients() {
         navigate(`/trainer/clients/${clientsData[0].id}`, { replace: true })
       }
       
-      // If a clientId is in the URL but not in the list, clear it
+      // If a clientId is in the URL but not in the list, redirect to first client
       if (clientId && clientsData.length > 0) {
         const clientExists = clientsData.some(c => c.id.toString() === clientId.toString())
         if (!clientExists) {
-          // Client doesn't exist, navigate to first client or clear selection
+          console.log(`[DEBUG] Client ${clientId} from URL not found. Redirecting to first client (${clientsData[0].id}).`)
+          // Client doesn't exist, navigate to first client immediately
           navigate(`/trainer/clients/${clientsData[0].id}`, { replace: true })
         }
       }
@@ -251,23 +250,39 @@ function Clients() {
 
       {/* Right Side - Client Details */}
       <Box style={{ flex: 1, overflow: 'hidden', backgroundColor: bgColor }}>
-        {clientId ? (
-          <ClientProfile />
-        ) : (
-          <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Stack align="center" gap="md">
-              <Text size="xl" c="dimmed">Select a client to view their details</Text>
-              {clients.length === 0 && (
-                <Button 
-                  onClick={() => navigate('/trainer/add-client')}
-                  color="robinhoodGreen"
-                >
-                  + Add Your First Client
-                </Button>
-              )}
-            </Stack>
-          </Box>
-        )}
+        {(() => {
+          // Check if clientId exists in the clients list
+          const validClientId = clientId && clients.length > 0 
+            ? clients.find(c => c.id.toString() === clientId.toString())
+            : null
+          
+          if (validClientId) {
+            return <ClientProfile />
+          } else if (clientId) {
+            // clientId exists but client not found - show loading while redirect happens
+            return (
+              <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Loader size="lg" />
+              </Box>
+            )
+          } else {
+            return (
+              <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Stack align="center" gap="md">
+                  <Text size="xl" c="dimmed">Select a client to view their details</Text>
+                  {clients.length === 0 && (
+                    <Button 
+                      onClick={() => navigate('/trainer/add-client')}
+                      color="robinhoodGreen"
+                    >
+                      + Add Your First Client
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+            )
+          }
+        })()}
       </Box>
     </Box>
   )

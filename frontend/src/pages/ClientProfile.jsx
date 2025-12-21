@@ -28,13 +28,32 @@ function ClientProfile() {
     try {
       setLoading(true)
       const response = await api.get(`/trainer/clients/${clientId}`)
-      setClient(response.data)
+      if (response.data) {
+        setClient(response.data)
+      } else {
+        console.error('No client data returned for ID:', clientId)
+        setClient(null)
+      }
     } catch (error) {
       console.error('Error fetching client profile:', error)
       console.error('Client ID:', clientId)
       console.error('Error response:', error.response?.data)
-      // Set client to null to show error message
-      setClient(null)
+      console.error('Status:', error.response?.status)
+      
+      // If it's a 404 or 403, the client doesn't exist or access denied
+      // Don't set client to null immediately - let the parent component handle redirect
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        setClient(null)
+        // Trigger a small delay to allow parent redirect to happen
+        setTimeout(() => {
+          // If still no client after delay, show error
+          if (!client) {
+            setClient(null)
+          }
+        }, 100)
+      } else {
+        setClient(null)
+      }
     } finally {
       setLoading(false)
     }
