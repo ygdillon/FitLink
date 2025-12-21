@@ -230,8 +230,12 @@ function Navbar({ children }) {
                   {...createSubNavLinkProps('/trainer/workouts?tab=assign', 'Assign Workouts', '?tab=assign')}
                 />
                 <MantineNavLink
-                  {...createSubNavLinkProps('/trainer/workouts?tab=library', 'Manage Workouts', '?tab=library')}
+                  component={NavLink}
+                  to="/trainer/workouts?tab=library"
+                  label="Manage Workouts"
                   className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=library') || (location.pathname === '/trainer/workouts' && !location.search) ? 'nav-link-sub-active' : ''}`}
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={() => false}
                 />
               </Stack>
             </Box>
