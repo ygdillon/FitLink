@@ -35,7 +35,6 @@ function Navbar({ children }) {
   const trainerNavItems = [
     { label: 'My Space', to: '/trainer' },
     { label: 'Clients', to: '/trainer/clients' },
-    { label: 'Requests', to: '/trainer/requests' },
     { label: 'Analytics', to: '/trainer/analytics' },
     { label: 'Payments', to: '/payments' },
   ]

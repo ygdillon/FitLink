@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, SimpleGrid } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, SimpleGrid, Tabs } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
+import TrainerRequests from './TrainerRequests'
 import api from '../services/api'
 import './Payments.css'
 
@@ -87,51 +88,104 @@ function Payments() {
     )
   }
 
+  if (user.role === 'trainer') {
+    return (
+      <Container size="xl" py="xl">
+        <Title order={1} mb="xl">Payments</Title>
+
+        <Tabs defaultValue="history">
+          <Tabs.List mb="xl">
+            <Tabs.Tab value="history">Payment History</Tabs.Tab>
+            <Tabs.Tab value="requests">Client Requests</Tabs.Tab>
+            <Tabs.Tab value="setup">Payment Setup</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="history">
+            <Paper p="md" withBorder>
+              <Title order={2} mb="md">Payment History</Title>
+              {payments.length === 0 ? (
+                <Text c="dimmed">No payments yet</Text>
+              ) : (
+                <Stack gap="md">
+                  {payments.map(payment => (
+                    <Card key={payment.id} withBorder>
+                      <Group justify="space-between" mb="xs">
+                        <div>
+                          <Title order={4}>{payment.client_name}</Title>
+                          <Text size="sm" c="dimmed">{payment.payment_type}</Text>
+                        </div>
+                        <Text size="lg" fw={700}>
+                          ${payment.amount} {payment.currency.toUpperCase()}
+                        </Text>
+                      </Group>
+                      <Group justify="space-between">
+                        <Badge color={payment.status === 'completed' ? 'green' : 'yellow'}>
+                          {payment.status}
+                        </Badge>
+                        <Text size="sm" c="dimmed">
+                          {new Date(payment.created_at).toLocaleDateString()}
+                        </Text>
+                      </Group>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="requests">
+            <TrainerRequests showTitle={false} />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="setup">
+            <Paper p="md" withBorder>
+              <Title order={2} mb="md">Payment Setup</Title>
+              {!stripeStatus?.connected ? (
+                <Stack gap="md">
+                  <Text>Connect your Stripe account to receive payments directly from clients with zero platform fees.</Text>
+                  <Button onClick={handleConnectStripe}>
+                    Connect Stripe Account
+                  </Button>
+                </Stack>
+              ) : (
+                <Stack gap="sm">
+                  <Group>
+                    <Text fw={500}>Status:</Text>
+                    <Badge color={stripeStatus.onboardingCompleted ? 'green' : 'yellow'}>
+                      {stripeStatus.onboardingCompleted ? 'Active' : 'Pending Setup'}
+                    </Badge>
+                  </Group>
+                  <Group>
+                    <Text fw={500}>Charges Enabled:</Text>
+                    <Badge color={stripeStatus.chargesEnabled ? 'green' : 'red'}>
+                      {stripeStatus.chargesEnabled ? 'Yes' : 'No'}
+                    </Badge>
+                  </Group>
+                  <Group>
+                    <Text fw={500}>Payouts Enabled:</Text>
+                    <Badge color={stripeStatus.payoutsEnabled ? 'green' : 'red'}>
+                      {stripeStatus.payoutsEnabled ? 'Yes' : 'No'}
+                    </Badge>
+                  </Group>
+                  {!stripeStatus.onboardingCompleted && (
+                    <Alert color="yellow">
+                      Complete your Stripe onboarding to receive payments.
+                    </Alert>
+                  )}
+                </Stack>
+              )}
+            </Paper>
+          </Tabs.Panel>
+        </Tabs>
+      </Container>
+    )
+  }
+
   return (
     <Container size="xl" py="xl">
       <Title order={1} mb="xl">Payments</Title>
 
-      {user.role === 'trainer' && (
-        <Paper p="md" withBorder mb="xl">
-          <Title order={2} mb="md">Payment Setup</Title>
-          {!stripeStatus?.connected ? (
-            <Stack gap="md">
-              <Text>Connect your Stripe account to receive payments directly from clients with zero platform fees.</Text>
-              <Button onClick={handleConnectStripe}>
-                Connect Stripe Account
-              </Button>
-            </Stack>
-          ) : (
-            <Stack gap="sm">
-              <Group>
-                <Text fw={500}>Status:</Text>
-                <Badge color={stripeStatus.onboardingCompleted ? 'green' : 'yellow'}>
-                  {stripeStatus.onboardingCompleted ? 'Active' : 'Pending Setup'}
-                </Badge>
-              </Group>
-              <Group>
-                <Text fw={500}>Charges Enabled:</Text>
-                <Badge color={stripeStatus.chargesEnabled ? 'green' : 'red'}>
-                  {stripeStatus.chargesEnabled ? 'Yes' : 'No'}
-                </Badge>
-              </Group>
-              <Group>
-                <Text fw={500}>Payouts Enabled:</Text>
-                <Badge color={stripeStatus.payoutsEnabled ? 'green' : 'red'}>
-                  {stripeStatus.payoutsEnabled ? 'Yes' : 'No'}
-                </Badge>
-              </Group>
-              {!stripeStatus.onboardingCompleted && (
-                <Alert color="yellow">
-                  Complete your Stripe onboarding to receive payments.
-                </Alert>
-              )}
-            </Stack>
-          )}
-        </Paper>
-      )}
-
-      {user.role === 'client' && subscriptions.length > 0 && (
+      {subscriptions.length > 0 && (
         <Paper p="md" withBorder mb="xl">
           <Title order={2} mb="md">Active Subscriptions</Title>
           <Stack gap="md">
@@ -175,9 +229,7 @@ function Payments() {
               <Card key={payment.id} withBorder>
                 <Group justify="space-between" mb="xs">
                   <div>
-                    <Title order={4}>
-                      {user.role === 'trainer' ? payment.client_name : payment.trainer_name}
-                    </Title>
+                    <Title order={4}>{payment.trainer_name}</Title>
                     <Text size="sm" c="dimmed">{payment.payment_type}</Text>
                   </div>
                   <Text size="lg" fw={700}>

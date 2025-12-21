@@ -3,7 +3,7 @@ import { Container, Title, Text, Badge, Button, Card, Stack, Group, Avatar, Moda
 import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
 
-function TrainerRequests() {
+function TrainerRequests({ showTitle = true }) {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('pending') // 'pending', 'all', 'approved', 'rejected'
@@ -68,26 +68,26 @@ function TrainerRequests() {
 
   if (loading) {
     return (
-      <Container size="xl" py="xl">
-        <Group justify="center">
-          <Loader size="lg" />
-        </Group>
-      </Container>
+      <Group justify="center" py="xl">
+        <Loader size="lg" />
+      </Group>
     )
   }
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
 
   return (
-    <Container size="xl" py="xl">
-      <Group justify="space-between" mb="xl">
-        <Title order={1}>Client Requests</Title>
-        {pendingCount > 0 && (
-          <Badge color="yellow" size="lg" variant="filled">
-            {pendingCount} Pending
-          </Badge>
-        )}
-      </Group>
+    <>
+      {showTitle && (
+        <Group justify="space-between" mb="xl">
+          <Title order={1}>Client Requests</Title>
+          {pendingCount > 0 && (
+            <Badge color="yellow" size="lg" variant="filled">
+              {pendingCount} Pending
+            </Badge>
+          )}
+        </Group>
+      )}
 
       <Group mb="md" gap="xs">
         <Button
@@ -368,7 +368,7 @@ function TrainerRequests() {
           </Group>
         </Stack>
       </Modal>
-    </Container>
+    </>
   )
 }
 
