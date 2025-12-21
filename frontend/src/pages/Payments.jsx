@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, SimpleGrid, Tabs } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
-import TrainerRequests from './TrainerRequests'
 import api from '../services/api'
 import './Payments.css'
 
@@ -96,7 +95,6 @@ function Payments() {
         <Tabs defaultValue="history">
           <Tabs.List mb="xl">
             <Tabs.Tab value="history">Payment History</Tabs.Tab>
-            <Tabs.Tab value="requests">Client Requests</Tabs.Tab>
             <Tabs.Tab value="setup">Payment Setup</Tabs.Tab>
           </Tabs.List>
 
@@ -131,10 +129,6 @@ function Payments() {
                 </Stack>
               )}
             </Paper>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="requests">
-            <TrainerRequests showTitle={false} />
           </Tabs.Panel>
 
           <Tabs.Panel value="setup">

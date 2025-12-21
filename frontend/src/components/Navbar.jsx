@@ -36,7 +36,13 @@ function Navbar({ children }) {
     { label: 'My Space', to: '/trainer' },
     { label: 'Clients', to: '/trainer/clients' },
     { label: 'Analytics', to: '/trainer/analytics' },
-    { label: 'Payments', to: '/payments' },
+    { 
+      label: 'Payments', 
+      to: '/payments',
+      children: [
+        { label: 'Requests', to: '/trainer/requests' }
+      ]
+    },
   ]
 
   // Client navigation items
@@ -147,6 +153,33 @@ function Navbar({ children }) {
           {navItems.map((item) => {
             // Use exact matching for base routes to prevent highlighting on sub-routes
             const isExactRoute = item.to === '/client' || item.to === '/trainer'
+            
+            // If item has children, render with nested structure
+            if (item.children && item.children.length > 0) {
+              return (
+                <MantineNavLink
+                  key={item.to}
+                  component={NavLink}
+                  to={item.to}
+                  label={item.label}
+                  end={isExactRoute}
+                  className="nav-link"
+                >
+                  {item.children.map((child) => (
+                    <MantineNavLink
+                      key={child.to}
+                      component={NavLink}
+                      to={child.to}
+                      label={child.label}
+                      className="nav-link"
+                      style={{ paddingLeft: '2rem' }}
+                    />
+                  ))}
+                </MantineNavLink>
+              )
+            }
+            
+            // Regular nav item without children
             return (
               <MantineNavLink
                 key={item.to}
