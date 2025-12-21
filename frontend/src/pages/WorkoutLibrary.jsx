@@ -170,7 +170,65 @@ function WorkoutLibrary() {
 
         {/* Create Workout Tab */}
         <Tabs.Panel value="create">
-          <WorkoutBuilder />
+          <Stack gap="xl">
+            <Paper p="md" withBorder>
+              <Title order={3} mb="md">Create Workout</Title>
+              <Tabs defaultValue="manual">
+                <Tabs.List mb="md">
+                  <Tabs.Tab value="manual">Manual Creation</Tabs.Tab>
+                  <Tabs.Tab value="ai">AI Generator</Tabs.Tab>
+                </Tabs.List>
+                
+                <Tabs.Panel value="manual">
+                  <WorkoutBuilder />
+                </Tabs.Panel>
+                
+                <Tabs.Panel value="ai">
+                  <AIWorkoutGenerator 
+                    onWorkoutGenerated={async (workout) => {
+                      try {
+                        // Save the AI-generated workout
+                        const response = await api.post('/trainer/workouts', {
+                          name: workout.name,
+                          description: workout.description,
+                          category: workout.category,
+                          is_template: false,
+                          exercises: workout.exercises.map(ex => ({
+                            name: ex.name,
+                            sets: ex.sets,
+                            reps: ex.reps,
+                            weight: ex.weight,
+                            rest: ex.rest,
+                            notes: ex.notes
+                          }))
+                        })
+                        
+                        notifications.show({
+                          title: 'Workout Saved',
+                          message: 'AI-generated workout has been saved to your library!',
+                          color: 'green',
+                        })
+                        
+                        // Refresh workouts list
+                        fetchWorkouts()
+                        
+                        // Switch to library tab
+                        setActiveTab('library')
+                        setSearchParams({ tab: 'library' })
+                      } catch (error) {
+                        console.error('Error saving workout:', error)
+                        notifications.show({
+                          title: 'Error',
+                          message: 'Failed to save workout',
+                          color: 'red',
+                        })
+                      }
+                    }}
+                  />
+                </Tabs.Panel>
+              </Tabs>
+            </Paper>
+          </Stack>
         </Tabs.Panel>
 
         {/* Assign Workouts Tab */}
