@@ -15,6 +15,7 @@ function Clients() {
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [isRedirecting, setIsRedirecting] = useState(false)
   
   const isDark = colorScheme === 'dark'
   const bgColor = isDark ? 'var(--mantine-color-dark-7)' : 'var(--mantine-color-gray-0)'
@@ -31,10 +32,17 @@ function Clients() {
       const clientExists = clients.some(c => c.id.toString() === clientId.toString())
       if (!clientExists) {
         console.log(`[DEBUG] Client ${clientId} not found in clients list. Redirecting to first client.`)
+        setIsRedirecting(true)
         // Client doesn't exist, navigate to first client immediately
         const firstClientId = clients[0].id
         navigate(`/trainer/clients/${firstClientId}`, { replace: true })
+        // Reset redirecting state after a short delay
+        setTimeout(() => setIsRedirecting(false), 100)
+      } else {
+        setIsRedirecting(false)
       }
+    } else if (!clientId) {
+      setIsRedirecting(false)
     }
   }, [clientId, clients, navigate])
 
@@ -55,8 +63,10 @@ function Clients() {
         const clientExists = clientsData.some(c => c.id.toString() === clientId.toString())
         if (!clientExists) {
           console.log(`[DEBUG] Client ${clientId} from URL not found. Redirecting to first client (${clientsData[0].id}).`)
+          setIsRedirecting(true)
           // Client doesn't exist, navigate to first client immediately
           navigate(`/trainer/clients/${clientsData[0].id}`, { replace: true })
+          setTimeout(() => setIsRedirecting(false), 100)
         }
       }
     } catch (error) {
@@ -251,12 +261,21 @@ function Clients() {
       {/* Right Side - Client Details */}
       <Box style={{ flex: 1, overflow: 'hidden', backgroundColor: bgColor }}>
         {(() => {
+          // Don't render anything if we're redirecting
+          if (isRedirecting) {
+            return (
+              <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Loader size="lg" />
+              </Box>
+            )
+          }
+          
           // Check if clientId exists in the clients list
-          const validClientId = clientId && clients.length > 0 
+          const validClient = clientId && clients.length > 0 
             ? clients.find(c => c.id.toString() === clientId.toString())
             : null
           
-          if (validClientId) {
+          if (validClient) {
             return <ClientProfile />
           } else if (clientId) {
             // clientId exists but client not found - show loading while redirect happens
