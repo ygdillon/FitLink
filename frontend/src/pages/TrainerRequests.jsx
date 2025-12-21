@@ -16,7 +16,17 @@ function TrainerRequests({ showTitle = true }) {
 
   useEffect(() => {
     fetchRequests()
+    // Mark requests as read when page is viewed
+    markRequestsAsRead()
   }, [filter])
+
+  const markRequestsAsRead = async () => {
+    try {
+      await api.put('/trainer/requests/mark-read')
+    } catch (error) {
+      console.error('Error marking requests as read:', error)
+    }
+  }
 
   const fetchRequests = async () => {
     setLoading(true)

@@ -859,6 +859,40 @@ router.post('/clients/:clientId/nutrition/logs', async (req, res) => {
 
 // ========== TRAINER REQUEST MANAGEMENT ==========
 
+// Get unread request count
+router.get('/requests/unread-count', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM trainer_requests
+       WHERE trainer_id = $1 AND status = 'pending' AND (is_read = false OR is_read IS NULL)`,
+      [req.user.id]
+    )
+    
+    res.json({ count: parseInt(result.rows[0].count) })
+  } catch (error) {
+    console.error('Error fetching unread request count:', error)
+    res.status(500).json({ message: 'Failed to fetch unread request count' })
+  }
+})
+
+// Mark requests as read
+router.put('/requests/mark-read', async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE trainer_requests
+       SET is_read = true, read_at = CURRENT_TIMESTAMP
+       WHERE trainer_id = $1 AND status = 'pending' AND (is_read = false OR is_read IS NULL)`,
+      [req.user.id]
+    )
+    
+    res.json({ message: 'Requests marked as read' })
+  } catch (error) {
+    console.error('Error marking requests as read:', error)
+    res.status(500).json({ message: 'Failed to mark requests as read' })
+  }
+})
+
 // Get all pending trainer requests
 router.get('/requests', async (req, res) => {
   try {

@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import AlertsBadge from './AlertsBadge'
 import MessagesBadge from './MessagesBadge'
+import RequestsBadge from './RequestsBadge'
 import './Navbar.css'
 
 function Navbar({ children }) {
@@ -263,15 +264,19 @@ function Navbar({ children }) {
           </Collapse>
         </Box>
 
-        {/* Requests - standalone */}
-        <MantineNavLink
-          component={NavLink}
-          to="/trainer/requests"
-          label="Requests"
-          leftSection={<RequestIcon />}
-          className="nav-link"
-          style={{ padding: '0.5rem 0.75rem' }}
-        />
+        {/* Requests - standalone with badge */}
+        {user.role === 'trainer' ? (
+          <RequestsBadge />
+        ) : (
+          <MantineNavLink
+            component={NavLink}
+            to="/trainer/requests"
+            label="Requests"
+            leftSection={<RequestIcon />}
+            className="nav-link"
+            style={{ padding: '0.5rem 0.75rem' }}
+          />
+        )}
 
         {/* Analytics - standalone */}
         <MantineNavLink
