@@ -2,7 +2,7 @@
 
 ## Overview
 
-FitLink implements a **zero-fee peer-to-peer payment system** that allows trainers and clients to transact directly without any platform cuts. Trainers receive 100% of payments (minus only Stripe's standard processing fees).
+Trainr implements a **zero-fee peer-to-peer payment system** that allows trainers and clients to transact directly without any platform cuts. Trainers receive 100% of payments (minus only Stripe's standard processing fees).
 
 ## Architecture
 

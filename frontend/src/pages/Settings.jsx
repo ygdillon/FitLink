@@ -381,7 +381,7 @@ function Settings() {
               <div>
                 <Title order={4} mb="xs">Sign Out</Title>
                 <Text c="dimmed" mb="md" size="sm">
-                  Sign out of your FitLink account. You'll need to sign in again to access your account.
+                  Sign out of your Trainr account. You'll need to sign in again to access your account.
                 </Text>
                 <Button 
                   color="red" 

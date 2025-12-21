@@ -1,8 +1,8 @@
-# FitLink - Personal Trainer App
+# Trainr - Personal Trainer App
 
 A comprehensive personal trainer application built with a hybrid Web2/Web3 architecture, connecting trainers with clients for workout management, progress tracking, and communication. **Zero platform fees** - trainers receive 100% of payments through peer-to-peer transactions.
 
-FitLink connects personal trainers with clients through a hybrid Web2/Web3 platform. Trainers create custom workouts, manage multiple clients, and track real-time progress. Clients access assigned workouts, log metrics, and communicate directly. Blockchain-verified reputation ensures trust.
+Trainr connects personal trainers with clients through a hybrid Web2/Web3 platform. Trainers create custom workouts, manage multiple clients, and track real-time progress. Clients access assigned workouts, log metrics, and communicate directly. Blockchain-verified reputation ensures trust.
 
 ## 🏗️ Architecture
 

@@ -15,7 +15,7 @@
 3. **Create API Key:**
    - Go to: https://platform.openai.com/api-keys
    - Click **"+ Create new secret key"**
-   - Name it: "FitLink"
+   - Name it: "Trainr"
    - **Copy the key immediately!** (It looks like: `sk-proj-abc123...`)
 
 ### Step 2: Add to Your Project (2 minutes)

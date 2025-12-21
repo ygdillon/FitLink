@@ -1,7 +1,7 @@
 {
-  "name": "fitlink",
+  "name": "trainr",
   "version": "1.0.0",
-  "description": "FitLink - Personal Trainer Platform - Hybrid Web2/Web3 Platform",
+  "description": "Trainr - Personal Trainer Platform - Hybrid Web2/Web3 Platform",
   "private": true,
   "type": "module",
   "workspaces": [

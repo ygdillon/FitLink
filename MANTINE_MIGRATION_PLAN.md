@@ -1,4 +1,4 @@
-# Mantine Migration Plan for FitLink
+# Mantine Migration Plan for Trainr
 
 ## Overview
 This document outlines the step-by-step migration from custom CSS components to Mantine UI components while maintaining the existing pear green theme and functionality.

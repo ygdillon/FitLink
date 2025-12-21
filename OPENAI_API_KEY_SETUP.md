@@ -25,7 +25,7 @@
    - Click your **profile icon** → **"API Keys"**
    - Or go directly to: **https://platform.openai.com/api-keys**
 2. Click **"+ Create new secret key"** button
-3. Give it a name (e.g., "FitLink Workout Generator")
+3. Give it a name (e.g., "Trainr Workout Generator")
 4. Click **"Create secret key"**
 5. **IMPORTANT:** Copy the key immediately - you won't be able to see it again!
    - It will look like: `sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`

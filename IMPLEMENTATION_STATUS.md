@@ -1,4 +1,4 @@
-# FitLink Implementation Status & Roadmap
+# Trainr Implementation Status & Roadmap
 
 ## ✅ What Has Been Completed
 

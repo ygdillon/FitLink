@@ -189,7 +189,7 @@ async function seedDatabase() {
       const hashedPassword = await bcrypt.hash('trainer123', 10)
       const trainerUser = await client.query(
         'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id',
-        ['Test Trainer', 'trainer@fitlink.com', hashedPassword, 'trainer']
+        ['Test Trainer', 'trainer@trainr.com', hashedPassword, 'trainer']
       )
       trainerId = trainerUser.rows[0].id
       
@@ -265,7 +265,7 @@ async function seedDatabase() {
     await client.query('COMMIT')
     console.log('\n🎉 Database seeding completed successfully!')
     console.log('\n📋 Test Accounts:')
-    console.log('   Trainer: trainer@fitlink.com / trainer123')
+    console.log('   Trainer: trainer@trainr.com / trainer123')
     console.log('   Clients: [email] / client123')
     
   } catch (error) {

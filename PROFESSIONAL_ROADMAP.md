@@ -1,9 +1,9 @@
-# FitLink Professional Trainer Roadmap
+# Trainr Professional Trainer Roadmap
 *Based on Professional Trainer Feedback & Insights*
 
 ## 📊 Executive Summary
 
-This roadmap restructures FitLink based on real-world trainer needs, focusing on:
+This roadmap restructures Trainr based on real-world trainer needs, focusing on:
 - **Flexible Progress Tracking** (multi-metric, customizable)
 - **Enhanced Accountability** (daily check-ins, communication)
 - **Payment Commitment Solutions** (upfront payments, confidence building)

@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true }))
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'FitLink API' })
+  res.json({ status: 'ok', message: 'Trainr API' })
 })
 
 // Routes

@@ -483,7 +483,7 @@ function Navbar({ children }) {
               c="robinhoodGreen"
               style={{ textDecoration: 'none' }}
             >
-              FitLink
+              Trainr
             </Text>
           </Group>
           
