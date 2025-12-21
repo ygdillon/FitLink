@@ -209,8 +209,22 @@ function Navbar({ children }) {
               <Stack gap={2}>
                 <MantineNavLink
                   component={NavLink}
-                  to="/trainer/workouts"
-                  label="Library"
+                  to="/trainer/workouts?tab=create"
+                  label="Create Workouts"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/trainer/workouts?tab=assign"
+                  label="Assign Workouts"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/trainer/workouts?tab=library"
+                  label="Manage Workouts"
                   className="nav-link-sub"
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
                 />
@@ -335,8 +349,22 @@ function Navbar({ children }) {
               <Stack gap={2}>
                 <MantineNavLink
                   component={NavLink}
-                  to="/payments"
+                  to="/payments?tab=history"
                   label="Payment History"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/payments?tab=setup"
+                  label="Setup"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/payments?tab=manage"
+                  label="Manage Payments"
                   className="nav-link-sub"
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
                 />

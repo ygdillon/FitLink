@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Container, Title, Text, Stack, Card, Badge, Button, Group, Modal, TextInput, Select, Textarea, SimpleGrid, Loader, Paper, Tabs, MultiSelect, Checkbox } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -11,6 +11,7 @@ import './WorkoutLibrary.css'
 
 function WorkoutLibrary() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [workouts, setWorkouts] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -18,7 +19,22 @@ function WorkoutLibrary() {
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [opened, { open, close }] = useDisclosure(false)
   const [clients, setClients] = useState([])
-  const [activeTab, setActiveTab] = useState('library') // 'create', 'assign', 'library'
+  
+  // Get active tab from URL params, default to 'library'
+  const tabFromUrl = searchParams.get('tab') || 'library'
+  const [activeTab, setActiveTab] = useState(tabFromUrl) // 'create', 'assign', 'library'
+  
+  // Update active tab when URL param changes
+  useEffect(() => {
+    const tab = searchParams.get('tab') || 'library'
+    setActiveTab(tab)
+  }, [searchParams])
+  
+  // Update URL when tab changes
+  const handleTabChange = (value) => {
+    setActiveTab(value)
+    setSearchParams({ tab: value })
+  }
   
   const assignForm = useForm({
     initialValues: {
@@ -138,7 +154,7 @@ function WorkoutLibrary() {
     <Container size="xl" py="xl">
       <Title order={1} mb="xl">Workouts</Title>
 
-      <Tabs value={activeTab} onChange={setActiveTab}>
+      <Tabs value={activeTab} onChange={handleTabChange}>
         <Tabs.List mb="xl">
           <Tabs.Tab value="create">Create Workout</Tabs.Tab>
           <Tabs.Tab value="assign">Assign Workouts</Tabs.Tab>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, SimpleGrid, Tabs } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,10 +8,27 @@ import './Payments.css'
 
 function Payments() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [payments, setPayments] = useState([])
   const [subscriptions, setSubscriptions] = useState([])
   const [stripeStatus, setStripeStatus] = useState(null)
   const [loading, setLoading] = useState(true)
+  
+  // Get active tab from URL params, default to 'history'
+  const tabFromUrl = searchParams.get('tab') || 'history'
+  const [activeTab, setActiveTab] = useState(tabFromUrl)
+  
+  // Update active tab when URL param changes
+  useEffect(() => {
+    const tab = searchParams.get('tab') || 'history'
+    setActiveTab(tab)
+  }, [searchParams])
+  
+  // Update URL when tab changes
+  const handleTabChange = (value) => {
+    setActiveTab(value)
+    setSearchParams({ tab: value })
+  }
 
   useEffect(() => {
     if (user) {
@@ -92,10 +110,11 @@ function Payments() {
       <Container size="xl" py="xl">
         <Title order={1} mb="xl">Payments</Title>
 
-        <Tabs defaultValue="history">
+        <Tabs value={activeTab} onChange={handleTabChange}>
           <Tabs.List mb="xl">
             <Tabs.Tab value="history">Payment History</Tabs.Tab>
             <Tabs.Tab value="setup">Payment Setup</Tabs.Tab>
+            <Tabs.Tab value="manage">Manage Payments</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="history">
@@ -168,6 +187,23 @@ function Payments() {
                   )}
                 </Stack>
               )}
+            </Paper>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="manage">
+            <Paper p="md" withBorder>
+              <Title order={2} mb="md">Manage Payments</Title>
+              <Stack gap="md">
+                <Text>Manage your payment settings, subscriptions, and billing information.</Text>
+                {stripeStatus?.connected && (
+                  <Group>
+                    <Text fw={500}>Account Status:</Text>
+                    <Badge color={stripeStatus.onboardingCompleted ? 'green' : 'yellow'}>
+                      {stripeStatus.onboardingCompleted ? 'Active' : 'Pending Setup'}
+                    </Badge>
+                  </Group>
+                )}
+              </Stack>
             </Paper>
           </Tabs.Panel>
         </Tabs>
