@@ -1,5 +1,5 @@
 import express from 'express'
-import { pool } from '../db.js'
+import { pool } from '../config/database.js'
 import { authenticate, requireRole } from '../middleware/auth.js'
 import OpenAI from 'openai'
 
