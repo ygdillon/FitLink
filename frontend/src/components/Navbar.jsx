@@ -82,26 +82,6 @@ function Navbar({ children }) {
             >
               FitLink
             </Text>
-            <UnstyledButton
-              component={Link}
-              to="/profile"
-              visibleFrom="sm"
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <Group gap="xs">
-                <Avatar color="robinhoodGreen" radius="xl" size="sm">
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
-                </Avatar>
-                <Stack gap={0} style={{ lineHeight: 1.2 }}>
-                  <Text size="sm" fw={500} lineClamp={1} style={{ maxWidth: '140px' }}>
-                    {user.name || 'User'}
-                  </Text>
-                  <Text size="xs" c="dimmed" lineClamp={1} style={{ maxWidth: '140px' }}>
-                    {user.email}
-                  </Text>
-                </Stack>
-              </Group>
-            </UnstyledButton>
           </Group>
           
           <Group gap="xs">
@@ -159,8 +139,8 @@ function Navbar({ children }) {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="sm">
-        <Stack gap={2}>
+      <AppShell.Navbar p="sm" style={{ display: 'flex', flexDirection: 'column' }}>
+        <Stack gap={2} style={{ flex: 1 }}>
           {navItems.map((item) => {
             // Use exact matching for base routes to prevent highlighting on sub-routes
             const isExactRoute = item.to === '/client' || item.to === '/trainer'
@@ -177,6 +157,42 @@ function Navbar({ children }) {
             )
           })}
         </Stack>
+        
+        {/* Profile indicator at bottom */}
+        <UnstyledButton
+          component={Link}
+          to="/profile"
+          style={{ 
+            textDecoration: 'none', 
+            color: 'inherit',
+            padding: '0.75rem',
+            borderRadius: 'var(--mantine-radius-sm)',
+            marginTop: 'auto',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+              ? 'var(--mantine-color-dark-5)' 
+              : 'rgba(255, 255, 255, 0.08)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
+        >
+          <Group gap="xs">
+            <Avatar color="robinhoodGreen" radius="xl" size="sm">
+              {user.name?.charAt(0).toUpperCase() || 'U'}
+            </Avatar>
+            <Stack gap={0} style={{ lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+              <Text size="sm" fw={500} lineClamp={1} c="white">
+                {user.name || 'User'}
+              </Text>
+              <Text size="xs" c="dimmed" lineClamp={1}>
+                {user.email}
+              </Text>
+            </Stack>
+          </Group>
+        </UnstyledButton>
       </AppShell.Navbar>
 
       <AppShell.Main>
