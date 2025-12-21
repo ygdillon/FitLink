@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Container, Title, Text, Tabs, Paper, Card, Avatar, Badge, Button, TextInput, Textarea, Modal, Stack, Group, Alert, Loader, Divider } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useAuth } from '../contexts/AuthContext'
+import ThemeToggle from '../components/ThemeToggle'
 import api from '../services/api'
 import './Settings.css'
 
@@ -361,6 +362,18 @@ function Settings() {
               <div>
                 <Title order={4} mb="xs">Account Information</Title>
                 <Text c="dimmed" mb="md">Manage your account settings and preferences</Text>
+              </div>
+              
+              <Divider />
+              
+              <div>
+                <Title order={4} mb="xs">Appearance</Title>
+                <Text c="dimmed" mb="md" size="sm">
+                  Choose between light and dark theme
+                </Text>
+                <Group>
+                  <ThemeToggle />
+                </Group>
               </div>
               
               <Divider />

@@ -12,7 +12,6 @@ import {
   useMantineTheme
 } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
-import ThemeToggle from './ThemeToggle'
 import { useState } from 'react'
 import './Navbar.css'
 
@@ -102,13 +101,13 @@ function Navbar({ children }) {
             </UnstyledButton>
           </Group>
           
-          <Group gap="md">
-            <ThemeToggle />
+          <Group gap="xs">
             <Button
               component={NavLink}
               to="/profile"
               variant="subtle"
               size="sm"
+              style={{ padding: '0.375rem 0.75rem' }}
             >
               Profile
             </Button>
@@ -117,6 +116,7 @@ function Navbar({ children }) {
               to="/messages"
               variant="subtle"
               size="sm"
+              style={{ padding: '0.375rem 0.75rem' }}
             >
               Messages
             </Button>
@@ -125,6 +125,7 @@ function Navbar({ children }) {
               to="/settings"
               variant="subtle"
               size="sm"
+              style={{ padding: '0.375rem 0.75rem' }}
             >
               Settings
             </Button>
@@ -133,6 +134,7 @@ function Navbar({ children }) {
               size="sm"
               color="red"
               onClick={handleLogout}
+              style={{ padding: '0.375rem 0.75rem' }}
             >
               Logout
             </Button>

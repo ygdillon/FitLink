@@ -30,13 +30,47 @@ router.get('/workouts', async (req, res) => {
 // Daily check-in
 router.post('/check-in', async (req, res) => {
   try {
-    const { workout_completed, diet_stuck_to, workout_rating, notes } = req.body
+    const { 
+      workout_completed, 
+      diet_stuck_to, 
+      workout_rating, 
+      notes,
+      workout_duration,
+      sleep_hours,
+      sleep_quality,
+      energy_level,
+      pain_experienced,
+      pain_location,
+      pain_intensity,
+      progress_photo
+    } = req.body
     const today = new Date().toISOString().split('T')[0]
 
     // Validate workout_rating if workout was completed
     if (workout_completed === true && workout_rating !== null) {
       if (workout_rating < 1 || workout_rating > 10) {
         return res.status(400).json({ message: 'Workout rating must be between 1 and 10' })
+      }
+    }
+
+    // Validate sleep_quality if provided
+    if (sleep_quality !== null && sleep_quality !== undefined) {
+      if (sleep_quality < 1 || sleep_quality > 10) {
+        return res.status(400).json({ message: 'Sleep quality must be between 1 and 10' })
+      }
+    }
+
+    // Validate energy_level if provided
+    if (energy_level !== null && energy_level !== undefined) {
+      if (energy_level < 1 || energy_level > 10) {
+        return res.status(400).json({ message: 'Energy level must be between 1 and 10' })
+      }
+    }
+
+    // Validate pain_intensity if pain is experienced
+    if (pain_experienced === true && pain_intensity !== null && pain_intensity !== undefined) {
+      if (pain_intensity < 1 || pain_intensity > 10) {
+        return res.status(400).json({ message: 'Pain intensity must be between 1 and 10' })
       }
     }
 
@@ -50,19 +84,65 @@ router.post('/check-in', async (req, res) => {
       // Update existing check-in
       const result = await pool.query(
         `UPDATE daily_check_ins 
-         SET workout_completed = $1, diet_stuck_to = $2, workout_rating = $3, notes = $4, status = 'completed', updated_at = NOW()
-         WHERE id = $5
+         SET workout_completed = $1, 
+             diet_stuck_to = $2, 
+             workout_rating = $3, 
+             notes = $4,
+             workout_duration = $5,
+             sleep_hours = $6,
+             sleep_quality = $7,
+             energy_level = $8,
+             pain_experienced = $9,
+             pain_location = $10,
+             pain_intensity = $11,
+             progress_photo = $12,
+             status = 'completed', 
+             updated_at = NOW()
+         WHERE id = $13
          RETURNING *`,
-        [workout_completed, diet_stuck_to, workout_rating || null, notes, existing.rows[0].id]
+        [
+          workout_completed, 
+          diet_stuck_to, 
+          workout_rating || null, 
+          notes || null,
+          workout_duration || null,
+          sleep_hours || null,
+          sleep_quality || null,
+          energy_level || null,
+          pain_experienced || false,
+          pain_location || null,
+          pain_intensity || null,
+          progress_photo || null,
+          existing.rows[0].id
+        ]
       )
       res.json(result.rows[0])
     } else {
       // Create new check-in
       const result = await pool.query(
-        `INSERT INTO daily_check_ins (client_id, check_in_date, workout_completed, diet_stuck_to, workout_rating, notes, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'completed')
+        `INSERT INTO daily_check_ins (
+          client_id, check_in_date, workout_completed, diet_stuck_to, workout_rating, notes, 
+          workout_duration, sleep_hours, sleep_quality, energy_level,
+          pain_experienced, pain_location, pain_intensity, progress_photo, status
+        )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'completed')
          RETURNING *`,
-        [req.user.id, today, workout_completed, diet_stuck_to, workout_rating || null, notes]
+        [
+          req.user.id, 
+          today, 
+          workout_completed, 
+          diet_stuck_to, 
+          workout_rating || null, 
+          notes || null,
+          workout_duration || null,
+          sleep_hours || null,
+          sleep_quality || null,
+          energy_level || null,
+          pain_experienced || false,
+          pain_location || null,
+          pain_intensity || null,
+          progress_photo || null
+        ]
       )
       res.status(201).json(result.rows[0])
     }

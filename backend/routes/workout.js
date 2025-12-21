@@ -75,14 +75,15 @@ router.post('/:id/complete', authenticate, async (req, res) => {
       [userId, id]
     )
 
-    // Check if check-in is required (no check-in for today yet)
+    // Always require check-in after workout completion
     const today = new Date().toISOString().split('T')[0]
     const checkInResult = await pool.query(
       'SELECT id FROM daily_check_ins WHERE client_id = $1 AND check_in_date = $2',
       [userId, today]
     )
 
-    const requiresCheckIn = checkInResult.rows.length === 0
+    // Always require check-in after completing a workout
+    const requiresCheckIn = true
 
     res.json({ 
       message: 'Workout marked as complete',

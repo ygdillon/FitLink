@@ -11,7 +11,8 @@
     "reassign-clients": "node reassign-clients.js",
     "migrate-schedule": "node run-migration.js",
     "migrate-recurring": "node run-recurring-migration.js",
-    "ensure-messages": "node ensure-messages-table.js"
+    "ensure-messages": "node ensure-messages-table.js",
+    "migrate-checkin-enhancement": "node run-checkin-enhancement-migration.js"
   },
   "dependencies": {
     "express": "^4.18.2",
