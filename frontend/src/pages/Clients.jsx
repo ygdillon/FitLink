@@ -85,6 +85,21 @@ function Clients() {
     return matchesSearch && matchesStatus
   })
 
+  // Check if current clientId is valid - compute this once
+  const isValidClientId = clientId && clients.length > 0 
+    ? clients.some(c => c.id.toString() === clientId.toString())
+    : false
+
+  // If clientId exists but is invalid, redirect immediately
+  useEffect(() => {
+    if (clientId && clients.length > 0 && !isValidClientId && !isRedirecting) {
+      console.log(`[DEBUG] Invalid clientId ${clientId} detected. Redirecting immediately.`)
+      setIsRedirecting(true)
+      const firstClientId = clients[0].id
+      navigate(`/trainer/clients/${firstClientId}`, { replace: true })
+    }
+  }, [clientId, clients, isValidClientId, isRedirecting, navigate])
+
   const handleClientClick = (clientId) => {
     navigate(`/trainer/clients/${clientId}`)
   }
@@ -261,8 +276,8 @@ function Clients() {
       {/* Right Side - Client Details */}
       <Box style={{ flex: 1, overflow: 'hidden', backgroundColor: bgColor }}>
         {(() => {
-          // Don't render anything if we're redirecting
-          if (isRedirecting) {
+          // Don't render ClientProfile if redirecting or if clientId is invalid
+          if (isRedirecting || (clientId && !isValidClientId)) {
             return (
               <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Loader size="lg" />
@@ -270,20 +285,9 @@ function Clients() {
             )
           }
           
-          // Check if clientId exists in the clients list
-          const validClient = clientId && clients.length > 0 
-            ? clients.find(c => c.id.toString() === clientId.toString())
-            : null
-          
-          if (validClient) {
+          // Only render ClientProfile if we have a valid clientId
+          if (clientId && isValidClientId) {
             return <ClientProfile />
-          } else if (clientId) {
-            // clientId exists but client not found - show loading while redirect happens
-            return (
-              <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Loader size="lg" />
-              </Box>
-            )
           } else {
             return (
               <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
