@@ -210,6 +210,9 @@ function Navbar({ children }) {
                   label="Create Workouts"
                   className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=create') ? 'nav-link-sub-active' : ''}`}
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={(match, location) => {
+                    return location.pathname === '/trainer/workouts' && location.search === '?tab=create'
+                  }}
                 />
                 <MantineNavLink
                   component={NavLink}
@@ -217,6 +220,9 @@ function Navbar({ children }) {
                   label="Assign Workouts"
                   className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=assign') ? 'nav-link-sub-active' : ''}`}
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={(match, location) => {
+                    return location.pathname === '/trainer/workouts' && location.search === '?tab=assign'
+                  }}
                 />
                 <MantineNavLink
                   component={NavLink}
@@ -224,6 +230,9 @@ function Navbar({ children }) {
                   label="Manage Workouts"
                   className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=library') || (location.pathname === '/trainer/workouts' && !location.search) ? 'nav-link-sub-active' : ''}`}
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={(match, location) => {
+                    return location.pathname === '/trainer/workouts' && (location.search === '?tab=library' || location.search === '')
+                  }}
                 />
               </Stack>
             </Box>
@@ -286,6 +295,9 @@ function Navbar({ children }) {
                   label="Payment History"
                   className={`nav-link-sub ${isRouteActive('/payments', '?tab=history') ? 'nav-link-sub-active' : ''}`}
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={(match, location) => {
+                    return location.pathname === '/payments' && location.search === '?tab=history'
+                  }}
                 />
                 <MantineNavLink
                   component={NavLink}
@@ -293,6 +305,9 @@ function Navbar({ children }) {
                   label="Setup"
                   className={`nav-link-sub ${isRouteActive('/payments', '?tab=setup') ? 'nav-link-sub-active' : ''}`}
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={(match, location) => {
+                    return location.pathname === '/payments' && location.search === '?tab=setup'
+                  }}
                 />
                 <MantineNavLink
                   component={NavLink}
@@ -300,6 +315,9 @@ function Navbar({ children }) {
                   label="Manage Payments"
                   className={`nav-link-sub ${isRouteActive('/payments', '?tab=manage') ? 'nav-link-sub-active' : ''}`}
                   style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                  isActive={(match, location) => {
+                    return location.pathname === '/payments' && location.search === '?tab=manage'
+                  }}
                 />
               </Stack>
             </Box>
