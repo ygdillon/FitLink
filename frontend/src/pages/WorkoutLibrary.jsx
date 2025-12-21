@@ -147,9 +147,7 @@ function WorkoutLibrary() {
 
         {/* Create Workout Tab */}
         <Tabs.Panel value="create">
-          <Paper shadow="md" p="xl" radius="md" withBorder>
-            <WorkoutBuilder />
-          </Paper>
+          <WorkoutBuilder />
         </Tabs.Panel>
 
         {/* Assign Workouts Tab */}
