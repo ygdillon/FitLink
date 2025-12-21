@@ -38,7 +38,9 @@ router.get('/', async (req, res) => {
                 (SELECT content FROM messages 
                  WHERE (sender_id = $1 AND receiver_id = u.id) 
                     OR (sender_id = u.id AND receiver_id = $1)
-                 ORDER BY timestamp DESC LIMIT 1) as last_message
+                 ORDER BY timestamp DESC LIMIT 1) as last_message,
+                (SELECT COUNT(*) FROM messages 
+                 WHERE sender_id = u.id AND receiver_id = $1 AND read_status = false) as unread_count
          FROM users u
          JOIN clients c ON u.id = c.user_id
          WHERE c.trainer_id = $1`,
@@ -50,7 +52,9 @@ router.get('/', async (req, res) => {
                 (SELECT content FROM messages 
                  WHERE (sender_id = $1 AND receiver_id = u.id) 
                     OR (sender_id = u.id AND receiver_id = $1)
-                 ORDER BY timestamp DESC LIMIT 1) as last_message
+                 ORDER BY timestamp DESC LIMIT 1) as last_message,
+                (SELECT COUNT(*) FROM messages 
+                 WHERE sender_id = u.id AND receiver_id = $1 AND read_status = false) as unread_count
          FROM users u
          JOIN clients c ON c.user_id = $1
          JOIN trainers t ON c.trainer_id = t.user_id
@@ -59,7 +63,14 @@ router.get('/', async (req, res) => {
       )
     }
 
-    res.json(result.rows)
+    const conversations = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      lastMessage: row.last_message || 'No messages yet',
+      unreadCount: parseInt(row.unread_count) || 0
+    }))
+
+    res.json(conversations)
   } catch (error) {
     console.error('Error fetching conversations:', error)
     res.status(500).json({ message: 'Failed to fetch conversations' })

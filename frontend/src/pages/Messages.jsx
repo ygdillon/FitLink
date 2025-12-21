@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Container, Title, Text, Stack, Card, Button, Group, Paper, TextInput, Grid, Loader, ScrollArea, Box } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Button, Group, Paper, TextInput, Grid, Loader, ScrollArea, Box, Badge } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
@@ -103,9 +103,16 @@ function Messages() {
         }
         return {
           ...prev,
-          messages: response.data
+          messages: response.data,
+          unreadCount: 0 // Reset unread count when viewing conversation
         }
       })
+      // Mark messages as read explicitly
+      try {
+        await api.put(`/messages/${userId}/read`)
+      } catch (error) {
+        console.error('Error marking messages as read:', error)
+      }
       // Refresh conversations to update unread status
       fetchConversations()
     } catch (error) {
@@ -150,11 +157,30 @@ function Messages() {
                         onClick={() => selectConversation(conv)}
                         style={{
                           cursor: 'pointer',
-                          backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-robinhoodGreen-0)' : 'transparent'
+                          backgroundColor: selectedConversation?.id === conv.id ? 'var(--mantine-color-robinhoodGreen-0)' : 'transparent',
+                          position: 'relative'
                         }}
                       >
                         <Stack gap={4}>
-                          <Text fw={500}>{conv.name}</Text>
+                          <Group justify="space-between" align="flex-start">
+                            <Text fw={500} style={{ flex: 1 }}>{conv.name}</Text>
+                            {conv.unreadCount > 0 && (
+                              <Badge
+                                color="red"
+                                size="sm"
+                                variant="filled"
+                                style={{
+                                  minWidth: '20px',
+                                  height: '20px',
+                                  padding: '0 6px',
+                                  fontSize: '11px',
+                                  fontWeight: 600
+                                }}
+                              >
+                                {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                              </Badge>
+                            )}
+                          </Group>
                           <Text size="sm" c="dimmed" lineClamp={1}>{conv.lastMessage}</Text>
                         </Stack>
                       </Card>
