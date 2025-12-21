@@ -149,6 +149,25 @@ function Navbar({ children }) {
     return location.pathname === pathname && location.search === search
   }
 
+  // Helper to create NavLink props that prevent default active state
+  const createSubNavLinkProps = (to, label, activeSearch) => {
+    const isActive = isRouteActive(
+      to.split('?')[0], 
+      activeSearch || `?${to.split('?')[1]}`
+    )
+    // Also check for default routes (no query params)
+    const isDefaultActive = activeSearch === '' && location.pathname === to.split('?')[0] && !location.search
+    
+    return {
+      component: NavLink,
+      to,
+      label,
+      className: `nav-link-sub ${isActive || isDefaultActive ? 'nav-link-sub-active' : ''}`,
+      style: { padding: '0.375rem 0.5rem', fontSize: '0.875rem' },
+      isActive: () => false // Prevent Mantine from applying data-active based on pathname
+    }
+  }
+
   // Trainer navigation structure with collapsible sections
   const renderTrainerNav = () => {
     return (
@@ -205,34 +224,14 @@ function Navbar({ children }) {
             <Box pl="xl" pt={2} pb={2}>
               <Stack gap={2}>
                 <MantineNavLink
-                  component={NavLink}
-                  to="/trainer/workouts?tab=create"
-                  label="Create Workouts"
-                  className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=create') ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={(match, location) => {
-                    return location.pathname === '/trainer/workouts' && location.search === '?tab=create'
-                  }}
+                  {...createSubNavLinkProps('/trainer/workouts?tab=create', 'Create Workouts', '?tab=create')}
                 />
                 <MantineNavLink
-                  component={NavLink}
-                  to="/trainer/workouts?tab=assign"
-                  label="Assign Workouts"
-                  className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=assign') ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={(match, location) => {
-                    return location.pathname === '/trainer/workouts' && location.search === '?tab=assign'
-                  }}
+                  {...createSubNavLinkProps('/trainer/workouts?tab=assign', 'Assign Workouts', '?tab=assign')}
                 />
                 <MantineNavLink
-                  component={NavLink}
-                  to="/trainer/workouts?tab=library"
-                  label="Manage Workouts"
+                  {...createSubNavLinkProps('/trainer/workouts?tab=library', 'Manage Workouts', '?tab=library')}
                   className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=library') || (location.pathname === '/trainer/workouts' && !location.search) ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={(match, location) => {
-                    return location.pathname === '/trainer/workouts' && (location.search === '?tab=library' || location.search === '')
-                  }}
                 />
               </Stack>
             </Box>
@@ -290,34 +289,13 @@ function Navbar({ children }) {
             <Box pl="xl" pt={2} pb={2}>
               <Stack gap={2}>
                 <MantineNavLink
-                  component={NavLink}
-                  to="/payments?tab=history"
-                  label="Payment History"
-                  className={`nav-link-sub ${isRouteActive('/payments', '?tab=history') ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={(match, location) => {
-                    return location.pathname === '/payments' && location.search === '?tab=history'
-                  }}
+                  {...createSubNavLinkProps('/payments?tab=history', 'Payment History', '?tab=history')}
                 />
                 <MantineNavLink
-                  component={NavLink}
-                  to="/payments?tab=setup"
-                  label="Setup"
-                  className={`nav-link-sub ${isRouteActive('/payments', '?tab=setup') ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={(match, location) => {
-                    return location.pathname === '/payments' && location.search === '?tab=setup'
-                  }}
+                  {...createSubNavLinkProps('/payments?tab=setup', 'Setup', '?tab=setup')}
                 />
                 <MantineNavLink
-                  component={NavLink}
-                  to="/payments?tab=manage"
-                  label="Manage Payments"
-                  className={`nav-link-sub ${isRouteActive('/payments', '?tab=manage') ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={(match, location) => {
-                    return location.pathname === '/payments' && location.search === '?tab=manage'
-                  }}
+                  {...createSubNavLinkProps('/payments?tab=manage', 'Manage Payments', '?tab=manage')}
                 />
               </Stack>
             </Box>

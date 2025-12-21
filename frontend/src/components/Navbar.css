@@ -27,22 +27,28 @@
   font-size: 0.875rem;
 }
 
-.nav-link-sub:hover:not([data-active]) {
+.nav-link-sub:hover:not(.nav-link-sub-active) {
   background-color: var(--mantine-color-robinhoodGreen-1);
   color: var(--mantine-color-robinhoodGreen-7);
 }
 
-.nav-link-sub[data-active],
+/* Only highlight if it has our custom active class - ignore Mantine's data-active */
 .nav-link-sub-active {
-  background-color: var(--mantine-color-robinhoodGreen-6);
-  color: white;
+  background-color: var(--mantine-color-robinhoodGreen-6) !important;
+  color: white !important;
   font-weight: 500;
 }
 
-.nav-link-sub[data-active] .mantine-NavLink-label,
 .nav-link-sub-active .mantine-NavLink-label {
-  color: white;
+  color: white !important;
   font-weight: 500;
+}
+
+/* Override Mantine's default data-active for sub-navigation items */
+.nav-link-sub[data-active]:not(.nav-link-sub-active) {
+  background-color: transparent;
+  color: inherit;
+  font-weight: normal;
 }
 
 /* Header styles */
