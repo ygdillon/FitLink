@@ -56,12 +56,12 @@ function Navbar({ children }) {
   return (
     <AppShell
       navbar={{
-        width: 280,
+        width: 220,
         breakpoint: 'sm',
         collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
       }}
       header={{ height: 60 }}
-      padding="md"
+      padding="sm"
     >
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
@@ -76,7 +76,7 @@ function Navbar({ children }) {
               component={Link}
               to="/"
               fw={700}
-              size="xl"
+              size="lg"
               c="robinhoodGreen"
               style={{ textDecoration: 'none' }}
             >
@@ -93,10 +93,10 @@ function Navbar({ children }) {
                   {user.name?.charAt(0).toUpperCase() || 'U'}
                 </Avatar>
                 <Stack gap={0} style={{ lineHeight: 1.2 }}>
-                  <Text size="sm" fw={500}>
+                  <Text size="sm" fw={500} lineClamp={1} style={{ maxWidth: '140px' }}>
                     {user.name || 'User'}
                   </Text>
-                  <Text size="xs" c="dimmed" lineClamp={1} style={{ maxWidth: '200px' }}>
+                  <Text size="xs" c="dimmed" lineClamp={1} style={{ maxWidth: '140px' }}>
                     {user.email}
                   </Text>
                 </Stack>
@@ -159,8 +159,8 @@ function Navbar({ children }) {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
-        <Stack gap={4}>
+      <AppShell.Navbar p="sm">
+        <Stack gap={2}>
           {navItems.map((item) => {
             // Use exact matching for base routes to prevent highlighting on sub-routes
             const isExactRoute = item.to === '/client' || item.to === '/trainer'
@@ -172,6 +172,7 @@ function Navbar({ children }) {
                 label={item.label}
                 end={isExactRoute}
                 className="nav-link"
+                style={{ padding: '0.5rem 0.75rem' }}
               />
             )
           })}
