@@ -23,6 +23,7 @@ function ClientProfile() {
       setClient(null)
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId])
 
   const fetchClientProfile = async () => {

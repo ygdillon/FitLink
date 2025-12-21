@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Title, Text, Stack, Group, Button, TextInput, Select, Paper, Badge, Avatar, Loader, Alert, Box, ScrollArea } from '@mantine/core'
 import { useMantineColorScheme } from '@mantine/core'
@@ -85,10 +85,11 @@ function Clients() {
     return matchesSearch && matchesStatus
   })
 
-  // Check if current clientId is valid - compute this once
-  const isValidClientId = clientId && clients.length > 0 
-    ? clients.some(c => c.id.toString() === clientId.toString())
-    : false
+  // Check if current clientId is valid - use useMemo to ensure it's computed before render
+  const isValidClientId = useMemo(() => {
+    if (!clientId || clients.length === 0) return false
+    return clients.some(c => c.id.toString() === clientId.toString())
+  }, [clientId, clients])
 
   // If clientId exists but is invalid, redirect immediately
   useEffect(() => {
@@ -97,6 +98,9 @@ function Clients() {
       setIsRedirecting(true)
       const firstClientId = clients[0].id
       navigate(`/trainer/clients/${firstClientId}`, { replace: true })
+      // Don't reset redirecting immediately - let it stay true until navigation completes
+    } else if (isValidClientId) {
+      setIsRedirecting(false)
     }
   }, [clientId, clients, isValidClientId, isRedirecting, navigate])
 
@@ -285,8 +289,12 @@ function Clients() {
             )
           }
           
-          // Don't render ClientProfile if redirecting or if clientId is invalid
-          if (isRedirecting || (clientId && !isValidClientId)) {
+          // CRITICAL: Never render ClientProfile if clientId is invalid or we're redirecting
+          // This prevents API calls for non-existent clients
+          const shouldRenderProfile = clientId && isValidClientId && clients.length > 0 && !isRedirecting && !loading
+          
+          if (!shouldRenderProfile && clientId) {
+            // clientId exists but is invalid - show loader while redirect happens
             return (
               <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Loader size="lg" />
@@ -294,9 +302,9 @@ function Clients() {
             )
           }
           
-          // Only render ClientProfile if we have a valid clientId AND clients are loaded
-          if (clientId && isValidClientId && clients.length > 0) {
-            return <ClientProfile />
+          // Only render ClientProfile if we have a valid clientId AND clients are loaded AND not redirecting
+          if (shouldRenderProfile) {
+            return <ClientProfile key={clientId} />
           } else {
             return (
               <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
