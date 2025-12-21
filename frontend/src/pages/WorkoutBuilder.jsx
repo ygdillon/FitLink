@@ -52,7 +52,12 @@ function WorkoutBuilder() {
         message: 'Workout has been successfully created!',
         color: 'green',
       })
-      navigate('/trainer/workouts')
+      // If embedded in WorkoutLibrary, refresh the page
+      if (window.location.pathname === '/trainer/workouts') {
+        window.location.reload()
+      } else {
+        navigate('/trainer/workouts')
+      }
     } catch (error) {
       console.error('Error creating workout:', error)
       notifications.show({
@@ -65,10 +70,13 @@ function WorkoutBuilder() {
     }
   }
 
-  return (
-    <Container size="lg" py="xl">
-      <Paper shadow="md" p="xl" radius="md" withBorder>
-        <Title order={1} mb="xl">Create Workout</Title>
+  // Check if we're embedded in WorkoutLibrary (no Container/Paper needed)
+  const isEmbedded = window.location.pathname === '/trainer/workouts'
+  
+  const content = (
+    <>
+      {!isEmbedded && <Title order={1} mb="xl">Create Workout</Title>}
+      {isEmbedded && <Title order={2} mb="xl">Create Workout</Title>}
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }}>
           <Stack gap="md">
             <TextInput
@@ -160,6 +168,17 @@ function WorkoutBuilder() {
             </Group>
           </Stack>
         </form>
+    </>
+  )
+
+  if (isEmbedded) {
+    return content
+  }
+
+  return (
+    <Container size="lg" py="xl">
+      <Paper shadow="md" p="xl" radius="md" withBorder>
+        {content}
       </Paper>
     </Container>
   )

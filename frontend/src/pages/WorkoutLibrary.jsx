@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Container, Title, Text, Stack, Card, Badge, Button, Group, Modal, TextInput, Select, Textarea, SimpleGrid, Loader, Paper } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Modal, TextInput, Select, Textarea, SimpleGrid, Loader, Paper, Tabs, MultiSelect, Checkbox } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import api from '../services/api'
+import WorkoutBuilder from './WorkoutBuilder'
 import './WorkoutLibrary.css'
 
 function WorkoutLibrary() {
@@ -17,16 +18,21 @@ function WorkoutLibrary() {
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [opened, { open, close }] = useDisclosure(false)
   const [clients, setClients] = useState([])
+  const [activeTab, setActiveTab] = useState('library') // 'create', 'assign', 'library'
   
   const assignForm = useForm({
     initialValues: {
-      clientId: '',
+      clientIds: [],
+      workoutId: '',
       assignedDate: new Date(),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      notes: ''
+      notes: '',
+      isRecurring: false,
+      recurringFrequency: 'weekly'
     },
     validate: {
-      clientId: (value) => (!value ? 'Client is required' : null),
+      clientIds: (value) => (value.length === 0 ? 'Select at least one client' : null),
+      workoutId: (value) => (!value ? 'Select a workout' : null),
       assignedDate: (value) => (!value ? 'Assigned date is required' : null),
     },
   })
@@ -65,15 +71,23 @@ function WorkoutLibrary() {
         ? values.dueDate.toISOString().split('T')[0]
         : values.dueDate
       
-      await api.post(`/trainer/workouts/${selectedWorkout.id}/assign`, {
-        clientId: values.clientId,
-        assignedDate,
-        dueDate,
-        notes: values.notes
-      })
+      const workoutId = values.workoutId || selectedWorkout?.id
+      
+      // Assign to multiple clients
+      const assignments = await Promise.all(
+        values.clientIds.map(async (clientId) => {
+          return api.post(`/trainer/workouts/${workoutId}/assign`, {
+            clientId,
+            assignedDate,
+            dueDate,
+            notes: values.notes
+          })
+        })
+      )
+      
       notifications.show({
-        title: 'Workout Assigned',
-        message: 'Workout has been successfully assigned!',
+        title: 'Workouts Assigned',
+        message: `Successfully assigned to ${values.clientIds.length} client(s)!`,
         color: 'green',
       })
       close()
@@ -92,10 +106,13 @@ function WorkoutLibrary() {
   const openAssignModal = (workout) => {
     setSelectedWorkout(workout)
     assignForm.setValues({
-      clientId: '',
+      clientIds: [],
+      workoutId: workout.id.toString(),
       assignedDate: new Date(),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      notes: ''
+      notes: '',
+      isRecurring: false,
+      recurringFrequency: 'weekly'
     })
     open()
   }
@@ -119,30 +136,155 @@ function WorkoutLibrary() {
 
   return (
     <Container size="xl" py="xl">
-      <Group justify="space-between" mb="lg">
-        <Title order={1}>Workout Library</Title>
-        <Button onClick={() => navigate('/workout/builder')}>
-          + Create New Workout
-        </Button>
-      </Group>
+      <Title order={1} mb="xl">Workouts</Title>
 
-      <Group mb="md">
-        <TextInput
-          placeholder="Search workouts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ flex: 1 }}
-        />
-        <Select
-          value={filterType}
-          onChange={setFilterType}
-          data={[
-            { value: 'all', label: 'All Workouts' },
-            { value: 'templates', label: 'Templates' },
-            { value: 'custom', label: 'Custom' }
-          ]}
-        />
-      </Group>
+      <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs.List mb="xl">
+          <Tabs.Tab value="create">Create Workout</Tabs.Tab>
+          <Tabs.Tab value="assign">Assign Workouts</Tabs.Tab>
+          <Tabs.Tab value="library">Workout Library</Tabs.Tab>
+        </Tabs.List>
+
+        {/* Create Workout Tab */}
+        <Tabs.Panel value="create">
+          <Paper shadow="md" p="xl" radius="md" withBorder>
+            <WorkoutBuilder />
+          </Paper>
+        </Tabs.Panel>
+
+        {/* Assign Workouts Tab */}
+        <Tabs.Panel value="assign">
+          <Stack gap="md">
+            <Paper p="md" withBorder>
+              <Title order={3} mb="md">Assign Workouts to Clients</Title>
+              <form onSubmit={assignForm.onSubmit(handleAssignWorkout)}>
+                <Stack gap="md">
+                  <Select
+                    label="Select Workout *"
+                    placeholder="Choose a workout to assign..."
+                    data={workouts.map(workout => ({
+                      value: workout.id.toString(),
+                      label: workout.name
+                    }))}
+                    searchable
+                    {...assignForm.getInputProps('workoutId')}
+                    required
+                  />
+                  <MultiSelect
+                    label="Select Clients *"
+                    placeholder="Choose one or more clients..."
+                    data={clients.map(client => {
+                      const clientUserId = client.user_id || client.id
+                      return {
+                        value: clientUserId.toString(),
+                        label: `${client.name || 'Client'} (${client.email})`
+                      }
+                    })}
+                    searchable
+                    {...assignForm.getInputProps('clientIds')}
+                    required
+                  />
+                  <DatePickerInput
+                    label="Assigned Date *"
+                    {...assignForm.getInputProps('assignedDate')}
+                    required
+                  />
+                  <DatePickerInput
+                    label="Due Date"
+                    {...assignForm.getInputProps('dueDate')}
+                  />
+                  <Textarea
+                    label="Notes (optional)"
+                    placeholder="Add any special instructions or notes for the clients..."
+                    rows={3}
+                    {...assignForm.getInputProps('notes')}
+                  />
+                  <Group justify="flex-end">
+                    <Button type="submit" color="robinhoodGreen">
+                      Assign to Selected Clients
+                    </Button>
+                  </Group>
+                </Stack>
+              </form>
+            </Paper>
+
+            {/* Quick Assign from Library */}
+            <Paper p="md" withBorder>
+              <Title order={4} mb="md">Quick Assign from Library</Title>
+              <Group mb="md">
+                <TextInput
+                  placeholder="Search workouts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <Select
+                  value={filterType}
+                  onChange={setFilterType}
+                  data={[
+                    { value: 'all', label: 'All Workouts' },
+                    { value: 'templates', label: 'Templates' },
+                    { value: 'custom', label: 'Custom' }
+                  ]}
+                />
+              </Group>
+              {filteredWorkouts.length === 0 ? (
+                <Text c="dimmed" ta="center" py="md">No workouts found</Text>
+              ) : (
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                  {filteredWorkouts.map(workout => (
+                    <Card key={workout.id} shadow="sm" padding="md" radius="md" withBorder>
+                      <Stack gap="sm">
+                        <Group justify="space-between">
+                          <Title order={5}>{workout.name}</Title>
+                          {workout.is_template && (
+                            <Badge variant="light" size="sm">Template</Badge>
+                          )}
+                        </Group>
+                        {workout.description && (
+                          <Text size="sm" c="dimmed" lineClamp={2}>{workout.description}</Text>
+                        )}
+                        <Button 
+                          variant="filled" 
+                          size="sm"
+                          fullWidth
+                          onClick={() => {
+                            assignForm.setFieldValue('workoutId', workout.id.toString())
+                            setActiveTab('assign')
+                            // Scroll to top of assign form
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                        >
+                          Select to Assign
+                        </Button>
+                      </Stack>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              )}
+            </Paper>
+          </Stack>
+        </Tabs.Panel>
+
+        {/* Workout Library Tab */}
+        <Tabs.Panel value="library">
+          <Group mb="md">
+            <TextInput
+              placeholder="Search workouts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <Select
+              value={filterType}
+              onChange={setFilterType}
+              data={[
+                { value: 'all', label: 'All Workouts' },
+                { value: 'templates', label: 'Templates' },
+                { value: 'custom', label: 'Custom' }
+              ]}
+            />
+          </Group>
 
       {filteredWorkouts.length === 0 ? (
         <Paper p="xl" withBorder>
@@ -213,13 +355,17 @@ function WorkoutLibrary() {
         </SimpleGrid>
       )}
 
+        </Tabs.Panel>
+      </Tabs>
+
+      {/* Legacy Modal for backward compatibility */}
       <Modal opened={opened} onClose={close} title={`Assign Workout: ${selectedWorkout?.name}`} size="md">
         {selectedWorkout && (
           <form onSubmit={assignForm.onSubmit(handleAssignWorkout)}>
             <Stack gap="md">
-              <Select
-                label="Select Client *"
-                placeholder="Choose a client..."
+              <MultiSelect
+                label="Select Clients *"
+                placeholder="Choose one or more clients..."
                 data={clients.map(client => {
                   const clientUserId = client.user_id || client.id
                   return {
@@ -227,7 +373,8 @@ function WorkoutLibrary() {
                     label: `${client.name || 'Client'} (${client.email})`
                   }
                 })}
-                {...assignForm.getInputProps('clientId')}
+                searchable
+                {...assignForm.getInputProps('clientIds')}
                 required
               />
               <DatePickerInput
@@ -241,7 +388,7 @@ function WorkoutLibrary() {
               />
               <Textarea
                 label="Notes (optional)"
-                placeholder="Add any special instructions or notes for the client..."
+                placeholder="Add any special instructions or notes for the clients..."
                 rows={3}
                 {...assignForm.getInputProps('notes')}
               />
