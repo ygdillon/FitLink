@@ -21,8 +21,11 @@ function WorkoutLibrary() {
   const [clients, setClients] = useState([])
   
   // Get active tab from URL params, default to 'library'
-  const tabFromUrl = searchParams.get('tab') || 'library'
-  const [activeTab, setActiveTab] = useState(tabFromUrl) // 'create', 'assign', 'library'
+  const tabFromUrl = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'library') // 'create', 'assign', 'library'
+  
+  // Check if we're coming from dropdown navigation (has tab param)
+  const isDirectNavigation = !!tabFromUrl
   
   // Update active tab when URL param changes
   useEffect(() => {
@@ -30,10 +33,15 @@ function WorkoutLibrary() {
     setActiveTab(tab)
   }, [searchParams])
   
-  // Update URL when tab changes
+  // Update URL when tab changes (only if not from direct navigation)
   const handleTabChange = (value) => {
     setActiveTab(value)
-    setSearchParams({ tab: value })
+    if (!isDirectNavigation) {
+      setSearchParams({ tab: value })
+    } else {
+      // If coming from dropdown, remove tab param to show full tabs view
+      setSearchParams({})
+    }
   }
   
   const assignForm = useForm({
@@ -155,11 +163,13 @@ function WorkoutLibrary() {
       <Title order={1} mb="xl">Workouts</Title>
 
       <Tabs value={activeTab} onChange={handleTabChange}>
-        <Tabs.List mb="xl">
-          <Tabs.Tab value="create">Create Workout</Tabs.Tab>
-          <Tabs.Tab value="assign">Assign Workouts</Tabs.Tab>
-          <Tabs.Tab value="library">Workout Library</Tabs.Tab>
-        </Tabs.List>
+        {!isDirectNavigation && (
+          <Tabs.List mb="xl">
+            <Tabs.Tab value="create">Create Workout</Tabs.Tab>
+            <Tabs.Tab value="assign">Assign Workouts</Tabs.Tab>
+            <Tabs.Tab value="library">Workout Library</Tabs.Tab>
+          </Tabs.List>
+        )}
 
         {/* Create Workout Tab */}
         <Tabs.Panel value="create">

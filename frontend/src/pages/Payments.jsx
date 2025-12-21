@@ -15,8 +15,11 @@ function Payments() {
   const [loading, setLoading] = useState(true)
   
   // Get active tab from URL params, default to 'history'
-  const tabFromUrl = searchParams.get('tab') || 'history'
-  const [activeTab, setActiveTab] = useState(tabFromUrl)
+  const tabFromUrl = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'history')
+  
+  // Check if we're coming from dropdown navigation (has tab param)
+  const isDirectNavigation = !!tabFromUrl
   
   // Update active tab when URL param changes
   useEffect(() => {
@@ -24,10 +27,15 @@ function Payments() {
     setActiveTab(tab)
   }, [searchParams])
   
-  // Update URL when tab changes
+  // Update URL when tab changes (only if not from direct navigation)
   const handleTabChange = (value) => {
     setActiveTab(value)
-    setSearchParams({ tab: value })
+    if (!isDirectNavigation) {
+      setSearchParams({ tab: value })
+    } else {
+      // If coming from dropdown, remove tab param to show full tabs view
+      setSearchParams({})
+    }
   }
 
   useEffect(() => {
@@ -111,11 +119,13 @@ function Payments() {
         <Title order={1} mb="xl">Payments</Title>
 
         <Tabs value={activeTab} onChange={handleTabChange}>
-          <Tabs.List mb="xl">
-            <Tabs.Tab value="history">Payment History</Tabs.Tab>
-            <Tabs.Tab value="setup">Payment Setup</Tabs.Tab>
-            <Tabs.Tab value="manage">Manage Payments</Tabs.Tab>
-          </Tabs.List>
+          {!isDirectNavigation && (
+            <Tabs.List mb="xl">
+              <Tabs.Tab value="history">Payment History</Tabs.Tab>
+              <Tabs.Tab value="setup">Payment Setup</Tabs.Tab>
+              <Tabs.Tab value="manage">Manage Payments</Tabs.Tab>
+            </Tabs.List>
+          )}
 
           <Tabs.Panel value="history">
             <Paper p="md" withBorder>
