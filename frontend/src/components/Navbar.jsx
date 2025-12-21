@@ -149,23 +149,42 @@ function Navbar({ children }) {
     return location.pathname === pathname && location.search === search
   }
 
-  // Helper to create NavLink props that prevent default active state
-  const createSubNavLinkProps = (to, label, activeSearch) => {
-    const isActive = isRouteActive(
-      to.split('?')[0], 
-      activeSearch || `?${to.split('?')[1]}`
-    )
-    // Also check for default routes (no query params)
-    const isDefaultActive = activeSearch === '' && location.pathname === to.split('?')[0] && !location.search
+  // Helper component for sub-navigation items with exact query param matching
+  const SubNavLink = ({ to, label, activeSearch, defaultActive = false }) => {
+    const pathname = to.split('?')[0]
+    const isActive = isRouteActive(pathname, activeSearch) || 
+                     (defaultActive && location.pathname === pathname && !location.search)
     
-    return {
-      component: NavLink,
-      to,
-      label,
-      className: `nav-link-sub ${isActive || isDefaultActive ? 'nav-link-sub-active' : ''}`,
-      style: { padding: '0.375rem 0.5rem', fontSize: '0.875rem' },
-      isActive: () => false // Prevent Mantine from applying data-active based on pathname
-    }
+    return (
+      <UnstyledButton
+        component={Link}
+        to={to}
+        className={`nav-link-sub ${isActive ? 'nav-link-sub-active' : ''}`}
+        style={{ 
+          padding: '0.375rem 0.5rem', 
+          fontSize: '0.875rem',
+          width: '100%',
+          textAlign: 'left',
+          borderRadius: 'var(--mantine-radius-sm)',
+          transition: 'background-color 0.2s ease',
+          color: 'inherit'
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+              ? 'var(--mantine-color-dark-5)' 
+              : 'var(--mantine-color-gray-1)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }
+        }}
+      >
+        <Text size="sm">{label}</Text>
+      </UnstyledButton>
+    )
   }
 
   // Trainer navigation structure with collapsible sections
@@ -223,19 +242,21 @@ function Navbar({ children }) {
           <Collapse in={openedSections.workouts} transitionDuration={200}>
             <Box pl="xl" pt={2} pb={2}>
               <Stack gap={2}>
-                <MantineNavLink
-                  {...createSubNavLinkProps('/trainer/workouts?tab=create', 'Create Workouts', '?tab=create')}
+                <SubNavLink 
+                  to="/trainer/workouts?tab=create" 
+                  label="Create Workouts" 
+                  activeSearch="?tab=create" 
                 />
-                <MantineNavLink
-                  {...createSubNavLinkProps('/trainer/workouts?tab=assign', 'Assign Workouts', '?tab=assign')}
+                <SubNavLink 
+                  to="/trainer/workouts?tab=assign" 
+                  label="Assign Workouts" 
+                  activeSearch="?tab=assign" 
                 />
-                <MantineNavLink
-                  component={NavLink}
-                  to="/trainer/workouts?tab=library"
-                  label="Manage Workouts"
-                  className={`nav-link-sub ${isRouteActive('/trainer/workouts', '?tab=library') || (location.pathname === '/trainer/workouts' && !location.search) ? 'nav-link-sub-active' : ''}`}
-                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
-                  isActive={() => false}
+                <SubNavLink 
+                  to="/trainer/workouts?tab=library" 
+                  label="Manage Workouts" 
+                  activeSearch="?tab=library"
+                  defaultActive={true}
                 />
               </Stack>
             </Box>
@@ -292,14 +313,20 @@ function Navbar({ children }) {
           <Collapse in={openedSections.payments} transitionDuration={200}>
             <Box pl="xl" pt={2} pb={2}>
               <Stack gap={2}>
-                <MantineNavLink
-                  {...createSubNavLinkProps('/payments?tab=history', 'Payment History', '?tab=history')}
+                <SubNavLink 
+                  to="/payments?tab=history" 
+                  label="Payment History" 
+                  activeSearch="?tab=history" 
                 />
-                <MantineNavLink
-                  {...createSubNavLinkProps('/payments?tab=setup', 'Setup', '?tab=setup')}
+                <SubNavLink 
+                  to="/payments?tab=setup" 
+                  label="Setup" 
+                  activeSearch="?tab=setup" 
                 />
-                <MantineNavLink
-                  {...createSubNavLinkProps('/payments?tab=manage', 'Manage Payments', '?tab=manage')}
+                <SubNavLink 
+                  to="/payments?tab=manage" 
+                  label="Manage Payments" 
+                  activeSearch="?tab=manage" 
                 />
               </Stack>
             </Box>
