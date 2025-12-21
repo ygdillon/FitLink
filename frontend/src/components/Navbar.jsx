@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { 
   AppShell, 
   Group, 
@@ -9,10 +9,12 @@ import {
   Button,
   Burger,
   Avatar,
-  useMantineTheme
+  useMantineTheme,
+  Collapse,
+  Box
 } from '@mantine/core'
 import { useAuth } from '../contexts/AuthContext'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AlertsBadge from './AlertsBadge'
 import MessagesBadge from './MessagesBadge'
 import './Navbar.css'
@@ -20,9 +22,17 @@ import './Navbar.css'
 function Navbar({ children }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const theme = useMantineTheme()
   const [mobileOpened, setMobileOpened] = useState(false)
   const [desktopOpened, setDesktopOpened] = useState(true)
+  
+  // State for collapsible sections
+  const [openedSections, setOpenedSections] = useState({
+    clients: false,
+    workouts: false,
+    training: false
+  })
 
   if (!user) {
     return children
@@ -83,26 +93,263 @@ function Navbar({ children }) {
     </svg>
   )
 
-  // Trainer navigation items
-  const trainerNavItems = [
-    { label: 'Dashboard', to: '/trainer', icon: <HomeIcon /> },
-    { label: 'Clients', to: '/trainer/clients', icon: <PeopleIcon /> },
-    { label: 'Workouts', to: '/trainer/workouts', icon: <WorkoutIcon /> },
-    { label: 'Requests', to: '/trainer/requests', icon: <RequestIcon /> },
-    { label: 'Analytics', to: '/trainer/analytics', icon: <AnalyticsIcon /> },
-    { label: 'Payments', to: '/payments', icon: <DollarIcon /> },
-  ]
+  const ChevronIcon = ({ opened }) => (
+    <svg 
+      width="16" 
+      height="16" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      style={{ 
+        transform: opened ? 'rotate(90deg)' : 'rotate(0deg)',
+        transition: 'transform 0.2s ease'
+      }}
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  )
 
-  // Client navigation items
-  const clientNavItems = [
-    { label: 'Dashboard', to: '/client', icon: <HomeIcon /> },
-    { label: 'Workouts', to: '/client/workouts' },
-    { label: 'Progress', to: '/client/progress' },
-    { label: 'Nutrition', to: '/client/nutrition' },
-    { label: 'Check-in', to: '/check-in' },
-  ]
+  // Auto-open sections based on current route
+  useEffect(() => {
+    const path = location.pathname
+    if (user?.role === 'trainer') {
+      if (path.startsWith('/trainer/clients')) {
+        setOpenedSections(prev => ({ ...prev, clients: true }))
+      }
+      if (path.startsWith('/trainer/workouts')) {
+        setOpenedSections(prev => ({ ...prev, workouts: true }))
+      }
+    } else {
+      if (path.startsWith('/client/workouts') || path.startsWith('/client/progress') || path.startsWith('/check-in')) {
+        setOpenedSections(prev => ({ ...prev, training: true }))
+      }
+    }
+  }, [location.pathname, user?.role])
 
-  const navItems = user.role === 'trainer' ? trainerNavItems : clientNavItems
+  const toggleSection = (section) => {
+    setOpenedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  // Trainer navigation structure with collapsible sections
+  const renderTrainerNav = () => {
+    return (
+      <Stack gap={2}>
+        {/* Dashboard - standalone */}
+        <MantineNavLink
+          component={NavLink}
+          to="/trainer"
+          label="Dashboard"
+          leftSection={<HomeIcon />}
+          end
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+        />
+
+        {/* Clients - collapsible */}
+        <Box>
+          <UnstyledButton
+            onClick={() => toggleSection('clients')}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--mantine-radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'background-color 0.2s ease',
+              color: 'inherit'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+                ? 'var(--mantine-color-dark-5)' 
+                : 'var(--mantine-color-gray-1)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <PeopleIcon />
+            <Text size="sm" style={{ flex: 1, textAlign: 'left' }}>Clients</Text>
+            <ChevronIcon opened={openedSections.clients} />
+          </UnstyledButton>
+          <Collapse in={openedSections.clients} transitionDuration={200}>
+            <Box pl="xl" pt={2} pb={2}>
+              <Stack gap={2}>
+                <MantineNavLink
+                  component={NavLink}
+                  to="/trainer/clients"
+                  label="All Clients"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+              </Stack>
+            </Box>
+          </Collapse>
+        </Box>
+
+        {/* Workouts - collapsible */}
+        <Box>
+          <UnstyledButton
+            onClick={() => toggleSection('workouts')}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--mantine-radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'background-color 0.2s ease',
+              color: 'inherit'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+                ? 'var(--mantine-color-dark-5)' 
+                : 'var(--mantine-color-gray-1)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <WorkoutIcon />
+            <Text size="sm" style={{ flex: 1, textAlign: 'left' }}>Workouts</Text>
+            <ChevronIcon opened={openedSections.workouts} />
+          </UnstyledButton>
+          <Collapse in={openedSections.workouts} transitionDuration={200}>
+            <Box pl="xl" pt={2} pb={2}>
+              <Stack gap={2}>
+                <MantineNavLink
+                  component={NavLink}
+                  to="/trainer/workouts"
+                  label="Library"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+              </Stack>
+            </Box>
+          </Collapse>
+        </Box>
+
+        {/* Requests - standalone */}
+        <MantineNavLink
+          component={NavLink}
+          to="/trainer/requests"
+          label="Requests"
+          leftSection={<RequestIcon />}
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+        />
+
+        {/* Analytics - standalone */}
+        <MantineNavLink
+          component={NavLink}
+          to="/trainer/analytics"
+          label="Analytics"
+          leftSection={<AnalyticsIcon />}
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+        />
+
+        {/* Payments - standalone */}
+        <MantineNavLink
+          component={NavLink}
+          to="/payments"
+          label="Payments"
+          leftSection={<DollarIcon />}
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+        />
+      </Stack>
+    )
+  }
+
+  // Client navigation structure with collapsible sections
+  const renderClientNav = () => {
+    return (
+      <Stack gap={2}>
+        {/* Dashboard - standalone */}
+        <MantineNavLink
+          component={NavLink}
+          to="/client"
+          label="Dashboard"
+          leftSection={<HomeIcon />}
+          end
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+        />
+
+        {/* Training - collapsible */}
+        <Box>
+          <UnstyledButton
+            onClick={() => toggleSection('training')}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--mantine-radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'background-color 0.2s ease',
+              color: 'inherit'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+                ? 'var(--mantine-color-dark-5)' 
+                : 'var(--mantine-color-gray-1)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <WorkoutIcon />
+            <Text size="sm" style={{ flex: 1, textAlign: 'left' }}>Training</Text>
+            <ChevronIcon opened={openedSections.training} />
+          </UnstyledButton>
+          <Collapse in={openedSections.training} transitionDuration={200}>
+            <Box pl="xl" pt={2} pb={2}>
+              <Stack gap={2}>
+                <MantineNavLink
+                  component={NavLink}
+                  to="/client/workouts"
+                  label="Workouts"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/client/progress"
+                  label="Progress"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/check-in"
+                  label="Check-in"
+                  className="nav-link-sub"
+                  style={{ padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+                />
+              </Stack>
+            </Box>
+          </Collapse>
+        </Box>
+
+        {/* Nutrition - standalone */}
+        <MantineNavLink
+          component={NavLink}
+          to="/client/nutrition"
+          label="Nutrition"
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+        />
+      </Stack>
+    )
+  }
 
   return (
     <AppShell
@@ -192,22 +439,7 @@ function Navbar({ children }) {
 
       <AppShell.Navbar p="sm" style={{ display: 'flex', flexDirection: 'column' }}>
         <Stack gap={2} style={{ flex: 1 }}>
-          {navItems.map((item) => {
-            // Use exact matching for base routes to prevent highlighting on sub-routes
-            const isExactRoute = item.to === '/client' || item.to === '/trainer'
-            return (
-              <MantineNavLink
-                key={item.to}
-                component={NavLink}
-                to={item.to}
-                label={item.label}
-                leftSection={item.icon}
-                end={isExactRoute}
-                className="nav-link"
-                style={{ padding: '0.5rem 0.75rem' }}
-              />
-            )
-          })}
+          {user.role === 'trainer' ? renderTrainerNav() : renderClientNav()}
         </Stack>
         
         {/* Profile indicator at bottom */}

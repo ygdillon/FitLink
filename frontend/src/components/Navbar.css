@@ -20,6 +20,29 @@
   font-weight: 600;
 }
 
+/* Sub-navigation links (nested items) */
+.nav-link-sub {
+  border-radius: var(--mantine-radius-sm);
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.nav-link-sub:hover:not([data-active]) {
+  background-color: var(--mantine-color-robinhoodGreen-1);
+  color: var(--mantine-color-robinhoodGreen-7);
+}
+
+.nav-link-sub[data-active] {
+  background-color: var(--mantine-color-robinhoodGreen-6);
+  color: white;
+  font-weight: 500;
+}
+
+.nav-link-sub[data-active] .mantine-NavLink-label {
+  color: white;
+  font-weight: 500;
+}
+
 /* Header styles */
 [data-mantine-color-scheme="light"] [data-mantine-component="AppShell"] [data-mantine-component="Header"] {
   background-color: white;
