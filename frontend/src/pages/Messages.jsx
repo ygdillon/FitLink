@@ -96,6 +96,15 @@ function Messages() {
     try {
       const response = await api.get(`/messages/${userId}`)
       // Messages are automatically marked as read when fetched
+      
+      // Mark messages as read explicitly
+      try {
+        await api.put(`/messages/${userId}/read`)
+      } catch (error) {
+        console.error('Error marking messages as read:', error)
+      }
+      
+      // Update selected conversation
       setSelectedConversation(prev => {
         if (!prev || prev.id !== userId) {
           // If the conversation changed, don't update
@@ -107,13 +116,15 @@ function Messages() {
           unreadCount: 0 // Reset unread count when viewing conversation
         }
       })
-      // Mark messages as read explicitly
-      try {
-        await api.put(`/messages/${userId}/read`)
-      } catch (error) {
-        console.error('Error marking messages as read:', error)
-      }
-      // Refresh conversations to update unread status
+      
+      // Update the conversation in the messages list to reflect unread count change
+      setMessages(prevMessages => 
+        prevMessages.map(conv => 
+          conv.id === userId ? { ...conv, unreadCount: 0 } : conv
+        )
+      )
+      
+      // Refresh conversations to ensure everything is in sync
       fetchConversations()
     } catch (error) {
       console.error('Error fetching conversation:', error)
