@@ -24,6 +24,10 @@
   transform: translateY(-1px);
 }
 
+[data-mantine-color-scheme="dark"] .clientProfileTab:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
 .clientProfileTab[data-active] {
   background-color: var(--mantine-color-robinhoodGreen-6);
   color: white;

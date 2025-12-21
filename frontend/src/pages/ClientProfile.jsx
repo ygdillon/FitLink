@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Container, Title, Text, Tabs, Paper, Card, Badge, Button, Stack, Group, Grid, Loader, Alert, Box } from '@mantine/core'
+import { useMantineColorScheme } from '@mantine/core'
 import api from '../services/api'
 import ClientWorkouts from './ClientWorkouts'
 import ClientSchedule from './ClientSchedule'
@@ -11,9 +12,14 @@ import './ClientProfile.css'
 function ClientProfile() {
   const { clientId } = useParams()
   const navigate = useNavigate()
+  const { colorScheme } = useMantineColorScheme()
   const [client, setClient] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('goals') // Default to Goals tab
+  
+  const isDark = colorScheme === 'dark'
+  const paperBgColor = isDark ? 'var(--mantine-color-dark-6)' : 'white'
+  const paperBorderColor = isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)'
 
   useEffect(() => {
     // Only fetch if we have a clientId
@@ -104,10 +110,10 @@ function ClientProfile() {
             withBorder 
             shadow="md"
             style={{ 
-              backgroundColor: 'white',
+              backgroundColor: paperBgColor,
               borderRadius: 'var(--mantine-radius-md)',
-              border: '1px solid var(--mantine-color-gray-3)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              border: `1px solid ${paperBorderColor}`,
+              boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
               marginBottom: '1.5rem'
             }}
           >
