@@ -78,10 +78,6 @@ function Navbar({ children }) {
       <path d="M6.5 6.5h11v11h-11z" />
       <path d="M6.5 6.5L12 12l5.5-5.5" />
       <path d="M6.5 17.5L12 12l5.5 5.5" />
-      <path d="M12 2v4" />
-      <path d="M12 18v4" />
-      <path d="M2 12h4" />
-      <path d="M18 12h4" />
     </svg>
   )
 
