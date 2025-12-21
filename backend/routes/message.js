@@ -6,6 +6,25 @@ const router = express.Router()
 
 router.use(authenticate)
 
+// Get unread message count
+router.get('/unread-count', async (req, res) => {
+  try {
+    const userId = req.user.id
+    
+    const result = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM messages
+       WHERE receiver_id = $1 AND read_status = false`,
+      [userId]
+    )
+    
+    res.json({ count: parseInt(result.rows[0].count) })
+  } catch (error) {
+    console.error('Error fetching unread count:', error)
+    res.status(500).json({ message: 'Failed to fetch unread count' })
+  }
+})
+
 // Get all conversations
 router.get('/', async (req, res) => {
   try {
@@ -61,10 +80,38 @@ router.get('/:userId', async (req, res) => {
       [currentUserId, userId]
     )
 
+    // Mark messages as read when fetching (if they're received by current user)
+    await pool.query(
+      `UPDATE messages 
+       SET read_status = true 
+       WHERE receiver_id = $1 AND sender_id = $2 AND read_status = false`,
+      [currentUserId, userId]
+    )
+
     res.json(result.rows)
   } catch (error) {
     console.error('Error fetching messages:', error)
     res.status(500).json({ message: 'Failed to fetch messages' })
+  }
+})
+
+// Mark messages as read
+router.put('/:userId/read', async (req, res) => {
+  try {
+    const { userId } = req.params
+    const currentUserId = req.user.id
+
+    await pool.query(
+      `UPDATE messages 
+       SET read_status = true 
+       WHERE receiver_id = $1 AND sender_id = $2 AND read_status = false`,
+      [currentUserId, userId]
+    )
+
+    res.json({ message: 'Messages marked as read' })
+  } catch (error) {
+    console.error('Error marking messages as read:', error)
+    res.status(500).json({ message: 'Failed to mark messages as read' })
   }
 })
 

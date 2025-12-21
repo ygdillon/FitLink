@@ -14,6 +14,9 @@ function Messages() {
 
   useEffect(() => {
     fetchConversations()
+    // Refresh conversations periodically to update unread status
+    const interval = setInterval(fetchConversations, 10000) // Every 10 seconds
+    return () => clearInterval(interval)
   }, [])
 
   const fetchConversations = async () => {
@@ -92,6 +95,7 @@ function Messages() {
   const fetchConversationMessages = async (userId) => {
     try {
       const response = await api.get(`/messages/${userId}`)
+      // Messages are automatically marked as read when fetched
       setSelectedConversation(prev => {
         if (!prev || prev.id !== userId) {
           // If the conversation changed, don't update
@@ -102,6 +106,8 @@ function Messages() {
           messages: response.data
         }
       })
+      // Refresh conversations to update unread status
+      fetchConversations()
     } catch (error) {
       console.error('Error fetching conversation:', error)
     }

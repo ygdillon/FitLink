@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { useState } from 'react'
 import AlertsBadge from './AlertsBadge'
+import MessagesBadge from './MessagesBadge'
 import './Navbar.css'
 
 function Navbar({ children }) {
@@ -113,15 +114,7 @@ function Navbar({ children }) {
             >
               Profile
             </Button>
-            <Button
-              component={NavLink}
-              to="/messages"
-              variant="subtle"
-              size="sm"
-              style={{ padding: '0.375rem 0.75rem' }}
-            >
-              Messages
-            </Button>
+            <MessagesBadge />
             {user?.role === 'trainer' && <AlertsBadge />}
             <Button
               component={NavLink}
