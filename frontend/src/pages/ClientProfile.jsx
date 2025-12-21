@@ -20,11 +20,21 @@ function ClientProfile() {
   }, [clientId])
 
   const fetchClientProfile = async () => {
+    if (!clientId) {
+      setLoading(false)
+      return
+    }
+    
     try {
+      setLoading(true)
       const response = await api.get(`/trainer/clients/${clientId}`)
       setClient(response.data)
     } catch (error) {
       console.error('Error fetching client profile:', error)
+      console.error('Client ID:', clientId)
+      console.error('Error response:', error.response?.data)
+      // Set client to null to show error message
+      setClient(null)
     } finally {
       setLoading(false)
     }
@@ -38,11 +48,11 @@ function ClientProfile() {
     )
   }
 
-  if (!client) {
+  if (!client && !loading) {
     return (
       <Box p="xl">
         <Alert color="red" title="Client Not Found">
-          The requested client could not be found.
+          The requested client (ID: {clientId}) could not be found. Please select a client from the list.
         </Alert>
       </Box>
     )

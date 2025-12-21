@@ -25,15 +25,40 @@ function Clients() {
     fetchClients()
   }, [])
 
+  // When clientId changes, verify it exists in the clients list
+  useEffect(() => {
+    if (clientId && clients.length > 0) {
+      const clientExists = clients.some(c => c.id.toString() === clientId.toString())
+      if (!clientExists) {
+        // Client doesn't exist, navigate to first client
+        if (clients.length > 0) {
+          navigate(`/trainer/clients/${clients[0].id}`, { replace: true })
+        } else {
+          navigate('/trainer/clients', { replace: true })
+        }
+      }
+    }
+  }, [clientId, clients, navigate])
+
   const fetchClients = async () => {
     try {
       setError(null)
       const response = await api.get('/trainer/clients')
-      setClients(response.data || [])
+      const clientsData = response.data || []
+      setClients(clientsData)
       
       // If no client is selected but we have clients, select the first one
-      if (!clientId && response.data && response.data.length > 0) {
-        navigate(`/trainer/clients/${response.data[0].id}`, { replace: true })
+      if (!clientId && clientsData.length > 0) {
+        navigate(`/trainer/clients/${clientsData[0].id}`, { replace: true })
+      }
+      
+      // If a clientId is in the URL but not in the list, clear it
+      if (clientId && clientsData.length > 0) {
+        const clientExists = clientsData.some(c => c.id.toString() === clientId.toString())
+        if (!clientExists) {
+          // Client doesn't exist, navigate to first client or clear selection
+          navigate(`/trainer/clients/${clientsData[0].id}`, { replace: true })
+        }
       }
     } catch (error) {
       console.error('Error fetching clients:', error)

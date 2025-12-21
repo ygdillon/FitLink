@@ -39,6 +39,9 @@ router.get('/clients', async (req, res) => {
 router.get('/clients/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params
+    const trainerId = req.user.id
+
+    console.log(`[DEBUG] Fetching client profile: clientId=${clientId}, trainerId=${trainerId}`)
 
     // Get client basic info
     const clientResult = await pool.query(
@@ -46,10 +49,22 @@ router.get('/clients/:clientId', async (req, res) => {
        FROM clients c
        JOIN users u ON c.user_id = u.id
        WHERE c.id = $1 AND c.trainer_id = $2`,
-      [clientId, req.user.id]
+      [clientId, trainerId]
     )
 
+    console.log(`[DEBUG] Client query result: ${clientResult.rows.length} rows found`)
+
     if (clientResult.rows.length === 0) {
+      // Check if client exists but doesn't belong to this trainer
+      const checkClient = await pool.query(
+        'SELECT c.id, c.trainer_id FROM clients c WHERE c.id = $1',
+        [clientId]
+      )
+      if (checkClient.rows.length > 0) {
+        console.log(`[DEBUG] Client exists but trainer_id=${checkClient.rows[0].trainer_id} doesn't match trainerId=${trainerId}`)
+        return res.status(403).json({ message: 'Client not found or access denied' })
+      }
+      console.log(`[DEBUG] Client with id=${clientId} does not exist`)
       return res.status(404).json({ message: 'Client not found' })
     }
 
