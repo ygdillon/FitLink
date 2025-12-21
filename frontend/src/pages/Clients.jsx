@@ -276,6 +276,15 @@ function Clients() {
       {/* Right Side - Client Details */}
       <Box style={{ flex: 1, overflow: 'hidden', backgroundColor: bgColor }}>
         {(() => {
+          // Don't render ClientProfile if we're still loading clients
+          if (loading) {
+            return (
+              <Box p="xl" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Loader size="lg" />
+              </Box>
+            )
+          }
+          
           // Don't render ClientProfile if redirecting or if clientId is invalid
           if (isRedirecting || (clientId && !isValidClientId)) {
             return (
@@ -285,8 +294,8 @@ function Clients() {
             )
           }
           
-          // Only render ClientProfile if we have a valid clientId
-          if (clientId && isValidClientId) {
+          // Only render ClientProfile if we have a valid clientId AND clients are loaded
+          if (clientId && isValidClientId && clients.length > 0) {
             return <ClientProfile />
           } else {
             return (

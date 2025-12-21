@@ -153,7 +153,12 @@ router.get('/clients/:clientId', async (req, res) => {
     })
   } catch (error) {
     console.error('Error fetching client profile:', error)
-    res.status(500).json({ message: 'Failed to fetch client profile' })
+    console.error('Error stack:', error.stack)
+    // If it's a database error related to the client not existing, return 404
+    if (error.code === '23503' || error.message?.includes('does not exist')) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+    res.status(500).json({ message: 'Failed to fetch client profile', error: error.message })
   }
 })
 

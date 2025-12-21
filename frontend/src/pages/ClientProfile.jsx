@@ -16,7 +16,13 @@ function ClientProfile() {
   const [activeTab, setActiveTab] = useState('goals') // Default to Goals tab
 
   useEffect(() => {
-    fetchClientProfile()
+    // Only fetch if we have a clientId
+    if (clientId) {
+      fetchClientProfile()
+    } else {
+      setClient(null)
+      setLoading(false)
+    }
   }, [clientId])
 
   const fetchClientProfile = async () => {
