@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { UnstyledButton, Badge } from '@mantine/core'
+import { UnstyledButton, Badge, useMantineColorScheme } from '@mantine/core'
 import { NavLink, useLocation } from 'react-router-dom'
 import api from '../services/api'
 
 function MessagesBadge() {
   const [unreadCount, setUnreadCount] = useState(0)
   const location = useLocation()
+  const { colorScheme } = useMantineColorScheme()
+  const isDark = colorScheme === 'dark'
 
   useEffect(() => {
     fetchUnreadCount()
@@ -48,7 +50,9 @@ function MessagesBadge() {
         color: 'inherit'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-1)'
+        e.currentTarget.style.backgroundColor = isDark 
+          ? 'var(--mantine-color-dark-5)' 
+          : 'var(--mantine-color-gray-1)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = 'transparent'
