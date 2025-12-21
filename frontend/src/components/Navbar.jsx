@@ -105,26 +105,51 @@ function Navbar({ children }) {
           </Group>
           
           <Group gap="xs">
-            <Button
-              component={NavLink}
-              to="/profile"
-              variant="subtle"
-              size="sm"
-              style={{ padding: '0.375rem 0.75rem' }}
-            >
-              Profile
-            </Button>
             <MessagesBadge />
             {user?.role === 'trainer' && <AlertsBadge />}
-            <Button
+            <UnstyledButton
               component={NavLink}
               to="/settings"
-              variant="subtle"
-              size="sm"
-              style={{ padding: '0.375rem 0.75rem' }}
+              style={{ 
+                position: 'relative',
+                padding: '0.375rem 0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 'var(--mantine-radius-sm)',
+                transition: 'background-color 0.2s ease',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+                  ? 'var(--mantine-color-dark-5)' 
+                  : 'var(--mantine-color-gray-1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
             >
-              Settings
-            </Button>
+              {/* Settings/Gear Icon SVG */}
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ display: 'block', flexShrink: 0 }}
+              >
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
+                <path d="M18.88 4h-.44a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                <path d="M5.12 4h-.44a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                <path d="M12 12h.01" />
+                <path d="M18 12h.01" />
+                <path d="M6 12h.01" />
+              </svg>
+            </UnstyledButton>
             <Button
               variant="subtle"
               size="sm"
