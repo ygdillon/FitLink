@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Title, Text, Stack, Group, Button, TextInput, Select, Paper, Badge, Avatar, Loader, Alert, Box, ScrollArea } from '@mantine/core'
+import { useMantineColorScheme } from '@mantine/core'
 import api from '../services/api'
 import ClientProfile from './ClientProfile'
 import './Clients.css'
@@ -8,11 +9,17 @@ import './Clients.css'
 function Clients() {
   const navigate = useNavigate()
   const { clientId } = useParams()
+  const { colorScheme } = useMantineColorScheme()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  
+  const isDark = colorScheme === 'dark'
+  const bgColor = isDark ? 'var(--mantine-color-dark-7)' : 'var(--mantine-color-gray-0)'
+  const cardBgColor = isDark ? 'var(--mantine-color-dark-6)' : 'white'
+  const hoverBgColor = isDark ? 'var(--mantine-color-dark-5)' : 'var(--mantine-color-gray-0)'
 
   useEffect(() => {
     fetchClients()
@@ -84,14 +91,14 @@ function Clients() {
       {/* Left Sidebar - Client List */}
       <Box style={{ 
         width: '280px', 
-        borderRight: '1px solid var(--mantine-color-gray-3)', 
+        borderRight: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)'}`, 
         display: 'flex', 
         flexDirection: 'column', 
-        backgroundColor: 'var(--mantine-color-gray-0)',
+        backgroundColor: bgColor,
         overflow: 'hidden'
       }}>
         {/* Header */}
-        <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)', backgroundColor: 'white' }}>
+        <Box p="md" style={{ borderBottom: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)'}`, backgroundColor: cardBgColor }}>
           <Group justify="space-between" mb="md">
             <Title order={3}>Active Clients ({filteredClients.length})</Title>
             <Button 
@@ -171,21 +178,23 @@ function Clients() {
                     p="md"
                     style={{
                       cursor: 'pointer',
-                      backgroundColor: isSelected ? 'var(--mantine-color-robinhoodGreen-0)' : 'white',
+                      backgroundColor: isSelected 
+                        ? (isDark ? 'var(--mantine-color-robinhoodGreen-9)' : 'var(--mantine-color-robinhoodGreen-0)')
+                        : cardBgColor,
                       borderLeft: isSelected ? '3px solid var(--mantine-color-robinhoodGreen-6)' : '3px solid transparent',
-                      borderBottom: '1px solid var(--mantine-color-gray-2)',
+                      borderBottom: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-2)'}`,
                       transition: 'all 0.2s ease',
                       borderRadius: 0
                     }}
                     onClick={() => handleClientClick(client.id)}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)'
+                        e.currentTarget.style.backgroundColor = hoverBgColor
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = 'white'
+                        e.currentTarget.style.backgroundColor = cardBgColor
                       }
                     }}
                   >
@@ -216,7 +225,7 @@ function Clients() {
       </Box>
 
       {/* Right Side - Client Details */}
-      <Box style={{ flex: 1, overflow: 'hidden', backgroundColor: 'var(--mantine-color-gray-0)' }}>
+      <Box style={{ flex: 1, overflow: 'hidden', backgroundColor: bgColor }}>
         {clientId ? (
           <ClientProfile />
         ) : (
