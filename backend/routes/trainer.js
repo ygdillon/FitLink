@@ -61,23 +61,63 @@ router.get('/clients/:clientId', async (req, res) => {
       [client.user_id]
     )
 
-    // Get recent progress entries
+    // Get progress entries
     const progressResult = await pool.query(
-      `SELECT * FROM progress_entries 
-       WHERE client_id = $1 
-       ORDER BY date DESC 
-       LIMIT 10`,
+      `SELECT 
+         id, 
+         date, 
+         weight, 
+         body_fat, 
+         measurements, 
+         notes,
+         photos,
+         'progress' as entry_type,
+         created_at
+       FROM progress_entries 
+       WHERE client_id = $1`,
       [client.user_id]
     )
 
-    // Get recent check-ins
+    // Get check-ins
     const checkInsResult = await pool.query(
-      `SELECT * FROM daily_check_ins 
-       WHERE client_id = $1 
-       ORDER BY check_in_date DESC 
-       LIMIT 30`,
+      `SELECT 
+         id,
+         check_in_date as date,
+         workout_completed,
+         diet_stuck_to,
+         workout_rating,
+         workout_duration,
+         sleep_hours,
+         sleep_quality,
+         energy_level,
+         pain_experienced,
+         pain_location,
+         pain_intensity,
+         progress_photo as photos,
+         notes,
+         trainer_response,
+         'checkin' as entry_type,
+         created_at
+       FROM daily_check_ins 
+       WHERE client_id = $1 AND status = 'completed'`,
       [client.user_id]
     )
+
+    // Combine and sort by date (most recent first)
+    const combinedProgress = [
+      ...progressResult.rows.map(row => ({
+        ...row,
+        entry_type: 'progress'
+      })),
+      ...checkInsResult.rows.map(row => ({
+        ...row,
+        entry_type: 'checkin'
+      }))
+    ].sort((a, b) => {
+      const dateA = new Date(a.date)
+      const dateB = new Date(b.date)
+      return dateB - dateA // Most recent first
+    })
 
     // Get workout assignments
     const workoutsResult = await pool.query(
@@ -92,8 +132,8 @@ router.get('/clients/:clientId', async (req, res) => {
     res.json({
       ...client,
       custom_metrics: metricsResult.rows,
-      recent_progress: progressResult.rows,
-      check_ins: checkInsResult.rows,
+      recent_progress: combinedProgress,
+      check_ins: checkInsResult.rows, // Keep separate for backward compatibility
       workouts: workoutsResult.rows
     })
   } catch (error) {

@@ -210,18 +210,68 @@ router.get('/progress/recent', async (req, res) => {
   }
 })
 
-// Get all progress entries
+// Get all progress entries and check-ins combined
 router.get('/progress', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, date, weight, body_fat, measurements, notes
+    // Get progress entries
+    const progressResult = await pool.query(
+      `SELECT 
+         id, 
+         date, 
+         weight, 
+         body_fat, 
+         measurements, 
+         notes,
+         photos,
+         'progress' as entry_type,
+         created_at
        FROM progress_entries
-       WHERE client_id = $1
-       ORDER BY date DESC`,
+       WHERE client_id = $1`,
       [req.user.id]
     )
 
-    res.json(result.rows)
+    // Get check-ins
+    const checkInsResult = await pool.query(
+      `SELECT 
+         id,
+         check_in_date as date,
+         workout_completed,
+         diet_stuck_to,
+         workout_rating,
+         workout_duration,
+         sleep_hours,
+         sleep_quality,
+         energy_level,
+         pain_experienced,
+         pain_location,
+         pain_intensity,
+         progress_photo as photos,
+         notes,
+         trainer_response,
+         'checkin' as entry_type,
+         created_at
+       FROM daily_check_ins
+       WHERE client_id = $1 AND status = 'completed'`,
+      [req.user.id]
+    )
+
+    // Combine and sort by date (most recent first)
+    const combined = [
+      ...progressResult.rows.map(row => ({
+        ...row,
+        entry_type: 'progress'
+      })),
+      ...checkInsResult.rows.map(row => ({
+        ...row,
+        entry_type: 'checkin'
+      }))
+    ].sort((a, b) => {
+      const dateA = new Date(a.date)
+      const dateB = new Date(b.date)
+      return dateB - dateA // Most recent first
+    })
+
+    res.json(combined)
   } catch (error) {
     console.error('Error fetching progress:', error)
     res.status(500).json({ message: 'Failed to fetch progress' })

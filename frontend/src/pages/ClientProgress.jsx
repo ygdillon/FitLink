@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, Grid, Progress, NumberInput, Select, TextInput } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Paper, Loader, Alert, Grid, Progress, NumberInput, Select, TextInput, Image, Box } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import api from '../services/api'
@@ -192,28 +192,131 @@ function ClientProgress() {
             ) : (
               <Stack gap="md">
                 {progressEntries.map(entry => (
-                  <Card key={entry.id} withBorder>
+                  <Card key={`${entry.entry_type}-${entry.id}`} withBorder>
                     <Stack gap="xs">
-                      <Text fw={500}>{new Date(entry.date).toLocaleDateString()}</Text>
-                      <Group gap="xs">
-                        {entry.weight && (
-                          <Badge variant="light">Weight: {entry.weight} kg</Badge>
-                        )}
-                        {entry.body_fat && (
-                          <Badge variant="light">Body Fat: {entry.body_fat}%</Badge>
-                        )}
-                        {entry.measurements && (
-                          <>
-                            {Object.entries(JSON.parse(entry.measurements || '{}')).map(([key, value]) => (
-                              <Badge key={key} variant="light">
-                                {key}: {value} in
-                              </Badge>
-                            ))}
-                          </>
-                        )}
+                      <Group justify="space-between">
+                        <Text fw={500}>
+                          {new Date(entry.date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </Text>
+                        <Badge 
+                          color={entry.entry_type === 'progress' ? 'blue' : 'green'}
+                          variant="light"
+                        >
+                          {entry.entry_type === 'progress' ? 'Progress Check' : 'Check-in'}
+                        </Badge>
                       </Group>
-                      {entry.notes && (
-                        <Text size="sm" c="dimmed">{entry.notes}</Text>
+
+                      {entry.entry_type === 'progress' ? (
+                        // Progress Entry Display
+                        <>
+                          <Group gap="xs">
+                            {entry.weight && (
+                              <Badge variant="light">Weight: {entry.weight} kg</Badge>
+                            )}
+                            {entry.body_fat && (
+                              <Badge variant="light">Body Fat: {entry.body_fat}%</Badge>
+                            )}
+                            {entry.measurements && (
+                              <>
+                                {Object.entries(typeof entry.measurements === 'string' ? JSON.parse(entry.measurements || '{}') : entry.measurements).map(([key, value]) => (
+                                  <Badge key={key} variant="light">
+                                    {key.charAt(0).toUpperCase() + key.slice(1)}: {value} in
+                                  </Badge>
+                                ))}
+                              </>
+                            )}
+                          </Group>
+                          {entry.notes && (
+                            <Text size="sm" c="dimmed">{entry.notes}</Text>
+                          )}
+                        </>
+                      ) : (
+                        // Check-in Display
+                        <>
+                          <Group gap="xs">
+                            {entry.workout_completed !== null && (
+                              <Badge color={entry.workout_completed ? 'green' : 'red'} variant="light">
+                                Workout: {entry.workout_completed ? '✓ Completed' : '✗ Not completed'}
+                              </Badge>
+                            )}
+                            {entry.workout_rating && (
+                              <Badge color="green" variant="light">
+                                Rating: {entry.workout_rating}/10
+                              </Badge>
+                            )}
+                            {entry.workout_duration && (
+                              <Badge color="blue" variant="light">
+                                {entry.workout_duration} min
+                              </Badge>
+                            )}
+                            {entry.diet_stuck_to !== null && (
+                              <Badge color={entry.diet_stuck_to ? 'green' : 'red'} variant="light">
+                                Diet: {entry.diet_stuck_to ? '✓ On track' : '✗ Off track'}
+                              </Badge>
+                            )}
+                          </Group>
+
+                          {(entry.sleep_hours || entry.sleep_quality) && (
+                            <Group gap="xs">
+                              <Text size="sm" fw={500}>Sleep:</Text>
+                              {entry.sleep_hours && (
+                                <Badge variant="light">{entry.sleep_hours} hours</Badge>
+                              )}
+                              {entry.sleep_quality && (
+                                <Badge color="blue" variant="light">
+                                  Quality: {entry.sleep_quality}/10
+                                </Badge>
+                              )}
+                            </Group>
+                          )}
+
+                          {entry.energy_level && (
+                            <Group gap="xs">
+                              <Text size="sm" fw={500}>Energy:</Text>
+                              <Badge color="yellow" variant="light">
+                                {entry.energy_level}/10
+                              </Badge>
+                            </Group>
+                          )}
+
+                          {entry.pain_experienced && (
+                            <Group gap="xs">
+                              <Text size="sm" fw={500}>Pain:</Text>
+                              <Badge color="red" variant="light">
+                                {entry.pain_location} - Intensity: {entry.pain_intensity}/10
+                              </Badge>
+                            </Group>
+                          )}
+
+                          {entry.photos && (
+                            <Box>
+                              <Text size="sm" fw={500} mb="xs">Progress Photo:</Text>
+                              <Image 
+                                src={entry.photos} 
+                                alt="Progress" 
+                                width={150} 
+                                height={150} 
+                                fit="cover" 
+                                radius="md" 
+                              />
+                            </Box>
+                          )}
+
+                          {entry.notes && (
+                            <Text size="sm" c="dimmed">{entry.notes}</Text>
+                          )}
+
+                          {entry.trainer_response && (
+                            <Alert color="blue" title="Your Response">
+                              {entry.trainer_response}
+                            </Alert>
+                          )}
+                        </>
                       )}
                     </Stack>
                   </Card>

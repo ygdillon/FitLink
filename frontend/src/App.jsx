@@ -27,6 +27,7 @@ import ClientNutrition from './pages/ClientNutrition'
 import Settings from './pages/Settings'
 import TrainerRequests from './pages/TrainerRequests'
 import ClientOnboarding from './pages/ClientOnboarding'
+import Analytics from './pages/Analytics'
 
 // Components
 import Navbar from './components/Navbar'
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/trainer/clients/:clientId" element={<Clients />} />
         <Route path="/trainer/clients" element={<Clients />} />
         <Route path="/trainer/requests" element={<TrainerRequests />} />
+        <Route path="/trainer/analytics" element={<Analytics />} />
         
         <Route element={<ClientRouteGuard />}>
           <Route path="/client/onboarding" element={<ClientOnboarding />} />
