@@ -175,47 +175,73 @@ function TrainerDashboard() {
                 </Stack>
               ) : (
                 <Stack gap="lg" style={{ flex: 1, justifyContent: 'center' }}>
-                  <Calendar
-                    value={null}
-                    onChange={handleDateClick}
-                    getDayProps={(date) => {
-                      if (!date) return {}
-                      try {
-                        const dateKey = date.toISOString().split('T')[0]
-                        const hasSessions = sessionsByDate.has(dateKey)
-                        return {
-                          style: hasSessions
-                            ? {
-                                backgroundColor: 'var(--mantine-color-green-1)',
-                                border: '2px solid var(--mantine-color-green-4)',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }
-                            : { cursor: 'pointer' },
+                  <div className="calendar-wrapper">
+                    <Calendar
+                      value={null}
+                      onChange={handleDateClick}
+                      getDayProps={(date) => {
+                        if (!date) return {}
+                        try {
+                          const dateKey = date.toISOString().split('T')[0]
+                          const hasSessions = sessionsByDate.has(dateKey)
+                          return {
+                            style: hasSessions
+                              ? {
+                                  backgroundColor: 'var(--mantine-color-green-1)',
+                                  border: '2px solid var(--mantine-color-green-4)',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }
+                              : { cursor: 'pointer' },
+                          }
+                        } catch (error) {
+                          console.error('Error in getDayProps:', error)
+                          return { style: { cursor: 'pointer' } }
                         }
-                      } catch (error) {
-                        console.error('Error in getDayProps:', error)
-                        return { style: { cursor: 'pointer' } }
-                      }
-                    }}
-                    styles={{
-                      calendar: {
-                        width: '100%',
-                      },
-                      month: {
-                        width: '100%',
-                      },
-                      monthCell: {
-                        width: '100%',
-                      },
-                      day: {
-                        fontSize: '1rem',
-                        height: '3rem',
-                      },
-                    }}
-                    size="lg"
-                    fullWidth
-                  />
+                      }}
+                      styles={{
+                        calendar: {
+                          width: '100%',
+                        },
+                        month: {
+                          width: '100%',
+                        },
+                        monthCell: {
+                          width: '100%',
+                        },
+                        weekday: {
+                          fontWeight: 600,
+                          fontSize: '0.875rem',
+                          paddingBottom: '0.75rem',
+                          paddingTop: '0.5rem',
+                          textAlign: 'center',
+                        },
+                        day: {
+                          fontSize: '0.95rem',
+                          height: '5rem',
+                          minHeight: '5rem',
+                          width: '100%',
+                          borderRadius: 0,
+                          border: '1px solid var(--mantine-color-gray-3)',
+                          margin: 0,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'flex-start',
+                          padding: '0.5rem',
+                          transition: 'background-color 0.15s ease',
+                          position: 'relative',
+                        },
+                        cell: {
+                          border: '1px solid var(--mantine-color-gray-3)',
+                          margin: 0,
+                          padding: 0,
+                          width: 'calc(100% / 7)',
+                        },
+                      }}
+                      size="lg"
+                      fullWidth
+                    />
+                  </div>
                   <Group justify="center" mt="md">
                     <Badge size="md" variant="dot" color="green" radius="md">
                       Has Sessions
