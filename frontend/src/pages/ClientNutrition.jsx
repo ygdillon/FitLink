@@ -1,23 +1,41 @@
 import { useState, useEffect } from 'react'
 import { Container, Title, Text, Stack, Card, Grid, Progress, Loader, Paper, Group } from '@mantine/core'
+import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './ClientNutrition.css'
 
-function ClientNutrition() {
+function ClientNutrition({ clientId, clientName }) {
+  const { user } = useAuth()
   const [nutritionGoals, setNutritionGoals] = useState(null)
   const [nutritionLogs, setNutritionLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  
+  // Determine if this is trainer view (has clientId prop) or client view
+  const isTrainerView = !!clientId
 
   useEffect(() => {
-    fetchNutritionData()
-  }, [])
+    if (clientId || user?.role === 'client') {
+      fetchNutritionData()
+    }
+  }, [clientId, user?.role])
 
   const fetchNutritionData = async () => {
     try {
-      const [goalsRes, logsRes] = await Promise.all([
-        api.get('/client/nutrition/goals').catch(() => ({ data: null })),
-        api.get('/client/nutrition/logs').catch(() => ({ data: [] }))
-      ])
+      let goalsRes, logsRes
+      if (isTrainerView) {
+        // Trainer viewing a specific client's nutrition - need to check if endpoint exists
+        // For now, use client endpoint (may need to create trainer endpoint)
+        [goalsRes, logsRes] = await Promise.all([
+          api.get('/client/nutrition/goals').catch(() => ({ data: null })),
+          api.get('/client/nutrition/logs').catch(() => ({ data: [] }))
+        ])
+      } else {
+        // Client viewing their own nutrition
+        [goalsRes, logsRes] = await Promise.all([
+          api.get('/client/nutrition/goals').catch(() => ({ data: null })),
+          api.get('/client/nutrition/logs').catch(() => ({ data: [] }))
+        ])
+      }
       
       setNutritionGoals(goalsRes.data)
       setNutritionLogs(logsRes.data || [])
@@ -50,7 +68,7 @@ function ClientNutrition() {
 
   return (
     <Container size="xl" py="xl">
-      <Title order={1} mb="xl">My Nutrition</Title>
+      <Title order={1} mb="xl">{isTrainerView ? `${clientName}'s Nutrition` : 'My Nutrition'}</Title>
 
       {nutritionGoals ? (
         <>
@@ -142,7 +160,11 @@ function ClientNutrition() {
         <Paper p="xl" withBorder>
           <Stack gap="xs" align="center">
             <Text c="dimmed">No nutrition goals set yet</Text>
-            <Text size="sm" c="dimmed">Your trainer will set nutrition goals for you</Text>
+            {isTrainerView ? (
+              <Text size="sm" c="dimmed">Set nutrition goals for this client from the Nutrition section</Text>
+            ) : (
+              <Text size="sm" c="dimmed">Your trainer will set nutrition goals for you</Text>
+            )}
           </Stack>
         </Paper>
       )}

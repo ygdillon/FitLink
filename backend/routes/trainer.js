@@ -597,6 +597,12 @@ router.post('/workouts/:workoutId/assign', async (req, res) => {
       return res.status(400).json({ message: 'Client ID and assigned date are required' })
     }
 
+    // Parse clientId to integer (workout_assignments.client_id references users.id)
+    const clientUserId = parseInt(clientId, 10)
+    if (isNaN(clientUserId)) {
+      return res.status(400).json({ message: 'Invalid client ID format' })
+    }
+
     // Verify workout belongs to trainer
     const workoutCheck = await pool.query(
       'SELECT id FROM workouts WHERE id = $1 AND trainer_id = $2',
@@ -607,22 +613,22 @@ router.post('/workouts/:workoutId/assign', async (req, res) => {
       return res.status(404).json({ message: 'Workout not found' })
     }
 
-    // Verify client belongs to trainer
+    // Verify client belongs to trainer (clientId should be the user_id)
     const clientCheck = await pool.query(
       'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
-      [clientId, req.user.id]
+      [clientUserId, req.user.id]
     )
 
     if (clientCheck.rows.length === 0) {
       return res.status(404).json({ message: 'Client not found or not assigned to you' })
     }
 
-    // Insert workout assignment
+    // Insert workout assignment (client_id in workout_assignments references users.id, which is clients.user_id)
     const result = await pool.query(
-      `INSERT INTO workout_assignments (workout_id, client_id, assigned_date, due_date, status)
-       VALUES ($1, $2, $3, $4, 'assigned')
+      `INSERT INTO workout_assignments (workout_id, client_id, assigned_date, due_date, notes, status)
+       VALUES ($1, $2, $3, $4, $5, 'assigned')
        RETURNING *`,
-      [workoutId, clientId, assignedDate, dueDate || null]
+      [workoutId, clientUserId, assignedDate, dueDate || null, notes || null]
     )
 
     res.status(201).json({
@@ -631,7 +637,7 @@ router.post('/workouts/:workoutId/assign', async (req, res) => {
     })
   } catch (error) {
     console.error('Error assigning workout:', error)
-    res.status(500).json({ message: 'Failed to assign workout' })
+    res.status(500).json({ message: 'Failed to assign workout', error: error.message })
   }
 })
 

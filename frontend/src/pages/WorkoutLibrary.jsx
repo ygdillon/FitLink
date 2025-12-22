@@ -202,12 +202,16 @@ function WorkoutLibrary() {
                         label="Select Clients *"
                         placeholder="Choose one or more clients..."
                         data={clients.map(client => {
-                          const clientUserId = client.user_id || client.id
+                          // Always use user_id for workout assignments (workout_assignments.client_id references users.id)
+                          const clientUserId = client.user_id
+                          if (!clientUserId) {
+                            console.error('Client missing user_id:', client)
+                          }
                           return {
-                            value: clientUserId.toString(),
+                            value: clientUserId?.toString() || '',
                             label: `${client.name || 'Client'} (${client.email})`
                           }
-                        })}
+                        }).filter(item => item.value) // Filter out any clients without user_id
                         searchable
                         {...assignForm.getInputProps('clientIds')}
                         required
