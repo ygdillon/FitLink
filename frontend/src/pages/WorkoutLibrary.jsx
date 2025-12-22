@@ -183,8 +183,7 @@ function WorkoutLibrary() {
             <ScrollArea style={{ flex: 1 }}>
               <Stack gap="md">
                 {/* Assign Workouts Section */}
-          <Stack gap="md">
-            <Paper p="md" withBorder>
+                <Paper id="assign-section" p="md" withBorder>
                   <Title order={3} mb="md">Assign Workouts to Clients</Title>
                   <form onSubmit={assignForm.onSubmit(handleAssignWorkout)}>
                     <Stack gap="md">
