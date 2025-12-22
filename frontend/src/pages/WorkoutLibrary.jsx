@@ -195,14 +195,14 @@ function WorkoutLibrary() {
             </Tabs.Panel>
 
           {/* Manage Workouts Tab - Combines Assign and Library */}
-          <Tabs.Panel value="manage" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Tabs.Panel value="manage" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginLeft: '-1.5rem', marginRight: '-1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', width: 'calc(100% + 3rem)' }}>
             <ScrollArea style={{ flex: 1 }}>
               <Stack gap="md">
                 {/* Assign Workouts Section */}
-                <Paper id="assign-section" p="md" withBorder>
+                <Paper id="assign-section" p="md" withBorder style={{ width: '100%' }}>
                   <Title order={3} mb="md">Assign Workouts to Clients</Title>
-                  <form onSubmit={assignForm.onSubmit(handleAssignWorkout)}>
-                    <Stack gap="md">
+                  <form onSubmit={assignForm.onSubmit(handleAssignWorkout)} style={{ width: '100%' }}>
+                    <Stack gap="md" style={{ width: '100%' }}>
                       <Select
                         label="Select Workout *"
                         placeholder="Choose a workout to assign..."
