@@ -185,115 +185,115 @@ function WorkoutLibrary() {
                 {/* Assign Workouts Section */}
           <Stack gap="md">
             <Paper p="md" withBorder>
-              <Title order={3} mb="md">Assign Workouts to Clients</Title>
-              <form onSubmit={assignForm.onSubmit(handleAssignWorkout)}>
-                <Stack gap="md">
-                  <Select
-                    label="Select Workout *"
-                    placeholder="Choose a workout to assign..."
-                    data={workouts.map(workout => ({
-                      value: workout.id.toString(),
-                      label: workout.name
-                    }))}
-                    searchable
-                    {...assignForm.getInputProps('workoutId')}
-                    required
-                  />
-                  <MultiSelect
-                    label="Select Clients *"
-                    placeholder="Choose one or more clients..."
-                    data={clients.map(client => {
-                      const clientUserId = client.user_id || client.id
-                      return {
-                        value: clientUserId.toString(),
-                        label: `${client.name || 'Client'} (${client.email})`
-                      }
-                    })}
-                    searchable
-                    {...assignForm.getInputProps('clientIds')}
-                    required
-                  />
-                  <DatePickerInput
-                    label="Assigned Date *"
-                    {...assignForm.getInputProps('assignedDate')}
-                    required
-                  />
-                  <DatePickerInput
-                    label="Due Date"
-                    {...assignForm.getInputProps('dueDate')}
-                  />
-                  <Textarea
-                    label="Notes (optional)"
-                    placeholder="Add any special instructions or notes for the clients..."
-                    rows={3}
-                    {...assignForm.getInputProps('notes')}
-                  />
-                  <Group justify="flex-end">
-                    <Button type="submit" color="robinhoodGreen">
-                      Assign to Selected Clients
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Paper>
-
-            {/* Quick Assign from Library */}
-            <Paper p="md" withBorder>
-              <Title order={4} mb="md">Quick Assign from Library</Title>
-              <Group mb="md">
-                <TextInput
-                  placeholder="Search workouts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <Select
-                  value={filterType}
-                  onChange={setFilterType}
-                  data={[
-                    { value: 'all', label: 'All Workouts' },
-                    { value: 'templates', label: 'Templates' },
-                    { value: 'custom', label: 'Custom' }
-                  ]}
-                />
-              </Group>
-              {filteredWorkouts.length === 0 ? (
-                <Text c="dimmed" ta="center" py="md">No workouts found</Text>
-              ) : (
-                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-                  {filteredWorkouts.map(workout => (
-                    <Card key={workout.id} shadow="sm" padding="md" radius="md" withBorder>
-                      <Stack gap="sm">
-                        <Group justify="space-between">
-                          <Title order={5}>{workout.name}</Title>
-                          {workout.is_template && (
-                            <Badge variant="light" size="sm">Template</Badge>
-                          )}
-                        </Group>
-                        {workout.description && (
-                          <Text size="sm" c="dimmed" lineClamp={2}>{workout.description}</Text>
-                        )}
-                        <Button 
-                          variant="filled" 
-                          size="sm"
-                          fullWidth
-                          onClick={() => {
-                            assignForm.setFieldValue('workoutId', workout.id.toString())
-                            // Scroll to top of assign form
-                            const assignSection = document.getElementById('assign-section')
-                            if (assignSection) {
-                              assignSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                            }
-                          }}
-                        >
-                          Select to Assign
+                  <Title order={3} mb="md">Assign Workouts to Clients</Title>
+                  <form onSubmit={assignForm.onSubmit(handleAssignWorkout)}>
+                    <Stack gap="md">
+                      <Select
+                        label="Select Workout *"
+                        placeholder="Choose a workout to assign..."
+                        data={workouts.map(workout => ({
+                          value: workout.id.toString(),
+                          label: workout.name
+                        }))}
+                        searchable
+                        {...assignForm.getInputProps('workoutId')}
+                        required
+                      />
+                      <MultiSelect
+                        label="Select Clients *"
+                        placeholder="Choose one or more clients..."
+                        data={clients.map(client => {
+                          const clientUserId = client.user_id || client.id
+                          return {
+                            value: clientUserId.toString(),
+                            label: `${client.name || 'Client'} (${client.email})`
+                          }
+                        })}
+                        searchable
+                        {...assignForm.getInputProps('clientIds')}
+                        required
+                      />
+                      <DatePickerInput
+                        label="Assigned Date *"
+                        {...assignForm.getInputProps('assignedDate')}
+                        required
+                      />
+                      <DatePickerInput
+                        label="Due Date"
+                        {...assignForm.getInputProps('dueDate')}
+                      />
+                      <Textarea
+                        label="Notes (optional)"
+                        placeholder="Add any special instructions or notes for the clients..."
+                        rows={3}
+                        {...assignForm.getInputProps('notes')}
+                      />
+                      <Group justify="flex-end">
+                        <Button type="submit" color="robinhoodGreen">
+                          Assign to Selected Clients
                         </Button>
-                      </Stack>
-                    </Card>
-                  ))}
-                </SimpleGrid>
-              )}
-            </Paper>
+                      </Group>
+                    </Stack>
+                  </form>
+                </Paper>
+
+                {/* Quick Assign from Library */}
+                <Paper p="md" withBorder>
+                  <Title order={4} mb="md">Quick Assign from Library</Title>
+                  <Group mb="md">
+                    <TextInput
+                      placeholder="Search workouts..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Select
+                      value={filterType}
+                      onChange={setFilterType}
+                      data={[
+                        { value: 'all', label: 'All Workouts' },
+                        { value: 'templates', label: 'Templates' },
+                        { value: 'custom', label: 'Custom' }
+                      ]}
+                    />
+                  </Group>
+                  {filteredWorkouts.length === 0 ? (
+                    <Text c="dimmed" ta="center" py="md">No workouts found</Text>
+                  ) : (
+                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                      {filteredWorkouts.map(workout => (
+                        <Card key={workout.id} shadow="sm" padding="md" radius="md" withBorder>
+                          <Stack gap="sm">
+                            <Group justify="space-between">
+                              <Title order={5}>{workout.name}</Title>
+                              {workout.is_template && (
+                                <Badge variant="light" size="sm">Template</Badge>
+                              )}
+                            </Group>
+                            {workout.description && (
+                              <Text size="sm" c="dimmed" lineClamp={2}>{workout.description}</Text>
+                            )}
+                            <Button 
+                              variant="filled" 
+                              size="sm"
+                              fullWidth
+                              onClick={() => {
+                                assignForm.setFieldValue('workoutId', workout.id.toString())
+                                // Scroll to top of assign form
+                                const assignSection = document.getElementById('assign-section')
+                                if (assignSection) {
+                                  assignSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                }
+                              }}
+                            >
+                              Select to Assign
+                            </Button>
+                          </Stack>
+                        </Card>
+                      ))}
+                    </SimpleGrid>
+                  )}
+                </Paper>
 
                 {/* Workout Library Section */}
                 <Paper p="md" withBorder>
