@@ -36,10 +36,18 @@ export function AuthProvider({ children }) {
   }
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password })
-    localStorage.setItem('token', response.data.token)
-    setUser(response.data.user)
-    return response.data
+    try {
+      const response = await api.post('/auth/login', { email, password })
+      localStorage.setItem('token', response.data.token)
+      setUser(response.data.user)
+      return response.data
+    } catch (error) {
+      // Re-throw with better error message for network errors
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('Cannot connect to server. Please make sure the backend server is running on port 5001.')
+      }
+      throw error
+    }
   }
 
   const register = async (userData) => {

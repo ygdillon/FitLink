@@ -20,7 +20,11 @@ function Login() {
       await login(email, password)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed')
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Cannot connect to server. Please make sure the backend server is running on port 5001.')
+      } else {
+        setError(err.response?.data?.message || err.message || 'Login failed')
+      }
     } finally {
       setLoading(false)
     }

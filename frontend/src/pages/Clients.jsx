@@ -71,7 +71,11 @@ function Clients() {
       }
     } catch (error) {
       console.error('Error fetching clients:', error)
-      setError(error.response?.data?.message || 'Failed to load clients')
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        setError('Cannot connect to server. Please make sure the backend server is running on port 5001.')
+      } else {
+        setError(error.response?.data?.message || 'Failed to load clients')
+      }
       setClients([])
     } finally {
       setLoading(false)

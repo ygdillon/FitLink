@@ -37,7 +37,11 @@ function TrainerRequests({ showTitle = true }) {
       setRequests(response.data)
     } catch (error) {
       console.error('Error fetching requests:', error)
-      setMessage('Failed to load requests')
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        setMessage('Cannot connect to server. Please make sure the backend server is running on port 5001.')
+      } else {
+        setMessage(error.response?.data?.message || 'Failed to load requests')
+      }
     } finally {
       setLoading(false)
     }
