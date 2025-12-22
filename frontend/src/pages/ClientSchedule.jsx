@@ -11,6 +11,7 @@ import './ClientSchedule.css'
 function ClientSchedule({ clientId, clientName }) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false)
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const [selectedSession, setSelectedSession] = useState(null)
@@ -26,12 +27,12 @@ function ClientSchedule({ clientId, clientName }) {
       sessionDate: today,
       sessionTime: new Date(today.setHours(9, 0, 0, 0)),
       duration: 60,
-      sessionType: 'in_person',
+      sessionType: 'In-Person',
       location: '',
       meetingLink: '',
       notes: '',
       isRecurring: false,
-      recurringPattern: 'weekly',
+      recurringPattern: 'Every Week',
       recurringEndDate: threeMonthsLater,
       dayOfWeek: ''
     },
@@ -39,6 +40,7 @@ function ClientSchedule({ clientId, clientName }) {
       sessionDate: (value) => (!value ? 'Date is required' : null),
       sessionTime: (value) => (!value ? 'Time is required' : null),
       sessionType: (value) => (!value ? 'Session type is required' : null),
+      recurringEndDate: (value, values) => (values.isRecurring && !value ? 'End date is required for recurring sessions' : null),
     },
   })
 
@@ -68,7 +70,9 @@ function ClientSchedule({ clientId, clientName }) {
   }
 
   const handleCreateSession = async (values) => {
+    setSubmitting(true)
     try {
+      console.log('Submitting session with values:', values)
       const sessionDate = values.sessionDate instanceof Date 
         ? values.sessionDate.toISOString().split('T')[0]
         : values.sessionDate
@@ -79,13 +83,29 @@ function ClientSchedule({ clientId, clientName }) {
         ? values.recurringEndDate.toISOString().split('T')[0]
         : values.recurringEndDate
       
+      // Normalize sessionType from display format to backend format
+      const sessionTypeMap = {
+        'In-Person': 'in_person',
+        'Online': 'online',
+        'Hybrid': 'hybrid'
+      }
+      const normalizedSessionType = sessionTypeMap[values.sessionType] || values.sessionType.toLowerCase().replace('-', '_')
+      
+      // Normalize recurringPattern from display format to backend format
+      const patternMap = {
+        'Every Week': 'weekly',
+        'Every 2 Weeks': 'biweekly',
+        'Every Month': 'monthly'
+      }
+      const normalizedPattern = patternMap[values.recurringPattern] || values.recurringPattern.toLowerCase()
+      
       const payload = {
         clientId: parseInt(clientId),
         workoutId: values.workoutId || null,
         sessionDate,
         sessionTime,
         duration: values.duration,
-        sessionType: values.sessionType,
+        sessionType: normalizedSessionType,
         location: values.location || null,
         meetingLink: values.meetingLink || null,
         notes: values.notes || null
@@ -93,7 +113,7 @@ function ClientSchedule({ clientId, clientName }) {
       
       if (values.isRecurring) {
         payload.isRecurring = true
-        payload.recurringPattern = values.recurringPattern
+        payload.recurringPattern = normalizedPattern
         payload.recurringEndDate = recurringEndDate
         payload.dayOfWeek = values.sessionDate instanceof Date ? values.sessionDate.getDay() : parseInt(values.dayOfWeek)
       }
@@ -121,9 +141,11 @@ function ClientSchedule({ clientId, clientName }) {
       console.error('Error creating session:', error)
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to schedule session',
+        message: error.response?.data?.message || error.message || 'Failed to schedule session',
         color: 'red',
       })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -456,10 +478,10 @@ function ClientSchedule({ clientId, clientName }) {
             )}
             
             <Group justify="flex-end">
-              <Button variant="outline" onClick={closeCreate}>
+              <Button variant="outline" onClick={closeCreate} disabled={submitting}>
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" loading={submitting} disabled={submitting}>
                 Schedule Session
               </Button>
             </Group>
