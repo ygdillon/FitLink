@@ -162,8 +162,7 @@ function TrainerDashboard() {
                 minHeight: '600px'
               }}
             >
-              <Group justify="space-between" mb="lg">
-                <Title order={2}>Schedule Calendar</Title>
+              <Group justify="flex-end" mb="lg">
                 <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
                   View All Clients →
                 </Anchor>
