@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Container, Title, Text, Stack, Card, Badge, Button, Group, Modal, TextInput, Select, Textarea, SimpleGrid, Loader, Paper, Tabs, MultiSelect, Checkbox } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Badge, Button, Group, Modal, TextInput, Select, Textarea, SimpleGrid, Loader, Paper, Tabs, MultiSelect, Checkbox, Box, ScrollArea } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
@@ -20,9 +20,9 @@ function WorkoutLibrary() {
   const [opened, { open, close }] = useDisclosure(false)
   const [clients, setClients] = useState([])
   
-  // Get active tab from URL params, default to 'library'
+  // Get active tab from URL params, default to 'manage'
   const tabFromUrl = searchParams.get('tab')
-  const [activeTab, setActiveTab] = useState(tabFromUrl || 'library') // 'create', 'assign', 'library'
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'manage') // 'create', 'manage'
   
   // Check if we're coming from dropdown navigation (has tab param)
   // If tab param exists, hide tabs and show only that section
@@ -30,8 +30,14 @@ function WorkoutLibrary() {
   
   // Update active tab when URL param changes
   useEffect(() => {
-    const tab = searchParams.get('tab') || 'library'
-    setActiveTab(tab)
+    const tab = searchParams.get('tab') || 'manage'
+    // Map old 'assign' and 'library' to 'manage'
+    if (tab === 'assign' || tab === 'library') {
+      setActiveTab('manage')
+      setSearchParams({ tab: 'manage' })
+    } else {
+      setActiveTab(tab)
+    }
   }, [searchParams])
   
   // Update URL when tab changes
@@ -155,25 +161,28 @@ function WorkoutLibrary() {
   }
 
   return (
-    <Container size="xl" py="xl">
-      <Title order={1} mb="xl">Workouts</Title>
+    <Box style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Container size="xl" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
+        <Title order={1} mb="xl" style={{ flexShrink: 0 }}>Workouts</Title>
 
-      <Tabs value={activeTab} onChange={handleTabChange}>
-        {!isDirectNavigation && (
-          <Tabs.List mb="xl">
-            <Tabs.Tab value="create">Create Workout</Tabs.Tab>
-            <Tabs.Tab value="assign">Assign Workouts</Tabs.Tab>
-            <Tabs.Tab value="library">Workout Library</Tabs.Tab>
-          </Tabs.List>
-        )}
+        <Tabs value={activeTab} onChange={handleTabChange} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {!isDirectNavigation && (
+            <Tabs.List mb="xl" style={{ flexShrink: 0 }}>
+              <Tabs.Tab value="create">Create Workout</Tabs.Tab>
+              <Tabs.Tab value="manage">Manage Workouts</Tabs.Tab>
+            </Tabs.List>
+          )}
 
-        {/* Create Workout Tab */}
-        <Tabs.Panel value="create">
-          <WorkoutBuilder />
-        </Tabs.Panel>
+          {/* Create Workout Tab */}
+          <Tabs.Panel value="create" style={{ flex: 1, overflow: 'auto' }}>
+            <WorkoutBuilder />
+          </Tabs.Panel>
 
-        {/* Assign Workouts Tab */}
-        <Tabs.Panel value="assign">
+          {/* Manage Workouts Tab - Combines Assign and Library */}
+          <Tabs.Panel value="manage" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <ScrollArea style={{ flex: 1 }}>
+              <Stack gap="md">
+                {/* Assign Workouts Section */}
           <Stack gap="md">
             <Paper p="md" withBorder>
               <Title order={3} mb="md">Assign Workouts to Clients</Title>
@@ -270,9 +279,11 @@ function WorkoutLibrary() {
                           fullWidth
                           onClick={() => {
                             assignForm.setFieldValue('workoutId', workout.id.toString())
-                            setActiveTab('assign')
                             // Scroll to top of assign form
-                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                            const assignSection = document.getElementById('assign-section')
+                            if (assignSection) {
+                              assignSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                            }
                           }}
                         >
                           Select to Assign
@@ -283,99 +294,100 @@ function WorkoutLibrary() {
                 </SimpleGrid>
               )}
             </Paper>
-          </Stack>
-        </Tabs.Panel>
 
-        {/* Workout Library Tab */}
-        <Tabs.Panel value="library">
-          <Group mb="md">
-            <TextInput
-              placeholder="Search workouts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <Select
-              value={filterType}
-              onChange={setFilterType}
-              data={[
-                { value: 'all', label: 'All Workouts' },
-                { value: 'templates', label: 'Templates' },
-                { value: 'custom', label: 'Custom' }
-              ]}
-            />
-          </Group>
+                {/* Workout Library Section */}
+                <Paper p="md" withBorder>
+                  <Title order={3} mb="md">Workout Library</Title>
+                  <Group mb="md">
+                    <TextInput
+                      placeholder="Search workouts..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Select
+                      value={filterType}
+                      onChange={setFilterType}
+                      data={[
+                        { value: 'all', label: 'All Workouts' },
+                        { value: 'templates', label: 'Templates' },
+                        { value: 'custom', label: 'Custom' }
+                      ]}
+                    />
+                  </Group>
 
-      {filteredWorkouts.length === 0 ? (
-        <Paper p="xl" withBorder>
-          <Stack gap="xs" align="center">
-            <Text c="dimmed">No workouts found.</Text>
-            {workouts.length === 0 ? (
-              <>
-                <Text size="sm" c="dimmed">Get started by creating your first workout!</Text>
-                <Button onClick={() => navigate('/workout/builder')}>
-                  Create Workout
-                </Button>
-              </>
-            ) : (
-              <Text size="sm" c="dimmed">Try adjusting your search or filter.</Text>
-            )}
-          </Stack>
-        </Paper>
-      ) : (
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-          {filteredWorkouts.map(workout => (
-            <Card key={workout.id} shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="sm">
-                <Group justify="space-between">
-                  <Title order={4}>{workout.name}</Title>
-                  {workout.is_template && (
-                    <Badge variant="light">Template</Badge>
+                  {filteredWorkouts.length === 0 ? (
+                    <Paper p="xl" withBorder>
+                      <Stack gap="xs" align="center">
+                        <Text c="dimmed">No workouts found.</Text>
+                        {workouts.length === 0 ? (
+                          <>
+                            <Text size="sm" c="dimmed">Get started by creating your first workout!</Text>
+                            <Button onClick={() => setActiveTab('create')}>
+                              Create Workout
+                            </Button>
+                          </>
+                        ) : (
+                          <Text size="sm" c="dimmed">Try adjusting your search or filter.</Text>
+                        )}
+                      </Stack>
+                    </Paper>
+                  ) : (
+                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                      {filteredWorkouts.map(workout => (
+                        <Card key={workout.id} shadow="sm" padding="lg" radius="md" withBorder>
+                          <Stack gap="sm">
+                            <Group justify="space-between">
+                              <Title order={4}>{workout.name}</Title>
+                              {workout.is_template && (
+                                <Badge variant="light">Template</Badge>
+                              )}
+                            </Group>
+                            {workout.description && (
+                              <Text size="sm" c="dimmed">{workout.description}</Text>
+                            )}
+                            <Group gap="xs">
+                              <Text size="xs" c="dimmed">
+                                Created: {new Date(workout.created_at).toLocaleDateString()}
+                              </Text>
+                              {workout.exercise_count > 0 && (
+                                <Text size="xs" c="dimmed">
+                                  {workout.exercise_count} exercises
+                                </Text>
+                              )}
+                            </Group>
+                            <Group gap="xs">
+                              <Button 
+                                variant="light" 
+                                size="sm"
+                                onClick={() => navigate(`/workout/${workout.id}`)}
+                              >
+                                View
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => navigate(`/workout/builder?edit=${workout.id}`)}
+                              >
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="filled" 
+                                size="sm"
+                                onClick={() => openAssignModal(workout)}
+                              >
+                                Assign
+                              </Button>
+                            </Group>
+                          </Stack>
+                        </Card>
+                      ))}
+                    </SimpleGrid>
                   )}
-                </Group>
-                {workout.description && (
-                  <Text size="sm" c="dimmed">{workout.description}</Text>
-                )}
-                <Group gap="xs">
-                  <Text size="xs" c="dimmed">
-                    Created: {new Date(workout.created_at).toLocaleDateString()}
-                  </Text>
-                  {workout.exercise_count > 0 && (
-                    <Text size="xs" c="dimmed">
-                      {workout.exercise_count} exercises
-                    </Text>
-                  )}
-                </Group>
-                <Group gap="xs">
-                  <Button 
-                    variant="light" 
-                    size="sm"
-                    onClick={() => navigate(`/workout/${workout.id}`)}
-                  >
-                    View
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/workout/builder?edit=${workout.id}`)}
-                  >
-                    Edit
-                  </Button>
-                  <Button 
-                    variant="filled" 
-                    size="sm"
-                    onClick={() => openAssignModal(workout)}
-                  >
-                    Assign
-                  </Button>
-                </Group>
+                </Paper>
               </Stack>
-            </Card>
-          ))}
-        </SimpleGrid>
-      )}
-
-        </Tabs.Panel>
+            </ScrollArea>
+          </Tabs.Panel>
       </Tabs>
 
       {/* Legacy Modal for backward compatibility */}
@@ -424,7 +436,8 @@ function WorkoutLibrary() {
           </form>
         )}
       </Modal>
-    </Container>
+      </Container>
+    </Box>
   )
 }
 

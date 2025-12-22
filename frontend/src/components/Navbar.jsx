@@ -249,14 +249,9 @@ function Navbar({ children }) {
                   activeSearch="?tab=create" 
                 />
                 <SubNavLink 
-                  to="/trainer/workouts?tab=assign" 
-                  label="Assign Workouts" 
-                  activeSearch="?tab=assign" 
-                />
-                <SubNavLink 
-                  to="/trainer/workouts?tab=library" 
+                  to="/trainer/workouts?tab=manage" 
                   label="Manage Workouts" 
-                  activeSearch="?tab=library"
+                  activeSearch="?tab=manage"
                   defaultActive={true}
                 />
               </Stack>
