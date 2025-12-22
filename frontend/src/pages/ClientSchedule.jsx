@@ -101,7 +101,7 @@ function ClientSchedule({ clientId, clientName }) {
       
       const payload = {
         clientId: parseInt(clientId),
-        workoutId: values.workoutId || null,
+        workoutId: values.workoutId && values.workoutId !== '' ? parseInt(values.workoutId) : null,
         sessionDate,
         sessionTime,
         duration: values.duration,
@@ -427,8 +427,12 @@ function ClientSchedule({ clientId, clientName }) {
             <Select
               label="Workout (optional)"
               placeholder="No specific workout"
-              data={workouts.map(w => ({ value: w.id.toString(), label: w.name }))}
-              {...form.getInputProps('workoutId')}
+              data={workouts.length > 0 ? workouts.map(w => ({ value: w.id.toString(), label: w.name })) : []}
+              searchable
+              clearable
+              value={form.values.workoutId || null}
+              onChange={(value) => form.setFieldValue('workoutId', value || '')}
+              disabled={workouts.length === 0}
             />
             <Textarea
               label="Notes"
