@@ -112,7 +112,7 @@ function WorkoutBuilder() {
   const isEmbedded = window.location.pathname === '/trainer/workouts'
   
   const content = (
-    <>
+    <div style={{ width: '100%', padding: isEmbedded ? '1.5rem' : 0 }}>
       {!isEmbedded && <Title order={1} mb="xl">Create Workout</Title>}
       {isEmbedded && <Title order={2} mb="xl">Create Workout</Title>}
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }}>
@@ -252,7 +252,7 @@ function WorkoutBuilder() {
             exercises
           }}
         />
-    </>
+    </div>
   )
 
   if (isEmbedded) {

@@ -174,7 +174,7 @@ function WorkoutLibrary() {
           )}
 
           {/* Create Workout Tab */}
-          <Tabs.Panel value="create" style={{ flex: 1, overflow: 'auto' }}>
+          <Tabs.Panel value="create" style={{ flex: 1, overflow: 'auto', marginLeft: '-1.5rem', marginRight: '-1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', width: 'calc(100% + 3rem)' }}>
             <WorkoutBuilder />
           </Tabs.Panel>
 
@@ -391,7 +391,8 @@ function WorkoutLibrary() {
               </Stack>
             </ScrollArea>
           </Tabs.Panel>
-      </Tabs>
+        </Tabs>
+      </Container>
 
       {/* Legacy Modal for backward compatibility */}
       <Modal opened={opened} onClose={close} title={`Assign Workout: ${selectedWorkout?.name}`} size="md">
@@ -439,7 +440,6 @@ function WorkoutLibrary() {
           </form>
         )}
       </Modal>
-      </Container>
     </Box>
   )
 }
