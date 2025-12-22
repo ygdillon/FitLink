@@ -186,10 +186,11 @@ function TrainerDashboard() {
                           return {
                             style: hasSessions
                               ? {
-                                  backgroundColor: 'var(--mantine-color-green-1)',
-                                  border: '2px solid var(--mantine-color-green-4)',
+                                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                                  border: '1px solid rgba(34, 197, 94, 0.4)',
                                   fontWeight: 600,
                                   cursor: 'pointer',
+                                  color: 'rgba(34, 197, 94, 0.9)',
                                 }
                               : { cursor: 'pointer' },
                           }
@@ -214,6 +215,7 @@ function TrainerDashboard() {
                           paddingBottom: '0.75rem',
                           paddingTop: '0.5rem',
                           textAlign: 'center',
+                          color: 'var(--mantine-color-gray-6)',
                         },
                         day: {
                           fontSize: '0.95rem',
@@ -229,14 +231,12 @@ function TrainerDashboard() {
                           padding: '0.5rem',
                           transition: 'background-color 0.15s ease',
                           position: 'relative',
-                          backgroundColor: 'var(--mantine-color-gray-0)',
                         },
                         cell: {
                           border: 'none',
                           margin: 0,
                           padding: 0,
                           width: 'calc(100% / 7)',
-                          backgroundColor: 'var(--mantine-color-gray-0)',
                         },
                       }}
                       size="lg"
