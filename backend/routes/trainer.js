@@ -868,12 +868,28 @@ router.post('/clients/:clientId/nutrition/logs', async (req, res) => {
 // Get unread request count
 router.get('/requests/unread-count', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT COUNT(*) as count
-       FROM trainer_requests
-       WHERE trainer_id = $1 AND status = 'pending' AND (is_read = false OR is_read IS NULL)`,
-      [req.user.id]
-    )
+    // Check if is_read column exists, if not, just count all pending requests
+    let result
+    try {
+      result = await pool.query(
+        `SELECT COUNT(*) as count
+         FROM trainer_requests
+         WHERE trainer_id = $1 AND status = 'pending' AND (is_read = false OR is_read IS NULL)`,
+        [req.user.id]
+      )
+    } catch (columnError) {
+      // If column doesn't exist, fall back to counting all pending requests
+      if (columnError.code === '42703') {
+        result = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM trainer_requests
+           WHERE trainer_id = $1 AND status = 'pending'`,
+          [req.user.id]
+        )
+      } else {
+        throw columnError
+      }
+    }
     
     res.json({ count: parseInt(result.rows[0].count) })
   } catch (error) {
@@ -885,12 +901,22 @@ router.get('/requests/unread-count', async (req, res) => {
 // Mark requests as read
 router.put('/requests/mark-read', async (req, res) => {
   try {
-    await pool.query(
-      `UPDATE trainer_requests
-       SET is_read = true, read_at = CURRENT_TIMESTAMP
-       WHERE trainer_id = $1 AND status = 'pending' AND (is_read = false OR is_read IS NULL)`,
-      [req.user.id]
-    )
+    // Check if is_read column exists, if not, skip the update
+    try {
+      await pool.query(
+        `UPDATE trainer_requests
+         SET is_read = true, read_at = CURRENT_TIMESTAMP
+         WHERE trainer_id = $1 AND status = 'pending' AND (is_read = false OR is_read IS NULL)`,
+        [req.user.id]
+      )
+    } catch (columnError) {
+      // If column doesn't exist, just return success (migration hasn't run yet)
+      if (columnError.code === '42703') {
+        console.log('is_read column does not exist yet, skipping mark-read update')
+      } else {
+        throw columnError
+      }
+    }
     
     res.json({ message: 'Requests marked as read' })
   } catch (error) {
