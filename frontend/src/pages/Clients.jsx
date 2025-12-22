@@ -154,13 +154,6 @@ function Clients() {
         <Box p="md" style={{ borderBottom: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)'}`, backgroundColor: cardBgColor }}>
           <Group justify="space-between" mb="md">
             <Title order={3}>Active Clients ({filteredClients.length})</Title>
-            <Button 
-              size="xs" 
-              onClick={() => navigate('/trainer/add-client')}
-              color="robinhoodGreen"
-            >
-              + Add New Client
-            </Button>
           </Group>
           
           {/* Filter Buttons */}
@@ -208,18 +201,9 @@ function Clients() {
                 <Stack align="center" gap="xs">
                   <Text c="dimmed" size="sm" ta="center">
                     {clients.length === 0 
-                      ? 'No clients yet. Add your first client to get started!'
+                      ? 'No clients yet.'
                       : 'No clients match your search.'}
                   </Text>
-                  {clients.length === 0 && (
-                    <Button 
-                      size="sm" 
-                      onClick={() => navigate('/trainer/add-client')}
-                      color="robinhoodGreen"
-                    >
-                      Add First Client
-                    </Button>
-                  )}
                 </Stack>
               </Paper>
             ) : (
