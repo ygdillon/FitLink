@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Box, ScrollArea } from '@mantine/core'
+import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor } from '@mantine/core'
 import api from '../services/api'
 import './Dashboard.css'
 import './TrainerDashboard.css'
