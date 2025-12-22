@@ -120,8 +120,8 @@ function TrainerDashboard() {
   }
 
   return (
-    <Container size="xl" py="xl">
-      <Grid gutter="md">
+    <Container size="xl" py="xl" style={{ height: 'calc(100vh - 120px)' }}>
+      <Grid gutter="md" style={{ height: '100%' }}>
         {/* Left Sidebar - Total Revenue */}
         <Grid.Col span={{ base: 12, md: 3 }}>
           <Paper p="md" shadow="sm" withBorder h="100%">
@@ -149,20 +149,32 @@ function TrainerDashboard() {
 
         {/* Right Panels (main content area) */}
         <Grid.Col span={{ base: 12, md: 9 }}>
-          <Stack gap="md">
-            {/* Upper Right Panel - Schedule Calendar */}
-            <Paper p="md" shadow="sm" withBorder>
-              <Group justify="space-between" mb="md">
-                <Title order={3}>Schedule Calendar</Title>
-                <Anchor component={Link} to="/trainer/clients" size="sm">View All Clients →</Anchor>
+          <Stack gap="md" style={{ height: '100%' }}>
+            {/* Schedule Calendar - Full Height */}
+            <Paper 
+              p="xl" 
+              shadow="md" 
+              withBorder
+              style={{ 
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: '600px'
+              }}
+            >
+              <Group justify="space-between" mb="lg">
+                <Title order={2}>Schedule Calendar</Title>
+                <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
+                  View All Clients →
+                </Anchor>
               </Group>
               {upcomingSessions.length === 0 ? (
-                <Stack gap="xs" align="center" py="xl">
-                  <Text c="dimmed">No upcoming sessions scheduled</Text>
+                <Stack gap="xs" align="center" justify="center" style={{ flex: 1 }}>
+                  <Text c="dimmed" size="lg">No upcoming sessions scheduled</Text>
                   <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
                 </Stack>
               ) : (
-                <Stack gap="md">
+                <Stack gap="lg" style={{ flex: 1, justifyContent: 'center' }}>
                   <Calendar
                     value={null}
                     onChange={handleDateClick}
@@ -186,15 +198,28 @@ function TrainerDashboard() {
                         return { style: { cursor: 'pointer' } }
                       }
                     }}
+                    styles={{
+                      calendar: {
+                        width: '100%',
+                      },
+                      month: {
+                        width: '100%',
+                      },
+                      monthCell: {
+                        width: '100%',
+                      },
+                      day: {
+                        fontSize: '1rem',
+                        height: '3rem',
+                      },
+                    }}
                     size="lg"
+                    fullWidth
                   />
-                  <Group gap="xs" mt="xs">
-                    <Badge size="sm" variant="dot" color="green">
+                  <Group justify="center" mt="md">
+                    <Badge size="md" variant="dot" color="green" radius="md">
                       Has Sessions
                     </Badge>
-                    <Text size="sm" c="dimmed">
-                      Click on highlighted dates to view sessions
-                    </Text>
                   </Group>
                 </Stack>
               )}
