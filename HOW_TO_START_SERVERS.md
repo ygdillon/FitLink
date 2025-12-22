@@ -135,3 +135,5 @@ npm install
 3. Log in as trainer or client
 4. Test the AI workout generator!
 
+
+

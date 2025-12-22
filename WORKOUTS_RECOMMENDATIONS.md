@@ -111,3 +111,5 @@
 7. **Assignment Calendar**: Calendar view of workout assignments
 8. **Workout Cards**: Beautiful cards with exercise count, duration, difficulty
 
+
+

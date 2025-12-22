@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor } from '@mantine/core'
+import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider } from '@mantine/core'
+import { Calendar } from '@mantine/dates'
+import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
 import './Dashboard.css'
 import './TrainerDashboard.css'
@@ -8,9 +10,11 @@ import './TrainerDashboard.css'
 function TrainerDashboard() {
   const [clients, setClients] = useState([])
   const [revenue, setRevenue] = useState({ total: 0, thisMonth: 0, thisWeek: 0 })
-      const [upcomingSessions, setUpcomingSessions] = useState([])
-      const [clientsWithSessions, setClientsWithSessions] = useState(new Map())
+  const [upcomingSessions, setUpcomingSessions] = useState([])
+  const [clientsWithSessions, setClientsWithSessions] = useState(new Map())
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -66,6 +70,45 @@ function TrainerDashboard() {
     }
   }
 
+  // Group sessions by date for calendar display
+  const sessionsByDate = useMemo(() => {
+    const grouped = new Map()
+    upcomingSessions.forEach(session => {
+      if (session.session_date) {
+        // Normalize date key to YYYY-MM-DD format
+        const dateKey = session.session_date.split('T')[0]
+        if (!grouped.has(dateKey)) {
+          grouped.set(dateKey, [])
+        }
+        grouped.get(dateKey).push(session)
+      }
+    })
+    return grouped
+  }, [upcomingSessions])
+
+  // Get sessions for a specific date
+  const getSessionsForDate = (date) => {
+    if (!date) return []
+    try {
+      const dateKey = date.toISOString().split('T')[0]
+      return sessionsByDate.get(dateKey) || []
+    } catch (error) {
+      console.error('Error getting sessions for date:', error)
+      return []
+    }
+  }
+
+  // Handle date click
+  const handleDateClick = (date) => {
+    if (!date) return
+    const sessions = getSessionsForDate(date)
+    if (sessions.length > 0) {
+      setSelectedDate(date)
+      openModal()
+    }
+  }
+
+
   if (loading) {
     return (
       <Container size="xl" py="xl">
@@ -107,11 +150,11 @@ function TrainerDashboard() {
         {/* Right Panels (main content area) */}
         <Grid.Col span={{ base: 12, md: 9 }}>
           <Stack gap="md">
-            {/* Upper Right Panel - Schedule with Upcoming Sessions */}
+            {/* Upper Right Panel - Schedule Calendar */}
             <Paper p="md" shadow="sm" withBorder>
               <Group justify="space-between" mb="md">
-                <Title order={3}>Schedule with Upcoming Sessions</Title>
-                <Anchor component={Link} to="/trainer/clients" size="sm">View All →</Anchor>
+                <Title order={3}>Schedule Calendar</Title>
+                <Anchor component={Link} to="/trainer/clients" size="sm">View All Clients →</Anchor>
               </Group>
               {upcomingSessions.length === 0 ? (
                 <Stack gap="xs" align="center" py="xl">
@@ -119,38 +162,40 @@ function TrainerDashboard() {
                   <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
                 </Stack>
               ) : (
-                <Stack gap="sm">
-                  {upcomingSessions.slice(0, 5).map(session => (
-                    <Paper key={session.id} p="sm" withBorder>
-                      <Group justify="space-between">
-                        <Group gap="md">
-                          <Stack gap={0} align="center" w={60}>
-                            <Text size="xs" c="dimmed">
-                              {new Date(session.session_date).toLocaleDateString('en-US', { weekday: 'short' })}
-                            </Text>
-                            <Text size="lg" fw={700}>
-                              {new Date(session.session_date).getDate()}
-                            </Text>
-                          </Stack>
-                          <Stack gap={2}>
-                            <Text fw={500}>{session.client_name}</Text>
-                            <Text size="sm" c="dimmed">
-                              {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
-                                hour: 'numeric', 
-                                minute: '2-digit' 
-                              })}
-                            </Text>
-                            {session.workout_name && (
-                              <Text size="xs" c="dimmed">{session.workout_name}</Text>
-                            )}
-                          </Stack>
-                        </Group>
-                        <Badge color={session.status === 'completed' ? 'green' : 'blue'}>
-                          {session.status || 'scheduled'}
-                        </Badge>
-                      </Group>
-                    </Paper>
-                  ))}
+                <Stack gap="md">
+                  <Calendar
+                    value={null}
+                    onChange={handleDateClick}
+                    getDayProps={(date) => {
+                      if (!date) return {}
+                      try {
+                        const dateKey = date.toISOString().split('T')[0]
+                        const hasSessions = sessionsByDate.has(dateKey)
+                        return {
+                          style: hasSessions
+                            ? {
+                                backgroundColor: 'var(--mantine-color-green-1)',
+                                border: '2px solid var(--mantine-color-green-4)',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }
+                            : { cursor: 'pointer' },
+                        }
+                      } catch (error) {
+                        console.error('Error in getDayProps:', error)
+                        return { style: { cursor: 'pointer' } }
+                      }
+                    }}
+                    size="lg"
+                  />
+                  <Group gap="xs" mt="xs">
+                    <Badge size="sm" variant="dot" color="green">
+                      Has Sessions
+                    </Badge>
+                    <Text size="sm" c="dimmed">
+                      Click on highlighted dates to view sessions
+                    </Text>
+                  </Group>
                 </Stack>
               )}
             </Paper>
@@ -197,6 +242,129 @@ function TrainerDashboard() {
           </Stack>
         </Grid.Col>
       </Grid>
+
+      {/* Session Details Modal */}
+      <Modal
+        opened={modalOpened}
+        onClose={closeModal}
+        title={
+          selectedDate
+            ? `Sessions on ${selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}`
+            : 'Sessions'
+        }
+        size="md"
+      >
+        {selectedDate && (
+          <Stack gap="md">
+            {getSessionsForDate(selectedDate).length === 0 ? (
+              <Text c="dimmed" ta="center" py="md">
+                No sessions scheduled for this date
+              </Text>
+            ) : (
+              getSessionsForDate(selectedDate)
+                .sort((a, b) => {
+                  const timeA = a.session_time || '00:00:00'
+                  const timeB = b.session_time || '00:00:00'
+                  return timeA.localeCompare(timeB)
+                })
+                .map(session => (
+                  <Paper key={session.id} p="md" withBorder>
+                    <Stack gap="sm">
+                      <Group justify="space-between">
+                        <Text fw={600} size="lg">
+                          {session.client_name}
+                        </Text>
+                        <Badge color={session.status === 'completed' ? 'green' : 'blue'}>
+                          {session.status || 'scheduled'}
+                        </Badge>
+                      </Group>
+                      <Divider />
+                      <Group gap="md">
+                        <Stack gap={2}>
+                          <Text size="xs" c="dimmed" fw={500}>
+                            Time
+                          </Text>
+                          <Text fw={500}>
+                            {session.session_time
+                              ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })
+                              : 'Not specified'}
+                          </Text>
+                        </Stack>
+                        {session.workout_name && (
+                          <Stack gap={2}>
+                            <Text size="xs" c="dimmed" fw={500}>
+                              Workout
+                            </Text>
+                            <Text fw={500}>{session.workout_name}</Text>
+                          </Stack>
+                        )}
+                        {session.session_type && (
+                          <Stack gap={2}>
+                            <Text size="xs" c="dimmed" fw={500}>
+                              Type
+                            </Text>
+                            <Text fw={500} tt="capitalize">
+                              {session.session_type.replace('_', ' ')}
+                            </Text>
+                          </Stack>
+                        )}
+                      </Group>
+                      {session.location && (
+                        <Stack gap={2}>
+                          <Text size="xs" c="dimmed" fw={500}>
+                            Location
+                          </Text>
+                          <Text>{session.location}</Text>
+                        </Stack>
+                      )}
+                      {session.meeting_link && (
+                        <Stack gap={2}>
+                          <Text size="xs" c="dimmed" fw={500}>
+                            Meeting Link
+                          </Text>
+                          <Anchor href={session.meeting_link} target="_blank" size="sm">
+                            {session.meeting_link}
+                          </Anchor>
+                        </Stack>
+                      )}
+                      {session.notes && (
+                        <Stack gap={2}>
+                          <Text size="xs" c="dimmed" fw={500}>
+                            Notes
+                          </Text>
+                          <Text size="sm">{session.notes}</Text>
+                        </Stack>
+                      )}
+                      <Group justify="flex-end" mt="xs">
+                        <Button
+                          variant="light"
+                          size="sm"
+                          onClick={() => {
+                            const clientId = session.client_profile_id || session.client_id
+                            if (clientId) {
+                              navigate(`/trainer/clients/${clientId}`)
+                              closeModal()
+                            }
+                          }}
+                        >
+                          View Client Profile
+                        </Button>
+                      </Group>
+                    </Stack>
+                  </Paper>
+                ))
+            )}
+          </Stack>
+        )}
+      </Modal>
     </Container>
   )
 }

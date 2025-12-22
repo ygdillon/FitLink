@@ -192,3 +192,5 @@
 - Client satisfaction with check-in process
 - Correlation between check-ins and client retention
 
+
+

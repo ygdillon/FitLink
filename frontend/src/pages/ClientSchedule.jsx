@@ -236,7 +236,7 @@ function ClientSchedule({ clientId, clientName }) {
   return (
     <Stack gap="md">
       <Group justify="space-between">
-        <Title order={2}>Schedule for {clientName}</Title>
+        <Title order={2}>Schedule</Title>
         <Button 
           onClick={() => {
             form.setValues({

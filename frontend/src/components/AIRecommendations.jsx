@@ -207,3 +207,5 @@ function AIRecommendations({ opened, onClose, clientId, currentWorkout }) {
 
 export default AIRecommendations
 
+
+

@@ -113,3 +113,5 @@ Return JSON format:
 - Workout completion rates
 - Cost per workout generation
 
+
+

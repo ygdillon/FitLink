@@ -77,7 +77,7 @@ function ClientGoals({ clientId, client, onUpdate }) {
   return (
     <Stack gap="md">
       <Group justify="space-between">
-        <Title order={2}>Client Goals</Title>
+        <Title order={2}>Goals</Title>
         {!isEditing && (
           <Button onClick={() => setIsEditing(true)} variant="outline">
             Edit Goals

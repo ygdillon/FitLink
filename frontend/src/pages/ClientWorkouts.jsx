@@ -49,7 +49,7 @@ function ClientWorkouts({ clientId, clientName }) {
 
   return (
     <Container size="xl" py="xl">
-      <Title order={1} mb="xl">{isTrainerView ? `${clientName}'s Workouts` : 'My Workouts'}</Title>
+      <Title order={1} mb="xl">{isTrainerView ? 'Workouts' : 'My Workouts'}</Title>
 
       {workouts.length === 0 ? (
         <Paper p="xl" withBorder>

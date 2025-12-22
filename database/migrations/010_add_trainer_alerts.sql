@@ -23,3 +23,5 @@ CREATE INDEX IF NOT EXISTS idx_trainer_alerts_is_read ON trainer_alerts(is_read)
 CREATE INDEX IF NOT EXISTS idx_trainer_alerts_created_at ON trainer_alerts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_trainer_alerts_alert_type ON trainer_alerts(alert_type);
 
+
+

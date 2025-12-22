@@ -68,7 +68,7 @@ function ClientNutrition({ clientId, clientName }) {
 
   return (
     <Container size="xl" py="xl">
-      <Title order={1} mb="xl">{isTrainerView ? `${clientName}'s Nutrition` : 'My Nutrition'}</Title>
+      <Title order={1} mb="xl">{isTrainerView ? 'Nutrition' : 'My Nutrition'}</Title>
 
       {nutritionGoals ? (
         <>

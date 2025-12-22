@@ -211,7 +211,7 @@ function WorkoutLibrary() {
                             value: clientUserId?.toString() || '',
                             label: `${client.name || 'Client'} (${client.email})`
                           }
-                        }).filter(item => item.value) // Filter out any clients without user_id
+                        }).filter(item => item.value)}
                         searchable
                         {...assignForm.getInputProps('clientIds')}
                         required
