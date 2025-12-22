@@ -162,21 +162,37 @@ function WorkoutLibrary() {
 
   return (
     <Box style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Container size="xl" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
-        <Title order={1} mb="xl" style={{ flexShrink: 0 }}>Workouts</Title>
-
-        <Tabs value={activeTab} onChange={handleTabChange} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {!isDirectNavigation && (
-            <Tabs.List mb="xl" style={{ flexShrink: 0 }}>
-              <Tabs.Tab value="create">Create Workout</Tabs.Tab>
-              <Tabs.Tab value="manage">Manage Workouts</Tabs.Tab>
-            </Tabs.List>
-          )}
-
-          {/* Create Workout Tab */}
-          <Tabs.Panel value="create" style={{ flex: 1, overflow: 'auto', marginLeft: '-1.5rem', marginRight: '-1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', width: 'calc(100% + 3rem)' }}>
+      {activeTab === 'create' ? (
+        <>
+          <Container size="xl" style={{ flexShrink: 0, paddingTop: '1.5rem', paddingBottom: '1rem' }}>
+            <Title order={1} mb="xl">Workouts</Title>
+            {!isDirectNavigation && (
+              <Tabs.List mb="xl">
+                <Tabs.Tab value="create">Create Workout</Tabs.Tab>
+                <Tabs.Tab value="manage">Manage Workouts</Tabs.Tab>
+              </Tabs.List>
+            )}
+          </Container>
+          <Box style={{ flex: 1, overflow: 'auto', width: '100%', paddingLeft: '2rem', paddingRight: '2rem', paddingBottom: '1.5rem' }}>
             <WorkoutBuilder />
-          </Tabs.Panel>
+          </Box>
+        </>
+      ) : (
+        <Container size="xl" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
+          <Title order={1} mb="xl" style={{ flexShrink: 0 }}>Workouts</Title>
+
+          <Tabs value={activeTab} onChange={handleTabChange} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {!isDirectNavigation && (
+              <Tabs.List mb="xl" style={{ flexShrink: 0 }}>
+                <Tabs.Tab value="create">Create Workout</Tabs.Tab>
+                <Tabs.Tab value="manage">Manage Workouts</Tabs.Tab>
+              </Tabs.List>
+            )}
+
+            {/* Create Workout Tab */}
+            <Tabs.Panel value="create" style={{ flex: 1, overflow: 'auto' }}>
+              <WorkoutBuilder />
+            </Tabs.Panel>
 
           {/* Manage Workouts Tab - Combines Assign and Library */}
           <Tabs.Panel value="manage" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -390,9 +406,10 @@ function WorkoutLibrary() {
                 </Paper>
               </Stack>
             </ScrollArea>
-          </Tabs.Panel>
-        </Tabs>
-      </Container>
+            </Tabs.Panel>
+          </Tabs>
+        </Container>
+      )}
 
       {/* Legacy Modal for backward compatibility */}
       <Modal opened={opened} onClose={close} title={`Assign Workout: ${selectedWorkout?.name}`} size="md">
