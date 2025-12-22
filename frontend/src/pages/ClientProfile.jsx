@@ -247,10 +247,50 @@ function ClientProfile() {
 
             <Tabs.Panel value="progress">
               <Stack gap="xl">
-                {/* Goals Section */}
+                {/* Check-ins Section - Moved to Top */}
                 <Paper p="md" withBorder>
-                  <Title order={2} mb="md">Goals</Title>
-                  <ClientGoals clientId={clientId} client={client} onUpdate={fetchClientProfile} />
+                  <Title order={2} mb="md">Daily Check-ins</Title>
+                  {client.check_ins && client.check_ins.length > 0 ? (
+                    <Stack gap="sm">
+                      {client.check_ins.map(checkIn => (
+                        <Card key={checkIn.id} withBorder>
+                          <Group justify="space-between" mb="xs">
+                            <Text fw={500}>{new Date(checkIn.check_in_date).toLocaleDateString()}</Text>
+                            <Badge color={checkIn.status === 'completed' ? 'green' : 'yellow'}>
+                              {checkIn.status}
+                            </Badge>
+                          </Group>
+                          <Stack gap="xs">
+                            {checkIn.workout_completed !== null && (
+                              <Text size="sm">
+                                <Text span fw={500}>Workout:</Text> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
+                                {checkIn.workout_rating && (
+                                  <Badge size="sm" ml="xs" variant="light">
+                                    Rating: {checkIn.workout_rating}/10
+                                  </Badge>
+                                )}
+                              </Text>
+                            )}
+                            {checkIn.diet_stuck_to !== null && (
+                              <Text size="sm">
+                                <Text span fw={500}>Diet:</Text> {checkIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
+                              </Text>
+                            )}
+                            {checkIn.notes && (
+                              <Text size="sm" c="dimmed"><Text span fw={500}>Notes:</Text> {checkIn.notes}</Text>
+                            )}
+                            {checkIn.trainer_response && (
+                              <Alert color="blue" title="Your Response">
+                                {checkIn.trainer_response}
+                              </Alert>
+                            )}
+                          </Stack>
+                        </Card>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Text c="dimmed">No check-ins yet</Text>
+                  )}
                 </Paper>
 
                 {/* Progress Tracking Section */}
@@ -300,50 +340,10 @@ function ClientProfile() {
                   )}
                 </Paper>
 
-                {/* Check-ins Section */}
+                {/* Goals Section - Moved to Bottom */}
                 <Paper p="md" withBorder>
-                  <Title order={2} mb="md">Daily Check-ins</Title>
-                  {client.check_ins && client.check_ins.length > 0 ? (
-                    <Stack gap="sm">
-                      {client.check_ins.map(checkIn => (
-                        <Card key={checkIn.id} withBorder>
-                          <Group justify="space-between" mb="xs">
-                            <Text fw={500}>{new Date(checkIn.check_in_date).toLocaleDateString()}</Text>
-                            <Badge color={checkIn.status === 'completed' ? 'green' : 'yellow'}>
-                              {checkIn.status}
-                            </Badge>
-                          </Group>
-                          <Stack gap="xs">
-                            {checkIn.workout_completed !== null && (
-                              <Text size="sm">
-                                <Text span fw={500}>Workout:</Text> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
-                                {checkIn.workout_rating && (
-                                  <Badge size="sm" ml="xs" variant="light">
-                                    Rating: {checkIn.workout_rating}/10
-                                  </Badge>
-                                )}
-                              </Text>
-                            )}
-                            {checkIn.diet_stuck_to !== null && (
-                              <Text size="sm">
-                                <Text span fw={500}>Diet:</Text> {checkIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
-                              </Text>
-                            )}
-                            {checkIn.notes && (
-                              <Text size="sm" c="dimmed"><Text span fw={500}>Notes:</Text> {checkIn.notes}</Text>
-                            )}
-                            {checkIn.trainer_response && (
-                              <Alert color="blue" title="Your Response">
-                                {checkIn.trainer_response}
-                              </Alert>
-                            )}
-                          </Stack>
-                        </Card>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Text c="dimmed">No check-ins yet</Text>
-                  )}
+                  <Title order={2} mb="md">Goals</Title>
+                  <ClientGoals clientId={clientId} client={client} onUpdate={fetchClientProfile} />
                 </Paper>
               </Stack>
             </Tabs.Panel>
