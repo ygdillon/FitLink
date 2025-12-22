@@ -451,9 +451,11 @@
 /* Target Mantine Calendar table structure */
 .calendar-wrapper table,
 .calendar-wrapper [role="grid"] {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 1px;
   width: 100%;
   table-layout: fixed;
+  background-color: var(--mantine-color-gray-2);
 }
 
 .calendar-wrapper table tbody tr,
@@ -463,28 +465,30 @@
 
 .calendar-wrapper table tbody td,
 .calendar-wrapper [role="gridcell"] {
-  border: 1px solid var(--mantine-color-gray-3);
+  border: none;
   padding: 0;
   margin: 0;
   vertical-align: top;
   width: calc(100% / 7);
   position: relative;
+  background-color: var(--mantine-color-gray-0);
 }
 
 .calendar-wrapper table thead th,
 .calendar-wrapper [role="columnheader"] {
   border: none;
-  border-bottom: 1px solid var(--mantine-color-gray-3);
+  border-bottom: 1px solid var(--mantine-color-gray-2);
   padding: 0.75rem 0;
   text-align: center;
   font-weight: 600;
+  background-color: transparent;
 }
 
 /* Ensure day cells are squared and connected */
 .calendar-wrapper [data-mantine-calendar-day] {
   border-radius: 0 !important;
-  border: 1px solid var(--mantine-color-gray-3) !important;
-  margin: -1px !important;
+  border: none !important;
+  margin: 0 !important;
   width: 100% !important;
   height: 5rem !important;
   min-height: 5rem !important;
@@ -493,6 +497,7 @@
   justify-content: flex-start !important;
   padding: 0.5rem !important;
   transition: background-color 0.15s ease !important;
+  background-color: var(--mantine-color-gray-0) !important;
 }
 
 /* Hover effect for day cells */
@@ -503,12 +508,15 @@
 
 /* Ensure cells are properly connected */
 .calendar-wrapper [data-mantine-calendar-month-cell] {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 1px;
 }
 
 .calendar-wrapper [data-mantine-calendar-month-cell] table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 1px;
   width: 100%;
+  background-color: var(--mantine-color-gray-2);
 }
 
 /* Responsive adjustments */

@@ -221,7 +221,7 @@ function TrainerDashboard() {
                           minHeight: '5rem',
                           width: '100%',
                           borderRadius: 0,
-                          border: '1px solid var(--mantine-color-gray-3)',
+                          border: 'none',
                           margin: 0,
                           display: 'flex',
                           alignItems: 'flex-start',
@@ -229,12 +229,14 @@ function TrainerDashboard() {
                           padding: '0.5rem',
                           transition: 'background-color 0.15s ease',
                           position: 'relative',
+                          backgroundColor: 'var(--mantine-color-gray-0)',
                         },
                         cell: {
-                          border: '1px solid var(--mantine-color-gray-3)',
+                          border: 'none',
                           margin: 0,
                           padding: 0,
                           width: 'calc(100% / 7)',
+                          backgroundColor: 'var(--mantine-color-gray-0)',
                         },
                       }}
                       size="lg"
