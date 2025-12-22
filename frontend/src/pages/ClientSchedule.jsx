@@ -405,6 +405,7 @@ function ClientSchedule({ clientId, clientName }) {
               <Select
                 label="Type *"
                 data={['In-Person', 'Online', 'Hybrid']}
+                withinPortal
                 {...form.getInputProps('sessionType')}
                 required
               />
@@ -427,12 +428,11 @@ function ClientSchedule({ clientId, clientName }) {
             <Select
               label="Workout (optional)"
               placeholder="No specific workout"
-              data={workouts.length > 0 ? workouts.map(w => ({ value: w.id.toString(), label: w.name })) : []}
+              data={workouts.map(w => ({ value: w.id.toString(), label: w.name }))}
               searchable
               clearable
-              value={form.values.workoutId || null}
-              onChange={(value) => form.setFieldValue('workoutId', value || '')}
-              disabled={workouts.length === 0}
+              withinPortal
+              {...form.getInputProps('workoutId')}
             />
             <Textarea
               label="Notes"
@@ -452,6 +452,7 @@ function ClientSchedule({ clientId, clientName }) {
                   <Select
                     label="Repeat Pattern"
                     data={['Every Week', 'Every 2 Weeks', 'Every Month']}
+                    withinPortal
                     {...form.getInputProps('recurringPattern')}
                   />
                   <DatePickerInput
@@ -520,6 +521,7 @@ function ClientSchedule({ clientId, clientName }) {
                 <Select
                   label="Type *"
                   data={['In-Person', 'Online', 'Hybrid']}
+                  withinPortal
                   {...form.getInputProps('sessionType')}
                   required
                 />
@@ -544,6 +546,7 @@ function ClientSchedule({ clientId, clientName }) {
                 data={['Scheduled', 'Confirmed', 'Completed', 'Cancelled']}
                 value={form.values.status || selectedSession.status}
                 onChange={(value) => form.setFieldValue('status', value)}
+                withinPortal
               />
               <Textarea
                 label="Notes"

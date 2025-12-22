@@ -135,6 +135,7 @@ function WorkoutBuilder() {
               data={['Strength', 'Cardio', 'HIIT', 'Flexibility', 'Full Body', 'Upper Body', 'Lower Body', 'Core']}
               value={category}
               onChange={setCategory}
+              withinPortal
             />
             <Checkbox
               label="Save as Template (reusable workout)"
@@ -156,6 +157,7 @@ function WorkoutBuilder() {
                 value={selectedClientId}
                 onChange={setSelectedClientId}
                 searchable
+                withinPortal
                 style={{ flex: 1 }}
               />
               <Button 

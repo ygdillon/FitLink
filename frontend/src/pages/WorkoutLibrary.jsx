@@ -211,6 +211,7 @@ function WorkoutLibrary() {
                           label: workout.name
                         }))}
                         searchable
+                        withinPortal
                         {...assignForm.getInputProps('workoutId')}
                         required
                       />
@@ -229,6 +230,7 @@ function WorkoutLibrary() {
                           }
                         }).filter(item => item.value)}
                         searchable
+                        withinPortal
                         {...assignForm.getInputProps('clientIds')}
                         required
                       />
@@ -274,6 +276,7 @@ function WorkoutLibrary() {
                         { value: 'templates', label: 'Templates' },
                         { value: 'custom', label: 'Custom' }
                       ]}
+                      withinPortal
                     />
                   </Group>
                   {filteredWorkouts.length === 0 ? (
@@ -332,6 +335,7 @@ function WorkoutLibrary() {
                         { value: 'templates', label: 'Templates' },
                         { value: 'custom', label: 'Custom' }
                       ]}
+                      withinPortal
                     />
                   </Group>
 
@@ -427,6 +431,7 @@ function WorkoutLibrary() {
                   }
                 })}
                 searchable
+                withinPortal
                 {...assignForm.getInputProps('clientIds')}
                 required
               />
