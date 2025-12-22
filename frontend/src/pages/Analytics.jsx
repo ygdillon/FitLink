@@ -64,6 +64,7 @@ function Analytics() {
             { value: '365', label: 'Last year' },
             { value: 'all', label: 'All time' }
           ]}
+          withinPortal
         />
       </Group>
 

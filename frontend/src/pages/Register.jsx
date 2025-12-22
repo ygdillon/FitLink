@@ -111,6 +111,7 @@ function Register() {
                   { value: 'client', label: 'Client' },
                   { value: 'trainer', label: 'Trainer' }
                 ]}
+                withinPortal
                 required
                 size="md"
               />

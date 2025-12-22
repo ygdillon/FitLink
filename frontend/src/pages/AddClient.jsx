@@ -187,6 +187,7 @@ function AddClient() {
                   label="Gender *"
                   placeholder="Select gender"
                   data={['Male', 'Female', 'Other', 'Prefer not to say']}
+                  withinPortal
                   {...form.getInputProps('gender')}
                   required
                 />
@@ -227,6 +228,7 @@ function AddClient() {
                   'Rehabilitation',
                   'Other'
                 ]}
+                withinPortal
                 {...form.getInputProps('primary_goal')}
                 required
               />
@@ -283,12 +285,14 @@ function AddClient() {
               <Select
                 label="Training Preference *"
                 data={['Online', 'In-Person', 'Hybrid']}
+                withinPortal
                 {...form.getInputProps('training_preference')}
                 required
               />
               <Select
                 label="Communication Preference *"
                 data={['Daily Check-ins', 'Weekly Check-ins', 'As Needed']}
+                withinPortal
                 {...form.getInputProps('communication_preference')}
                 required
                 description="For online training, daily contact is recommended for better accountability"

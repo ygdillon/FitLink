@@ -189,6 +189,7 @@ function ClientOnboarding() {
                   label="Gender *"
                   placeholder="Select gender"
                   data={['Male', 'Female', 'Other', 'Prefer not to say']}
+                  withinPortal
                   {...form.getInputProps('gender')}
                   required
                 />
@@ -222,6 +223,7 @@ function ClientOnboarding() {
               <Select
                 label="Current Activity Level *"
                 placeholder="Select activity level"
+                withinPortal
                 data={[
                   'Sedentary (little to no exercise)',
                   'Light (exercise 1-3 days/week)',
@@ -260,6 +262,7 @@ function ClientOnboarding() {
               <Select
                 label="Primary Goal *"
                 placeholder="Select primary goal"
+                withinPortal
                 data={[
                   'Lose Weight',
                   'Gain Muscle',
@@ -355,6 +358,7 @@ function ClientOnboarding() {
                 label="Stress Level *"
                 placeholder="Select stress level"
                 data={['Low', 'Moderate', 'High']}
+                withinPortal
                 {...form.getInputProps('stress_level')}
                 required
               />
@@ -402,6 +406,7 @@ function ClientOnboarding() {
                 label="Training Preference *"
                 placeholder="Select preference"
                 data={['In-Person', 'Online', 'Hybrid (Both)']}
+                withinPortal
                 {...form.getInputProps('training_preference')}
                 required
               />
@@ -409,6 +414,7 @@ function ClientOnboarding() {
                 label="Communication Preference *"
                 placeholder="Select preference"
                 data={['Daily', 'Few Times a Week', 'Weekly', 'As Needed']}
+                withinPortal
                 {...form.getInputProps('communication_preference')}
                 required
               />

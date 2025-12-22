@@ -113,6 +113,7 @@ function ClientProgress() {
                 <Select
                   label="Type"
                   data={['Custom', 'Weight', 'Strength', 'Measurement', 'Endurance']}
+                  withinPortal
                   {...metricForm.getInputProps('metric_type')}
                 />
               </Group>

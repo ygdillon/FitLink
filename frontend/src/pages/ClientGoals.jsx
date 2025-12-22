@@ -105,6 +105,7 @@ function ClientGoals({ clientId, client, onUpdate }) {
                   'Increase Energy',
                   'Reduce Stress'
                 ]}
+                withinPortal
                 {...form.getInputProps('primary_goal')}
                 required
               />
