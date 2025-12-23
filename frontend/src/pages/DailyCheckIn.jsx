@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Container, Paper, Title, Text, Stack, Group, Radio, Textarea, Button, Alert, Badge, Box, NumberInput, Checkbox, TextInput, FileButton, Image, Card, Tabs } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import api from '../services/api'
 
 function DailyCheckIn() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     workout_completed: null,
     diet_stuck_to: null,
@@ -311,8 +312,8 @@ function DailyCheckIn() {
                     You need to complete at least one workout before you can check in.
                   </Text>
                   <Button 
-                    component="a" 
-                    href="/client/workouts" 
+                    component={Link}
+                    to="/client/workouts" 
                     variant="filled"
                     color="green"
                   >
