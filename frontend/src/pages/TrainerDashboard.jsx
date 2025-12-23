@@ -146,7 +146,7 @@ function TrainerDashboard() {
               overflow: 'hidden'
             }}
           >
-            <Group justify="flex-end" mb="md">
+            <Group justify="flex-end" mb="md" style={{ flexShrink: 0 }}>
               <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
                 View All Clients →
               </Anchor>
@@ -157,8 +157,8 @@ function TrainerDashboard() {
                 <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
               </Stack>
             ) : (
-              <Stack gap="md" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto' }}>
+              <Stack gap="md" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
                   <Calendar
                     value={null}
                     onChange={handleDateClick}
@@ -202,9 +202,9 @@ function TrainerDashboard() {
                         color: 'var(--mantine-color-gray-6)',
                       },
                       day: {
-                        fontSize: '0.95rem',
-                        height: '5rem',
-                        minHeight: '5rem',
+                        fontSize: '0.9rem',
+                        height: 'auto',
+                        minHeight: '4rem',
                         width: '100%',
                         borderRadius: 0,
                         border: 'none',
@@ -212,7 +212,7 @@ function TrainerDashboard() {
                         display: 'flex',
                         alignItems: 'flex-start',
                         justifyContent: 'flex-start',
-                        padding: '0.5rem',
+                        padding: '0.4rem',
                         transition: 'background-color 0.15s ease',
                         position: 'relative',
                       },
@@ -227,7 +227,7 @@ function TrainerDashboard() {
                     fullWidth
                   />
                 </div>
-                <Group justify="center" mt="xs" style={{ flexShrink: 0 }}>
+                <Group justify="center" style={{ flexShrink: 0, marginTop: '0.5rem' }}>
                   <Badge size="md" variant="dot" color="green" radius="md">
                     Has Sessions
                   </Badge>
