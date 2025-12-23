@@ -524,15 +524,6 @@ function Navbar({ children }) {
                 <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
               </svg>
             </UnstyledButton>
-            <Button
-              variant="subtle"
-              size="sm"
-              color="red"
-              onClick={handleLogout}
-              style={{ padding: '0.375rem 0.75rem' }}
-            >
-              Logout
-            </Button>
           </Group>
         </Group>
       </AppShell.Header>
