@@ -28,6 +28,8 @@ function DailyCheckIn() {
   const [fromWorkout, setFromWorkout] = useState(false)
   const [checkInHistory, setCheckInHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [hasCompletedWorkouts, setHasCompletedWorkouts] = useState(false)
+  const [checkingWorkouts, setCheckingWorkouts] = useState(true)
 
   useEffect(() => {
     // Check if coming from workout completion
@@ -40,7 +42,24 @@ function DailyCheckIn() {
     }
     fetchTodayCheckIn()
     fetchCheckInHistory()
+    checkCompletedWorkouts()
   }, [location])
+
+  const checkCompletedWorkouts = async () => {
+    try {
+      setCheckingWorkouts(true)
+      const response = await api.get('/client/workouts')
+      // Check if there are any completed workouts
+      const completed = response.data.filter(w => w.status === 'completed')
+      setHasCompletedWorkouts(completed.length > 0)
+    } catch (error) {
+      console.error('Error checking completed workouts:', error)
+      // If error, allow check-in (don't block on API error)
+      setHasCompletedWorkouts(true)
+    } finally {
+      setCheckingWorkouts(false)
+    }
+  }
 
   const fetchCheckInHistory = async () => {
     try {
@@ -280,6 +299,28 @@ function DailyCheckIn() {
         )}
 
         {!submitted && (
+          <>
+            {checkingWorkouts ? (
+              <Alert color="blue" title="Loading...">
+                Checking your workout status...
+              </Alert>
+            ) : !hasCompletedWorkouts ? (
+              <Alert color="yellow" title="No Completed Workouts" mb="md">
+                <Stack gap="xs">
+                  <Text>
+                    You need to complete at least one workout before you can check in.
+                  </Text>
+                  <Button 
+                    component="a" 
+                    href="/client/workouts" 
+                    variant="filled"
+                    color="green"
+                  >
+                    Go to Workouts
+                  </Button>
+                </Stack>
+              </Alert>
+            ) : (
           <form onSubmit={handleSubmit}>
             <Stack gap="lg">
               <Radio.Group
@@ -309,7 +350,10 @@ function DailyCheckIn() {
               {formData.workout_completed === true && (
                 <>
                   <Box>
-                    <Text fw={500} mb="xs">Rate your workout today (1-10) *</Text>
+                    <Text fw={500} mb="xs">Workout Difficulty Scale (1-10) *</Text>
+                    <Text size="sm" c="dimmed" mb="md">
+                      How difficult was this workout for you? This helps your trainer adjust your program.
+                    </Text>
                     <Box mt="md">
                       <Group gap="xs" mb="xs" wrap="wrap">
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(rating => (
@@ -337,16 +381,13 @@ function DailyCheckIn() {
                       </Group>
                       {formData.workout_rating && (
                         <Alert color="blue" size="sm">
-                          {formData.workout_rating <= 3 && 'Easy workout'}
-                          {formData.workout_rating >= 4 && formData.workout_rating <= 6 && 'Moderate workout'}
-                          {formData.workout_rating >= 7 && formData.workout_rating <= 8 && 'Challenging workout'}
-                          {formData.workout_rating >= 9 && 'Extremely challenging'}
+                          {formData.workout_rating <= 3 && 'Easy workout - You found this workout very manageable'}
+                          {formData.workout_rating >= 4 && formData.workout_rating <= 6 && 'Moderate workout - Good challenge level'}
+                          {formData.workout_rating >= 7 && formData.workout_rating <= 8 && 'Challenging workout - Pushed your limits'}
+                          {formData.workout_rating >= 9 && 'Extremely challenging - Very difficult to complete'}
                         </Alert>
                       )}
                     </Box>
-                    <Text size="xs" c="dimmed" mt="xs">
-                      This helps your trainer understand the intensity and adjust your program if needed.
-                    </Text>
                   </Box>
 
                   <NumberInput
@@ -523,6 +564,8 @@ function DailyCheckIn() {
               </Button>
             </Stack>
           </form>
+            )}
+          </>
         )}
           </Tabs.Panel>
 
