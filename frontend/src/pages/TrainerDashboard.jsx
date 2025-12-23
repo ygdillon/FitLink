@@ -62,7 +62,15 @@ function TrainerDashboard() {
     upcomingSessions.forEach(session => {
       if (session.session_date) {
         // Normalize date key to YYYY-MM-DD format
-        const dateKey = session.session_date.split('T')[0]
+        // Handle both ISO string format and plain date string
+        let dateKey
+        if (typeof session.session_date === 'string') {
+          dateKey = session.session_date.split('T')[0]
+        } else {
+          // If it's a Date object, convert to YYYY-MM-DD
+          const date = new Date(session.session_date)
+          dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        }
         if (!grouped.has(dateKey)) {
           grouped.set(dateKey, [])
         }
@@ -76,7 +84,11 @@ function TrainerDashboard() {
   const getSessionsForDate = (date) => {
     if (!date) return []
     try {
-      const dateKey = date.toISOString().split('T')[0]
+      // Normalize date to YYYY-MM-DD format using local timezone (not UTC)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const dateKey = `${year}-${month}-${day}`
       return sessionsByDate.get(dateKey) || []
     } catch (error) {
       console.error('Error getting sessions for date:', error)
@@ -165,8 +177,14 @@ function TrainerDashboard() {
                     getDayProps={(date) => {
                       if (!date) return {}
                       try {
-                        const dateKey = date.toISOString().split('T')[0]
+                        // Normalize date to YYYY-MM-DD format using local timezone (not UTC)
+                        // This prevents timezone issues that could shift the date by a day
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0')
+                        const day = String(date.getDate()).padStart(2, '0')
+                        const dateKey = `${year}-${month}-${day}`
                         const hasSessions = sessionsByDate.has(dateKey)
+                        
                         return {
                           style: hasSessions
                             ? {

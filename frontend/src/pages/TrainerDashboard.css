@@ -501,6 +501,26 @@
   color: inherit !important;
 }
 
+/* Override any white backgrounds that might be applied by Mantine */
+.calendar-wrapper [data-mantine-calendar-day]:not([data-has-sessions]) {
+  background-color: var(--mantine-color-gray-0) !important;
+}
+
+/* Dark theme support for day background */
+[data-mantine-color-scheme="dark"] .calendar-wrapper [data-mantine-calendar-day]:not([data-has-sessions]) {
+  background-color: var(--mantine-color-dark-6) !important;
+}
+
+[data-mantine-color-scheme="dark"] .calendar-wrapper table tbody td,
+[data-mantine-color-scheme="dark"] .calendar-wrapper [role="gridcell"] {
+  background-color: var(--mantine-color-dark-6) !important;
+}
+
+[data-mantine-color-scheme="dark"] .calendar-wrapper table,
+[data-mantine-color-scheme="dark"] .calendar-wrapper [role="grid"] {
+  background-color: var(--mantine-color-dark-5) !important;
+}
+
 /* Weekend days styling */
 .calendar-wrapper [data-mantine-calendar-day][data-weekend] {
   color: inherit !important;
