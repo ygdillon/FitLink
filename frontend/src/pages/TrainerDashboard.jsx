@@ -158,7 +158,7 @@ function TrainerDashboard() {
               </Stack>
             ) : (
               <Stack gap="md" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto' }}>
                   <Calendar
                     value={null}
                     onChange={handleDateClick}
@@ -186,33 +186,25 @@ function TrainerDashboard() {
                     styles={{
                       calendar: {
                         width: '100%',
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
                       },
                       month: {
                         width: '100%',
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
                       },
                       monthCell: {
                         width: '100%',
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
                       },
                       weekday: {
                         fontWeight: 600,
                         fontSize: '0.875rem',
-                        paddingBottom: '0.5rem',
-                        paddingTop: '0.25rem',
+                        paddingBottom: '0.75rem',
+                        paddingTop: '0.5rem',
                         textAlign: 'center',
                         color: 'var(--mantine-color-gray-6)',
                       },
                       day: {
-                        fontSize: '0.9rem',
-                        height: '100%',
+                        fontSize: '0.95rem',
+                        height: '5rem',
+                        minHeight: '5rem',
                         width: '100%',
                         borderRadius: 0,
                         border: 'none',
@@ -220,7 +212,7 @@ function TrainerDashboard() {
                         display: 'flex',
                         alignItems: 'flex-start',
                         justifyContent: 'flex-start',
-                        padding: '0.4rem',
+                        padding: '0.5rem',
                         transition: 'background-color 0.15s ease',
                         position: 'relative',
                       },
@@ -229,7 +221,6 @@ function TrainerDashboard() {
                         margin: 0,
                         padding: 0,
                         width: 'calc(100% / 7)',
-                        flex: 1,
                       },
                     }}
                     size="lg"
