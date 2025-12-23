@@ -35,15 +35,21 @@ function WorkoutView() {
       const response = await api.post(`/workouts/${id}/complete`)
       setCompleted(true)
       
+      // Always require check-in after workout completion
       if (response.data.requiresCheckIn) {
         setRequiresCheckIn(true)
         openCheckInModal()
       } else {
+        // If backend doesn't return requiresCheckIn, still redirect to check-in
         notifications.show({
           title: 'Workout Completed',
-          message: 'Workout has been marked as complete!',
+          message: 'Redirecting to check-in...',
           color: 'green',
         })
+        // Redirect to check-in after a short delay
+        setTimeout(() => {
+          navigate('/check-in', { state: { fromWorkout: true, workoutId: id } })
+        }, 1500)
       }
     } catch (error) {
       console.error('Error completing workout:', error)
@@ -57,7 +63,7 @@ function WorkoutView() {
 
   const handleGoToCheckIn = () => {
     closeCheckInModal()
-    navigate('/check-in', { state: { fromWorkout: true, workoutId: id } })
+    navigate('/check-in', { state: { fromWorkout: true, workoutId: id, required: true } })
   }
 
   if (loading) {
@@ -129,23 +135,23 @@ function WorkoutView() {
 
       <Modal
         opened={checkInModalOpened}
-        onClose={closeCheckInModal}
+        onClose={() => {}} // Prevent closing - check-in is required
         title="Workout Completed!"
         centered
         closeOnClickOutside={false}
         closeOnEscape={false}
+        withCloseButton={false}
       >
         <Stack gap="md">
+          <Alert color="green" title="Great job!">
+            You've completed your workout! A check-in is required to help your trainer track your progress and adjust your program.
+          </Alert>
           <Text>
-            Great job completing your workout! To help your trainer track your progress and adjust your program, 
-            please complete a quick check-in.
+            Please complete your check-in now. This will only take a minute and helps your trainer provide better guidance.
           </Text>
           <Group justify="flex-end">
-            <Button variant="outline" onClick={closeCheckInModal}>
-              Skip for Now
-            </Button>
-            <Button onClick={handleGoToCheckIn} color="robinhoodGreen">
-              Complete Check-in
+            <Button onClick={handleGoToCheckIn} color="robinhoodGreen" size="md" fullWidth>
+              Complete Check-in Now
             </Button>
           </Group>
         </Stack>

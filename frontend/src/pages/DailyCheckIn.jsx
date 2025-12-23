@@ -32,10 +32,13 @@ function DailyCheckIn() {
   const [hasCompletedWorkouts, setHasCompletedWorkouts] = useState(false)
   const [checkingWorkouts, setCheckingWorkouts] = useState(true)
 
+  const [isRequired, setIsRequired] = useState(false)
+
   useEffect(() => {
     // Check if coming from workout completion
     if (location.state?.fromWorkout) {
       setFromWorkout(true)
+      setIsRequired(location.state?.required || false)
       setFormData(prev => ({
         ...prev,
         workout_completed: true
@@ -158,7 +161,15 @@ function DailyCheckIn() {
       })
       fetchTodayCheckIn()
       setFromWorkout(false) // Clear the fromWorkout flag after submission
+      setIsRequired(false) // Clear required flag after submission
       setPhotoPreview(null) // Clear photo preview
+      
+      // If this was a required check-in after workout, navigate back to workouts
+      if (isRequired && location.state?.workoutId) {
+        setTimeout(() => {
+          navigate('/client/workouts')
+        }, 2000)
+      }
     } catch (error) {
       console.error('Error submitting check-in:', error)
       setMessage('Failed to submit check-in')
@@ -193,8 +204,15 @@ function DailyCheckIn() {
             <Text c="dimmed" mb="xl">{today}</Text>
         
         {fromWorkout && (
-          <Alert color="green" mb="md" title="Workout Completed!">
-            Great job! Let's complete your check-in to help your trainer track your progress.
+          <Alert 
+            color={isRequired ? "orange" : "green"} 
+            mb="md" 
+            title={isRequired ? "Check-in Required" : "Workout Completed!"}
+          >
+            {isRequired 
+              ? "A check-in is required after completing your workout. Please complete the form below to continue."
+              : "Great job! Let's complete your check-in to help your trainer track your progress."
+            }
           </Alert>
         )}
 
