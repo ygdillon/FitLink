@@ -97,11 +97,9 @@ router.get('/trainer/clients/:clientId/sessions', requireRole(['trainer']), asyn
     if (startDate && endDate) {
       query += ' AND s.session_date BETWEEN $3 AND $4'
       params.push(startDate, endDate)
-    } else {
-      query += ' ORDER BY s.session_date DESC LIMIT 30'
     }
     
-    query += ' ORDER BY s.session_date DESC, s.session_time DESC'
+    query += ' ORDER BY s.session_date ASC, s.session_time ASC'
     
     const result = await pool.query(query, params)
     res.json(result.rows)
