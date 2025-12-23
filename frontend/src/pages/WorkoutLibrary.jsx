@@ -165,7 +165,6 @@ function WorkoutLibrary() {
       {activeTab === 'create' ? (
         <>
           <Container size="xl" style={{ flexShrink: 0, paddingTop: '1.5rem', paddingBottom: '1rem' }}>
-            <Title order={1} mb="xl">Workouts</Title>
             {!isDirectNavigation && (
               <Tabs.List mb="xl">
                 <Tabs.Tab value="create">Create Workout</Tabs.Tab>
@@ -179,8 +178,6 @@ function WorkoutLibrary() {
         </>
       ) : (
         <Container size="xl" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
-          <Title order={1} mb="xl" style={{ flexShrink: 0 }}>Workouts</Title>
-
           <Tabs value={activeTab} onChange={handleTabChange} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {!isDirectNavigation && (
               <Tabs.List mb="xl" style={{ flexShrink: 0 }}>
