@@ -116,18 +116,12 @@ function generateRecurringDates(startDate, endDate, dayOfWeek, pattern = 'weekly
   const dates = []
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const targetDay = parseInt(dayOfWeek)
   
-  // Find the first occurrence of the target day of week
+  // Set end date to end of day to include the full day
+  end.setHours(23, 59, 59, 999)
+  
+  // Start from the selected start date (first session)
   let current = new Date(start)
-  while (current.getDay() !== targetDay && current <= end) {
-    current.setDate(current.getDate() + 1)
-  }
-  
-  // If we've passed the start date, start from the first occurrence
-  if (current < start) {
-    current.setDate(current.getDate() + 7) // Move to next week
-  }
   
   // Generate all dates until end date
   while (current <= end) {
@@ -139,6 +133,9 @@ function generateRecurringDates(startDate, endDate, dayOfWeek, pattern = 'weekly
       current.setDate(current.getDate() + 14)
     } else if (pattern === 'monthly') {
       current.setMonth(current.getMonth() + 1)
+    } else {
+      // Default to weekly if pattern is unknown
+      current.setDate(current.getDate() + 7)
     }
   }
   
