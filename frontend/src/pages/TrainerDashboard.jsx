@@ -48,6 +48,8 @@ function TrainerDashboard() {
       }
       
       const sessions = sessionsRes.data || []
+      console.log('Fetched sessions:', sessions)
+      console.log('Sample session date format:', sessions[0]?.session_date)
       setUpcomingSessions(sessions)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -62,21 +64,47 @@ function TrainerDashboard() {
     upcomingSessions.forEach(session => {
       if (session.session_date) {
         // Normalize date key to YYYY-MM-DD format
-        // Handle both ISO string format and plain date string
+        // PostgreSQL DATE columns come as strings in 'YYYY-MM-DD' format
+        // But we need to handle all possible formats
         let dateKey
-        if (typeof session.session_date === 'string') {
-          dateKey = session.session_date.split('T')[0]
-        } else {
-          // If it's a Date object, convert to YYYY-MM-DD
-          const date = new Date(session.session_date)
-          dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        try {
+          if (typeof session.session_date === 'string') {
+            // Handle 'YYYY-MM-DD', 'YYYY-MM-DDTHH:mm:ss.sssZ', or 'YYYY-MM-DD HH:mm:ss' formats
+            const dateStr = session.session_date.trim()
+            // Extract just the date part (before T or space)
+            dateKey = dateStr.split('T')[0].split(' ')[0]
+            // Validate it's in YYYY-MM-DD format
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+              // If not, try parsing as Date and reformat
+              const date = new Date(session.session_date)
+              if (!isNaN(date.getTime())) {
+                dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+              } else {
+                console.warn('Invalid date format:', session.session_date)
+                return
+              }
+            }
+          } else {
+            // If it's a Date object, convert to YYYY-MM-DD using local timezone
+            const date = new Date(session.session_date)
+            if (isNaN(date.getTime())) {
+              console.warn('Invalid date object:', session.session_date)
+              return
+            }
+            dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+          }
+          
+          if (!grouped.has(dateKey)) {
+            grouped.set(dateKey, [])
+          }
+          grouped.get(dateKey).push(session)
+        } catch (error) {
+          console.error('Error processing session date:', session.session_date, error)
         }
-        if (!grouped.has(dateKey)) {
-          grouped.set(dateKey, [])
-        }
-        grouped.get(dateKey).push(session)
       }
     })
+    console.log('Sessions grouped by date:', Array.from(grouped.entries()))
+    console.log('Total sessions:', upcomingSessions.length, 'Grouped dates:', grouped.size)
     return grouped
   }, [upcomingSessions])
 
@@ -118,11 +146,11 @@ function TrainerDashboard() {
   }
 
   return (
-    <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
-      <Grid gutter="md" style={{ height: '100%', flex: 1 }}>
+    <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Grid gutter="md" style={{ height: '100%', flex: 1, minHeight: 0 }}>
         {/* Left Sidebar - Total Revenue */}
-        <Grid.Col span={{ base: 12, md: 3 }}>
-          <Paper p="md" shadow="sm" withBorder h="100%">
+        <Grid.Col span={{ base: 12, md: 3 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Paper p="md" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Title order={3} mb="md">Total Revenue</Title>
             <Stack gap="md">
               <Text size="2rem" fw={700} c="green.5">
@@ -155,7 +183,8 @@ function TrainerDashboard() {
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              minHeight: 0
             }}
           >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0 }}>
@@ -169,8 +198,8 @@ function TrainerDashboard() {
                 <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
               </Stack>
             ) : (
-              <Stack gap="md" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div className="calendar-wrapper" style={{ height: 'calc(100% - 3rem)', overflow: 'hidden' }}>
+              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
+                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                   <Calendar
                     value={null}
                     onChange={handleDateClick}
@@ -245,7 +274,7 @@ function TrainerDashboard() {
                     fullWidth
                   />
                 </div>
-                <Group justify="center" style={{ flexShrink: 0, height: '2rem' }}>
+                <Group justify="center" style={{ flexShrink: 0, height: '2.5rem', marginTop: '0.5rem' }}>
                   <Badge size="md" variant="dot" color="green" radius="md">
                     Has Sessions
                   </Badge>

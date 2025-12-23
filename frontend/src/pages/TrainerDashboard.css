@@ -445,7 +445,9 @@
 /* Calendar Grid Styles - Connected Squares (macOS-like) */
 .calendar-wrapper {
   width: 100%;
-  overflow: hidden;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Target Mantine Calendar table structure */
