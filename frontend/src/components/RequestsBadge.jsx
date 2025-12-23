@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UnstyledButton, Badge, useMantineColorScheme } from '@mantine/core'
+import { UnstyledButton, Badge, useMantineColorScheme, Text } from '@mantine/core'
 import { NavLink, useLocation } from 'react-router-dom'
 import api from '../services/api'
 
@@ -80,7 +80,7 @@ function RequestsBadge() {
       }}
     >
       <RequestIcon />
-      <span style={{ flex: 1, textAlign: 'left' }}>Requests</span>
+      <Text size="sm" style={{ flex: 1, textAlign: 'left' }}>Requests</Text>
       {unreadCount > 0 && (
         <Badge
           color="red"
