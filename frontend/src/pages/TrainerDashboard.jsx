@@ -158,7 +158,7 @@ function TrainerDashboard() {
               </Stack>
             ) : (
               <Stack gap="md" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                <div className="calendar-wrapper" style={{ height: 'calc(100% - 3rem)', overflow: 'hidden' }}>
                   <Calendar
                     value={null}
                     onChange={handleDateClick}
@@ -202,9 +202,9 @@ function TrainerDashboard() {
                         color: 'var(--mantine-color-gray-6)',
                       },
                       day: {
-                        fontSize: '0.9rem',
-                        height: 'auto',
-                        minHeight: '4rem',
+                        fontSize: '0.95rem',
+                        height: '5rem',
+                        minHeight: '5rem',
                         width: '100%',
                         borderRadius: 0,
                         border: 'none',
@@ -212,7 +212,7 @@ function TrainerDashboard() {
                         display: 'flex',
                         alignItems: 'flex-start',
                         justifyContent: 'flex-start',
-                        padding: '0.4rem',
+                        padding: '0.5rem',
                         transition: 'background-color 0.15s ease',
                         position: 'relative',
                       },
@@ -227,7 +227,7 @@ function TrainerDashboard() {
                     fullWidth
                   />
                 </div>
-                <Group justify="center" style={{ flexShrink: 0, marginTop: '0.5rem' }}>
+                <Group justify="center" style={{ flexShrink: 0, height: '2rem' }}>
                   <Badge size="md" variant="dot" color="green" radius="md">
                     Has Sessions
                   </Badge>

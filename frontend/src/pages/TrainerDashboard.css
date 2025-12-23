@@ -446,10 +446,6 @@
 .calendar-wrapper {
   width: 100%;
   overflow: hidden;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 }
 
 /* Target Mantine Calendar table structure */
@@ -460,24 +456,6 @@
   width: 100%;
   table-layout: fixed;
   background-color: var(--mantine-color-gray-2);
-  height: 100%;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.calendar-wrapper table tbody,
-.calendar-wrapper [role="rowgroup"] {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.calendar-wrapper table tbody tr,
-.calendar-wrapper [role="row"] {
-  border: none;
-  flex: 1;
-  display: flex;
 }
 
 .calendar-wrapper table tbody tr,
@@ -494,7 +472,6 @@
   width: calc(100% / 7);
   position: relative;
   background-color: var(--mantine-color-gray-0);
-  height: 100%;
 }
 
 .calendar-wrapper table thead th,
@@ -513,12 +490,12 @@
   border: none !important;
   margin: 0 !important;
   width: 100% !important;
-  height: 100% !important;
-  min-height: 4rem !important;
+  height: 5rem !important;
+  min-height: 5rem !important;
   display: flex !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
-  padding: 0.4rem !important;
+  padding: 0.5rem !important;
   transition: background-color 0.15s ease !important;
   background-color: var(--mantine-color-gray-0) !important;
   color: inherit !important;
