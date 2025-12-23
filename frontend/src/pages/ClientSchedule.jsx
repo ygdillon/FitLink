@@ -506,7 +506,6 @@ function ClientSchedule({ clientId, clientName }) {
               />
               <TimeInput
                 label="Time *"
-                leftSection={<IconClock size={16} />}
                 {...form.getInputProps('sessionTime')}
                 required
               />
