@@ -20,7 +20,7 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
       FROM sessions s
       JOIN users u ON s.client_id = u.id
       LEFT JOIN workouts w ON s.workout_id = w.id
-      LEFT JOIN clients c ON c.user_id = u.id
+      LEFT JOIN clients c ON c.user_id = u.id AND c.trainer_id = $1
       WHERE s.trainer_id = $1
         AND s.status IN ('scheduled', 'confirmed')
     `
