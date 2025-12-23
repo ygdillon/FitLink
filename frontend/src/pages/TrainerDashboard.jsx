@@ -8,10 +8,8 @@ import './Dashboard.css'
 import './TrainerDashboard.css'
 
 function TrainerDashboard() {
-  const [clients, setClients] = useState([])
   const [revenue, setRevenue] = useState({ total: 0, thisMonth: 0, thisWeek: 0 })
   const [upcomingSessions, setUpcomingSessions] = useState([])
-  const [clientsWithSessions, setClientsWithSessions] = useState(new Map())
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
@@ -23,12 +21,10 @@ function TrainerDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [clientsRes, revenueRes, sessionsRes] = await Promise.all([
-        api.get('/trainer/clients'),
+      const [revenueRes, sessionsRes] = await Promise.all([
         api.get('/payments/trainer/history').catch(() => ({ data: [] })),
         api.get('/schedule/trainer/upcoming').catch(() => ({ data: [] }))
       ])
-      setClients(clientsRes.data)
       
       // Calculate revenue
       if (revenueRes.data && revenueRes.data.length > 0) {
@@ -53,16 +49,6 @@ function TrainerDashboard() {
       
       const sessions = sessionsRes.data || []
       setUpcomingSessions(sessions)
-      
-      // Create a map of client_id to next session for quick lookup
-      const sessionMap = new Map()
-      sessions.forEach(session => {
-        const clientId = session.client_profile_id || session.client_id
-        if (!sessionMap.has(clientId) || new Date(session.session_date) < new Date(sessionMap.get(clientId).session_date)) {
-          sessionMap.set(clientId, session)
-        }
-      })
-      setClientsWithSessions(sessionMap)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -120,8 +106,8 @@ function TrainerDashboard() {
   }
 
   return (
-    <Container size="xl" py="xl" style={{ height: 'calc(100vh - 120px)' }}>
-      <Grid gutter="md" style={{ height: '100%' }}>
+    <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
+      <Grid gutter="md" style={{ height: '100%', flex: 1 }}>
         {/* Left Sidebar - Total Revenue */}
         <Grid.Col span={{ base: 12, md: 3 }}>
           <Paper p="md" shadow="sm" withBorder h="100%">
@@ -147,151 +133,117 @@ function TrainerDashboard() {
           </Paper>
         </Grid.Col>
 
-        {/* Right Panels (main content area) */}
+        {/* Right Panel - Schedule Calendar - Full Height */}
         <Grid.Col span={{ base: 12, md: 9 }}>
-          <Stack gap="md" style={{ height: '100%' }}>
-            {/* Schedule Calendar - Full Height */}
-            <Paper 
-              p="xl" 
-              shadow="md" 
-              withBorder
-              style={{ 
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '600px'
-              }}
-            >
-              <Group justify="flex-end" mb="lg">
-                <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
-                  View All Clients →
-                </Anchor>
-              </Group>
-              {upcomingSessions.length === 0 ? (
-                <Stack gap="xs" align="center" justify="center" style={{ flex: 1 }}>
-                  <Text c="dimmed" size="lg">No upcoming sessions scheduled</Text>
-                  <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
-                </Stack>
-              ) : (
-                <Stack gap="lg" style={{ flex: 1, justifyContent: 'center' }}>
-                  <div className="calendar-wrapper">
-                    <Calendar
-                      value={null}
-                      onChange={handleDateClick}
-                      getDayProps={(date) => {
-                        if (!date) return {}
-                        try {
-                          const dateKey = date.toISOString().split('T')[0]
-                          const hasSessions = sessionsByDate.has(dateKey)
-                          return {
-                            style: hasSessions
-                              ? {
-                                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                                  border: '1px solid rgba(34, 197, 94, 0.4)',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  color: 'rgba(34, 197, 94, 0.9)',
-                                }
-                              : { cursor: 'pointer' },
-                          }
-                        } catch (error) {
-                          console.error('Error in getDayProps:', error)
-                          return { style: { cursor: 'pointer' } }
+          <Paper 
+            p="xl" 
+            shadow="md" 
+            withBorder
+            style={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            <Group justify="flex-end" mb="md">
+              <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
+                View All Clients →
+              </Anchor>
+            </Group>
+            {upcomingSessions.length === 0 ? (
+              <Stack gap="xs" align="center" justify="center" style={{ flex: 1 }}>
+                <Text c="dimmed" size="lg">No upcoming sessions scheduled</Text>
+                <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
+              </Stack>
+            ) : (
+              <Stack gap="md" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <Calendar
+                    value={null}
+                    onChange={handleDateClick}
+                    getDayProps={(date) => {
+                      if (!date) return {}
+                      try {
+                        const dateKey = date.toISOString().split('T')[0]
+                        const hasSessions = sessionsByDate.has(dateKey)
+                        return {
+                          style: hasSessions
+                            ? {
+                                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                                border: '1px solid rgba(34, 197, 94, 0.4)',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'rgba(34, 197, 94, 0.9)',
+                              }
+                            : { cursor: 'pointer' },
                         }
-                      }}
-                      styles={{
-                        calendar: {
-                          width: '100%',
-                        },
-                        month: {
-                          width: '100%',
-                        },
-                        monthCell: {
-                          width: '100%',
-                        },
-                        weekday: {
-                          fontWeight: 600,
-                          fontSize: '0.875rem',
-                          paddingBottom: '0.75rem',
-                          paddingTop: '0.5rem',
-                          textAlign: 'center',
-                          color: 'var(--mantine-color-gray-6)',
-                        },
-                        day: {
-                          fontSize: '0.95rem',
-                          height: '5rem',
-                          minHeight: '5rem',
-                          width: '100%',
-                          borderRadius: 0,
-                          border: 'none',
-                          margin: 0,
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          justifyContent: 'flex-start',
-                          padding: '0.5rem',
-                          transition: 'background-color 0.15s ease',
-                          position: 'relative',
-                        },
-                        cell: {
-                          border: 'none',
-                          margin: 0,
-                          padding: 0,
-                          width: 'calc(100% / 7)',
-                        },
-                      }}
-                      size="lg"
-                      fullWidth
-                    />
-                  </div>
-                  <Group justify="center" mt="md">
-                    <Badge size="md" variant="dot" color="green" radius="md">
-                      Has Sessions
-                    </Badge>
-                  </Group>
-                </Stack>
-              )}
-            </Paper>
-
-            {/* Lower Right Panel - Clients */}
-            <Paper p="md" shadow="sm" withBorder>
-              <Group justify="space-between" mb="md">
-                <Title order={3}>Clients</Title>
-                <Anchor component={Link} to="/trainer/clients" size="sm">View All →</Anchor>
-              </Group>
-              {clients.length === 0 ? (
-                <Stack gap="md" align="center" py="xl">
-                  <Text c="dimmed">No clients yet</Text>
-                  <Button component={Link} to="/trainer/add-client" variant="filled">
-                    Add Your First Client
-                  </Button>
-                </Stack>
-              ) : (
-                <Stack gap="xs">
-                  {clients.map(client => {
-                    const nextSession = clientsWithSessions.get(client.id)
-                    return (
-                      <Paper
-                        key={client.id}
-                        p="sm"
-                        withBorder
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate(`/trainer/clients/${client.id}`)}
-                      >
-                        <Group justify="space-between">
-                          <Text fw={500}>{client.name}</Text>
-                          <Text size="sm" c="dimmed">
-                            {nextSession 
-                              ? `Next: ${new Date(nextSession.session_date).toLocaleDateString()}`
-                              : 'No session scheduled'}
-                          </Text>
-                        </Group>
-                      </Paper>
-                    )
-                  })}
-                </Stack>
-              )}
-            </Paper>
-          </Stack>
+                      } catch (error) {
+                        console.error('Error in getDayProps:', error)
+                        return { style: { cursor: 'pointer' } }
+                      }
+                    }}
+                    styles={{
+                      calendar: {
+                        width: '100%',
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                      },
+                      month: {
+                        width: '100%',
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                      },
+                      monthCell: {
+                        width: '100%',
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                      },
+                      weekday: {
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        paddingBottom: '0.5rem',
+                        paddingTop: '0.25rem',
+                        textAlign: 'center',
+                        color: 'var(--mantine-color-gray-6)',
+                      },
+                      day: {
+                        fontSize: '0.9rem',
+                        height: '100%',
+                        width: '100%',
+                        borderRadius: 0,
+                        border: 'none',
+                        margin: 0,
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'flex-start',
+                        padding: '0.4rem',
+                        transition: 'background-color 0.15s ease',
+                        position: 'relative',
+                      },
+                      cell: {
+                        border: 'none',
+                        margin: 0,
+                        padding: 0,
+                        width: 'calc(100% / 7)',
+                        flex: 1,
+                      },
+                    }}
+                    size="lg"
+                    fullWidth
+                  />
+                </div>
+                <Group justify="center" mt="xs" style={{ flexShrink: 0 }}>
+                  <Badge size="md" variant="dot" color="green" radius="md">
+                    Has Sessions
+                  </Badge>
+                </Group>
+              </Stack>
+            )}
+          </Paper>
         </Grid.Col>
       </Grid>
 

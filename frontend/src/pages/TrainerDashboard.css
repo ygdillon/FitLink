@@ -446,19 +446,24 @@
 .calendar-wrapper {
   width: 100%;
   overflow: hidden;
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flexDirection: column;
+  min-height: 0;
 }
 
 /* Target Mantine Calendar table structure */
 .calendar-wrapper table,
 .calendar-wrapper [role="grid"] {
   border-collapse: separate;
-  border-spacing: 2px;
+  border-spacing: 1px;
   width: 100%;
   table-layout: fixed;
-  background-color: #1a1a1a;
+  background-color: var(--mantine-color-gray-2);
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-wrapper table tbody tr,
@@ -474,18 +479,21 @@
   vertical-align: top;
   width: calc(100% / 7);
   position: relative;
-  background-color: #2a2a2a;
+  background-color: var(--mantine-color-gray-0);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-wrapper table thead th,
 .calendar-wrapper [role="columnheader"] {
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
   text-align: center;
   font-weight: 600;
   background-color: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--mantine-color-gray-6);
+  flex-shrink: 0;
 }
 
 /* Ensure day cells are squared and connected */
@@ -494,38 +502,38 @@
   border: none !important;
   margin: 0 !important;
   width: 100% !important;
-  height: 5rem !important;
-  min-height: 5rem !important;
+  height: 100% !important;
+  min-height: 0 !important;
   display: flex !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
-  padding: 0.5rem !important;
+  padding: 0.4rem !important;
   transition: background-color 0.15s ease !important;
-  background-color: #2a2a2a !important;
-  color: rgba(255, 255, 255, 0.9) !important;
+  background-color: var(--mantine-color-gray-0) !important;
+  color: inherit !important;
 }
 
 /* Weekend days styling */
 .calendar-wrapper [data-mantine-calendar-day][data-weekend] {
-  color: rgba(255, 100, 100, 0.8) !important;
+  color: inherit !important;
 }
 
 /* Other month days (grayed out) */
 .calendar-wrapper [data-mantine-calendar-day][data-outside] {
-  color: rgba(255, 255, 255, 0.3) !important;
-  background-color: #222222 !important;
+  color: var(--mantine-color-gray-5) !important;
+  background-color: var(--mantine-color-gray-1) !important;
 }
 
 /* Today styling */
 .calendar-wrapper [data-mantine-calendar-day][data-today] {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  color: rgba(59, 130, 246, 1) !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: inherit !important;
   font-weight: 600 !important;
 }
 
 /* Hover effect for day cells */
 .calendar-wrapper [data-mantine-calendar-day]:hover:not([data-disabled]) {
-  background-color: #333333 !important;
+  background-color: var(--mantine-color-gray-1) !important;
   z-index: 1;
 }
 
