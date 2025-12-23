@@ -31,6 +31,7 @@ function ClientSchedule({ clientId, clientName }) {
       location: '',
       meetingLink: '',
       notes: '',
+      status: 'Scheduled',
       isRecurring: false,
       recurringPattern: 'Every Week',
       recurringEndDate: threeMonthsLater,
@@ -158,10 +159,24 @@ function ClientSchedule({ clientId, clientName }) {
         ? values.sessionTime.toTimeString().slice(0, 5)
         : values.sessionTime
       
+      // Normalize sessionType from display format to backend format
+      const sessionTypeMap = {
+        'In-Person': 'in_person',
+        'Online': 'online',
+        'Hybrid': 'hybrid'
+      }
+      const normalizedSessionType = sessionTypeMap[values.sessionType] || values.sessionType.toLowerCase().replace('-', '_')
+      
+      // Normalize status to lowercase
+      const normalizedStatus = values.status ? values.status.toLowerCase() : 'scheduled'
+      
       await api.put(`/schedule/trainer/sessions/${selectedSession.id}`, {
         ...values,
         sessionDate,
-        sessionTime
+        sessionTime,
+        sessionType: normalizedSessionType,
+        status: normalizedStatus,
+        workoutId: values.workoutId && values.workoutId !== '' ? parseInt(values.workoutId) : null
       })
       notifications.show({
         title: 'Session Updated',
@@ -212,15 +227,29 @@ function ClientSchedule({ clientId, clientName }) {
     const sessionTime = new Date(sessionDate)
     sessionTime.setHours(parseInt(hours), parseInt(minutes))
     
+    // Convert session_type from backend format to display format
+    const sessionTypeMap = {
+      'in_person': 'In-Person',
+      'online': 'Online',
+      'hybrid': 'Hybrid'
+    }
+    const displaySessionType = sessionTypeMap[session.session_type] || 'In-Person'
+    
+    // Convert status to display format (capitalize first letter)
+    const statusDisplay = session.status 
+      ? session.status.charAt(0).toUpperCase() + session.status.slice(1).toLowerCase()
+      : 'Scheduled'
+    
     form.setValues({
-      workoutId: session.workout_id || '',
+      workoutId: session.workout_id ? session.workout_id.toString() : '',
       sessionDate: sessionDate,
       sessionTime: sessionTime,
       duration: session.duration || 60,
-      sessionType: session.session_type || 'in_person',
+      sessionType: displaySessionType,
       location: session.location || '',
       meetingLink: session.meeting_link || '',
       notes: session.notes || '',
+      status: statusDisplay,
       isRecurring: false,
       recurringPattern: 'weekly',
       recurringEndDate: threeMonthsLater,
@@ -541,11 +570,19 @@ function ClientSchedule({ clientId, clientName }) {
                 />
               )}
               <Select
+                label="Workout (optional)"
+                placeholder="No specific workout"
+                data={workouts.map(w => ({ value: w.id.toString(), label: w.name }))}
+                searchable
+                clearable
+                withinPortal
+                {...form.getInputProps('workoutId')}
+              />
+              <Select
                 label="Status"
                 data={['Scheduled', 'Confirmed', 'Completed', 'Cancelled']}
-                value={form.values.status || selectedSession.status}
-                onChange={(value) => form.setFieldValue('status', value)}
                 withinPortal
+                {...form.getInputProps('status')}
               />
               <Textarea
                 label="Notes"
