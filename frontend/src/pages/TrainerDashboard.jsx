@@ -128,12 +128,16 @@ function TrainerDashboard() {
   const getSessionsForDate = (date) => {
     if (!date) return []
     try {
-      // Normalize date to YYYY-MM-DD format using local timezone (not UTC)
+      // Normalize date to YYYY-MM-DD format - use local date components
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       const dateKey = `${year}-${month}-${day}`
-      return sessionsByDate.get(dateKey) || []
+      const sessions = sessionsByDate.get(dateKey) || []
+      if (sessions.length > 0) {
+        console.log(`[getSessionsForDate] Found ${sessions.length} sessions for ${dateKey}`)
+      }
+      return sessions
     } catch (error) {
       console.error('Error getting sessions for date:', error)
       return []
@@ -238,14 +242,28 @@ function TrainerDashboard() {
                         const dateKey = `${year}-${month}-${day}`
                         const hasSessions = sessionsByDate.has(dateKey)
                         
-                        // Enhanced debug logging - log all dates in December
-                        if (date.getMonth() === 11) { // December is month 11 (0-indexed)
+                        // Enhanced debug logging - log all dates in December and when sessions are found
+                        if (date.getMonth() === 11 || hasSessions) { // December is month 11 (0-indexed)
                           if (hasSessions) {
                             console.log(`[Calendar] ✅ Date ${dateKey} HAS SESSIONS:`, sessionsByDate.get(dateKey))
+                          } else if (date.getMonth() === 11 && date.getDate() <= 5) {
+                            // Log first few dates to see what keys are being checked
+                            console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}`)
                           }
-                          // Log first few dates and any date with sessions
-                          if (date.getDate() <= 5 || hasSessions) {
-                            console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}, checking against keys:`, Array.from(sessionsByDate.keys()))
+                        }
+                        
+                        // Always log when we have sessions but they're not matching
+                        if (!hasSessions && sessionsByDate.size > 0 && date.getMonth() === 11) {
+                          const availableKeys = Array.from(sessionsByDate.keys())
+                          const matchingKey = availableKeys.find(key => {
+                            // Check if this date key matches any session date
+                            const sessionDate = new Date(key + 'T00:00:00')
+                            return sessionDate.getFullYear() === date.getFullYear() &&
+                                   sessionDate.getMonth() === date.getMonth() &&
+                                   sessionDate.getDate() === date.getDate()
+                          })
+                          if (matchingKey && date.getDate() <= 5) {
+                            console.log(`[Calendar] ⚠️ Date ${dateKey} should match key ${matchingKey} but doesn't`)
                           }
                         }
                         
