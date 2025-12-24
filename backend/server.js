@@ -1,6 +1,9 @@
+import dotenv from 'dotenv'
+// Load environment variables FIRST before any other imports
+dotenv.config()
+
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import trainerRoutes from './routes/trainer.js'
 import clientRoutes from './routes/client.js'
@@ -13,8 +16,6 @@ import analyticsRoutes from './routes/analytics.js'
 import alertsRoutes from './routes/alerts.js'
 import aiWorkoutRoutes from './routes/aiWorkout.js'
 import { pool } from './config/database.js'
-
-dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 5001
