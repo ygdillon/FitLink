@@ -67,7 +67,12 @@ function TrainerDashboard() {
       }
       setUpcomingSessions(sessions)
       // Force calendar to re-render when sessions are loaded
-      setCalendarKey(prev => prev + 1)
+      console.log('[Fetch] Setting calendarKey to force re-render')
+      setCalendarKey(prev => {
+        const newKey = prev + 1
+        console.log('[Fetch] Calendar key changed from', prev, 'to', newKey)
+        return newKey
+      })
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -164,20 +169,20 @@ function TrainerDashboard() {
       const day = String(date.getDate()).padStart(2, '0')
       const dateKey = `${year}-${month}-${day}`
       
-      // Check if this date has sessions
-      const hasSessions = sessionsByDate.has(dateKey)
-      
-      // Log for December 30th and any date with sessions (always log these)
+      // Log for December 30th ALWAYS to see if it's being checked
       if (dateKey === '2025-12-30') {
-        console.log(`[Calendar] December 30th check:`, {
+        console.log(`[Calendar] ⚠️ December 30th check:`, {
           dateKey,
-          hasSessions,
           mapSize: sessionsByDate.size,
           mapHasKey: sessionsByDate.has(dateKey),
           directLookup: sessionsByDate.get(dateKey),
-          allKeys: Array.from(sessionsByDate.keys())
+          allKeys: Array.from(sessionsByDate.keys()),
+          mapIsEmpty: sessionsByDate.size === 0
         })
       }
+      
+      // Check if this date has sessions
+      const hasSessions = sessionsByDate.has(dateKey)
       
       // Log any date that has sessions
       if (hasSessions) {
