@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
@@ -188,7 +188,18 @@ function TrainerDashboard() {
       const sessionTimesStr = sessionTimes.join(', ')
       const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
       
+      // Log for December 30th to debug
+      if (dateKey === '2025-12-30') {
+        console.log(`[getDayProps] December 30th:`, {
+          hasSessions,
+          sessionsCount: sessions.length,
+          sessionTimesStr,
+          mapSize: sessionsByDate.size
+        })
+      }
+      
       return {
+        'data-date-key': dateKey, // Add this to help identify the element
         'data-has-sessions': hasSessions ? 'true' : undefined,
         'data-session-times': hasSessions ? sessionTimesStr : undefined,
         'data-session-count': hasSessions ? sessions.length.toString() : undefined,
@@ -203,6 +214,64 @@ function TrainerDashboard() {
       return { style: { cursor: 'pointer' } }
     }
   }, [sessionsByDate])
+
+  // Use useEffect to inject session times directly into DOM after calendar renders
+  const calendarWrapperRef = useRef(null)
+  
+  useEffect(() => {
+    if (!calendarWrapperRef.current || sessionsByDate.size === 0) {
+      console.log('[useEffect] Calendar wrapper not ready or no sessions')
+      return
+    }
+
+    console.log('[useEffect] Injecting session times, mapSize:', sessionsByDate.size)
+
+    // Find all calendar day elements
+    const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+    console.log('[useEffect] Found', dayElements.length, 'day elements')
+    
+    dayElements.forEach((dayEl) => {
+      const dateKey = dayEl.getAttribute('data-date-key')
+      const hasSessions = dayEl.getAttribute('data-has-sessions') === 'true'
+      const sessionTimes = dayEl.getAttribute('data-session-times')
+      
+      if (dateKey === '2025-12-30') {
+        console.log('[useEffect] December 30th element:', {
+          hasSessions,
+          sessionTimes,
+          element: dayEl
+        })
+      }
+      
+      if (hasSessions && sessionTimes) {
+        // Remove any existing session time element
+        const existing = dayEl.querySelector('.session-times')
+        if (existing) existing.remove()
+        
+        // Create and add session times element
+        const sessionEl = document.createElement('div')
+        sessionEl.className = 'session-times'
+        sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
+        sessionEl.textContent = sessionTimes
+        
+        // Check if there's an extra count
+        const extraCount = dayEl.getAttribute('data-extra-count')
+        if (extraCount) {
+          sessionEl.textContent = `${sessionTimes} +${extraCount} more`
+        }
+        
+        dayEl.appendChild(sessionEl)
+        
+        if (dateKey === '2025-12-30') {
+          console.log('[useEffect] ✅ Added session times to December 30th:', sessionEl.textContent)
+        }
+      } else {
+        // Remove session times if they exist but shouldn't
+        const existing = dayEl.querySelector('.session-times')
+        if (existing) existing.remove()
+      }
+    })
+  }, [sessionsByDate, calendarKey, upcomingSessions])
 
   // Handle date click
   const handleDateClick = (date) => {
@@ -287,7 +356,7 @@ function TrainerDashboard() {
               </Stack>
             ) : (
               <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%', paddingBottom: '0.5rem' }}>
-                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
+                <div ref={calendarWrapperRef} className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
                   <Calendar
                     key={calendarKey}
                     value={null}
