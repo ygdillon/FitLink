@@ -195,20 +195,26 @@ function ClientDashboard() {
         console.log(`[ClientDashboard] Injecting for month: ${monthName}, Found ${dayElements.length} day elements, SessionsByDate has ${sessionsByDate.size} dates`)
         
         let injectedCount = 0
+        let processedCount = 0
         dayElements.forEach((dayEl) => {
           try {
-            // Try to get date key from data attribute first
+            processedCount++
+            // Try to get date key from data attribute first (set by getDayProps)
             let dateKey = dayEl.getAttribute('data-date-key')
             
             // If no data attribute, extract from button text and calendar context
             if (!dateKey) {
+              // Get the day number from the button text (it's usually the first text node)
               const dayText = dayEl.textContent?.trim()
-              const dayNumber = parseInt(dayText)
+              // Extract just the number (remove any session times that might already be there)
+              const dayMatch = dayText?.match(/^(\d+)/)
+              const dayNumber = dayMatch ? parseInt(dayMatch[1]) : parseInt(dayText)
               
               if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
                 dateKey = `${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
                 // Set the attribute for future reference
                 dayEl.setAttribute('data-date-key', dateKey)
+                console.log(`[ClientDashboard] Extracted dateKey ${dateKey} from day number ${dayNumber}`)
               }
             }
             
@@ -220,6 +226,8 @@ function ClientDashboard() {
             if (sessions.length === 0) {
               return // No sessions for this date
             }
+            
+            console.log(`[ClientDashboard] Found ${sessions.length} sessions for ${dateKey}`)
             
             // Remove existing session time element
             const existing = dayEl.querySelector('.session-times')
@@ -257,8 +265,12 @@ function ClientDashboard() {
           }
         })
         
+        console.log(`[ClientDashboard] Processed ${processedCount} day elements, injected into ${injectedCount} days for ${monthName}`)
         if (injectedCount > 0) {
-          console.log(`[ClientDashboard] ✅ Injected session times into ${injectedCount} days for ${monthName}`)
+          console.log(`[ClientDashboard] ✅ Successfully injected session times into ${injectedCount} days`)
+        } else if (sessionsByDate.size > 0) {
+          console.warn(`[ClientDashboard] ⚠️ No sessions injected despite having ${sessionsByDate.size} dates with sessions`)
+          console.log(`[ClientDashboard] Available session dates:`, Array.from(sessionsByDate.keys()).slice(0, 10))
         }
       } catch (err) {
         console.error('[ClientDashboard] Error in injectSessionTimes:', err)
