@@ -1,7 +1,8 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
-
+// Ensure dotenv is loaded before accessing process.env
 dotenv.config()
+
+import pg from 'pg'
 
 const { Pool } = pg
 
