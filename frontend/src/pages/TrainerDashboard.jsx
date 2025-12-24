@@ -184,11 +184,12 @@ function TrainerDashboard() {
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden',
+              overflow: 'visible',
               minHeight: 0,
               width: '100%',
               boxSizing: 'border-box',
-              position: 'relative'
+              position: 'relative',
+              borderBottom: '1px solid var(--mantine-color-gray-4)'
             }}
           >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
@@ -202,7 +203,7 @@ function TrainerDashboard() {
                 <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
               </Stack>
             ) : (
-              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
+              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%', paddingBottom: '0.5rem' }}>
                 <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
                   <Calendar
                     value={null}
