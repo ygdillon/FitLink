@@ -367,8 +367,13 @@ function ClientDashboard() {
                 handleDateClick(date)
               }}
               getDayProps={(date) => {
+                // Validate date before processing
+                if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                  console.log('[ClientDashboard] 🟣 getDayProps called with invalid date:', date)
+                  return { style: { cursor: 'pointer' } }
+                }
                 // Log first few calls to see if getDayProps is being called for new month
-                if (date && date.getDate() <= 3) {
+                if (date.getDate() <= 3) {
                   console.log('[ClientDashboard] 🟣 getDayProps called for date:', date.toLocaleDateString())
                 }
                 return getDayProps(date)
