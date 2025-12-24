@@ -233,6 +233,13 @@ function TrainerDashboard() {
                     value={null}
                     onChange={handleDateClick}
                     getDayProps={(date) => {
+                      // Log that getDayProps is being called (only first few times to avoid spam)
+                      if (!window._getDayPropsCallCount) window._getDayPropsCallCount = 0
+                      if (window._getDayPropsCallCount < 5) {
+                        console.log(`[Calendar] getDayProps called #${window._getDayPropsCallCount + 1}, date:`, date)
+                        window._getDayPropsCallCount++
+                      }
+                      
                       // Validate that date is a Date object
                       if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
                         return { style: { cursor: 'pointer' } }
@@ -245,18 +252,20 @@ function TrainerDashboard() {
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateKey = `${year}-${month}-${day}`
                         
-                        // Check if this is one of our target dates
+                        // Log EVERY date to see what's being checked (limit to first 10 to avoid spam)
+                        const isDecember2025 = date.getMonth() === 11 && date.getFullYear() === 2025
                         const isTargetDate = dateKey === '2025-12-23' || dateKey === '2025-12-30'
                         
-                        // Log all December dates to see what's being checked
-                        if (date.getMonth() === 11 && date.getFullYear() === 2025) {
+                        // Always log December 2025 dates and target dates
+                        if (isDecember2025 || isTargetDate) {
                           const availableKeys = Array.from(sessionsByDate.keys())
                           const hasKey = sessionsByDate.has(dateKey)
-                          console.log(`[Calendar] Checking date ${dateKey} (Dec ${day}, 2025)`)
-                          console.log(`[Calendar] Map has key? ${hasKey}, Available keys:`, availableKeys)
+                          console.log(`[Calendar] Checking date ${dateKey} (${month}/${day}/${year})`)
+                          console.log(`[Calendar] Map has key? ${hasKey}, Map size: ${sessionsByDate.size}`)
                           if (isTargetDate) {
                             console.log(`[Calendar] ⚠️ CRITICAL: Date ${dateKey} should have sessions but hasSessions=${hasKey}`)
-                            console.log(`[Calendar] Map size: ${sessionsByDate.size}, Map contents:`, Array.from(sessionsByDate.entries()))
+                            console.log(`[Calendar] Available keys:`, availableKeys)
+                            console.log(`[Calendar] Map contents:`, Array.from(sessionsByDate.entries()))
                             // Try direct lookup
                             const directLookup = sessionsByDate.get(dateKey)
                             console.log(`[Calendar] Direct lookup for ${dateKey}:`, directLookup)
