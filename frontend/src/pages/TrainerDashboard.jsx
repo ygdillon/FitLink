@@ -147,7 +147,7 @@ function TrainerDashboard() {
 
   return (
     <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Grid gutter="md" style={{ height: '100%', flex: 1, minHeight: 0 }}>
+      <Grid gutter="md" style={{ height: '100%', flex: 1, minHeight: 0, alignItems: 'stretch' }}>
         {/* Left Sidebar - Total Revenue */}
         <Grid.Col span={{ base: 12, md: 3 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Paper p="md" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -174,7 +174,7 @@ function TrainerDashboard() {
         </Grid.Col>
 
         {/* Right Panel - Schedule Calendar - Full Height */}
-        <Grid.Col span={{ base: 12, md: 9 }}>
+        <Grid.Col span={{ base: 12, md: 9 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Paper 
             p="lg" 
             shadow="md" 
@@ -184,7 +184,8 @@ function TrainerDashboard() {
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
-              minHeight: 0
+              minHeight: 0,
+              width: '100%'
             }}
           >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
