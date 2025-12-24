@@ -137,14 +137,72 @@ function ClientDashboard() {
   }
 
   // Inject session times into DOM after calendar renders
-  // Temporarily disabled to fix page loading issue
-  // useEffect(() => {
-  //   // Only run if we have sessions and the calendar is rendered
-  //   if (sessionsByDate.size === 0 || !calendarWrapperRef.current) {
-  //     return
-  //   }
-  //   // ... injection logic temporarily disabled
-  // }, [sessionsByDate, calendarKey])
+  useEffect(() => {
+    if (!calendarWrapperRef.current || sessionsByDate.size === 0) {
+      return
+    }
+
+    const injectSessionTimes = () => {
+      try {
+        // Wait a bit for calendar to render
+        setTimeout(() => {
+          if (!calendarWrapperRef.current) return
+          
+          // Find all calendar day buttons
+          const dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
+          console.log('[ClientDashboard] Found', dayElements.length, 'day buttons')
+          
+          dayElements.forEach((dayEl) => {
+            try {
+              // Get date key from data attribute
+              const dateKey = dayEl.getAttribute('data-date-key')
+              if (!dateKey) return
+              
+              const sessions = sessionsByDate.get(dateKey) || []
+              if (sessions.length === 0) return
+              
+              // Remove existing session time element
+              const existing = dayEl.querySelector('.session-times')
+              if (existing) existing.remove()
+              
+              // Format session times
+              const times = sessions.map(session => {
+                if (session.session_time) {
+                  const [hours, minutes] = session.session_time.split(':')
+                  const hour = parseInt(hours)
+                  const ampm = hour >= 12 ? 'PM' : 'AM'
+                  const displayHour = hour % 12 || 12
+                  return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+                }
+                return null
+              }).filter(Boolean).slice(0, 2)
+              
+              const sessionTimesStr = times.join(', ')
+              const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
+              
+              // Create and add session times element
+              const sessionEl = document.createElement('div')
+              sessionEl.className = 'session-times'
+              sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
+              sessionEl.textContent = extraCount > 0 ? `${sessionTimesStr} +${extraCount} more` : sessionTimesStr
+              
+              dayEl.appendChild(sessionEl)
+              
+              if (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01')) {
+                console.log(`[ClientDashboard] ✅ Added session times to ${dateKey}:`, sessionEl.textContent)
+              }
+            } catch (err) {
+              console.error('[ClientDashboard] Error processing day:', err)
+            }
+          })
+        }, 300)
+      } catch (err) {
+        console.error('[ClientDashboard] Error in injectSessionTimes:', err)
+      }
+    }
+    
+    injectSessionTimes()
+  }, [sessionsByDate, calendarKey])
 
   if (loading) {
     return (

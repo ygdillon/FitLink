@@ -53,6 +53,7 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
 // Get client's upcoming sessions
 router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
   try {
+    console.log(`[Schedule API] Fetching client sessions for user_id: ${req.user.id}, email: ${req.user.email}`)
     const result = await pool.query(
       `SELECT s.*, 
               u.name as trainer_name,
@@ -67,6 +68,15 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
        LIMIT 20`,
       [req.user.id]
     )
+    console.log(`[Schedule API] Found ${result.rows.length} sessions for client ${req.user.id}`)
+    if (result.rows.length > 0) {
+      console.log(`[Schedule API] First session:`, {
+        id: result.rows[0].id,
+        session_date: result.rows[0].session_date,
+        session_time: result.rows[0].session_time,
+        status: result.rows[0].status
+      })
+    }
     res.json(result.rows)
   } catch (error) {
     console.error('Error fetching client sessions:', error)
