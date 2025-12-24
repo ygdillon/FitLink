@@ -11,7 +11,7 @@ function ClientDashboard() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
   const [calendarKey, setCalendarKey] = useState(0)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [displayedMonth, setDisplayedMonth] = useState(new Date())
   const calendarWrapperRef = useRef(null)
 
   useEffect(() => {
@@ -137,86 +137,11 @@ function ClientDashboard() {
     }
   }
 
-  // Watch for calendar month changes using MutationObserver and click events
-  useEffect(() => {
-    if (!calendarWrapperRef.current) return
-
-    let lastHeaderText = ''
-    
-    const checkMonthChange = () => {
-      const header = calendarWrapperRef.current?.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
-                    calendarWrapperRef.current?.querySelector('h2, h3')?.textContent ||
-                    calendarWrapperRef.current?.querySelector('[role="heading"]')?.textContent ||
-                    ''
-      
-      console.log('[ClientDashboard] Checking month change, current header:', header, 'last:', lastHeaderText)
-      
-      // Only update if header text actually changed
-      if (header && header !== lastHeaderText) {
-        lastHeaderText = header
-        console.log('[ClientDashboard] ✅ Detected month change to:', header)
-        
-        const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
-        const yearMatch = header.match(/(\d{4})/)
-        
-        if (monthMatch && yearMatch) {
-          const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-          const month = monthNames.indexOf(monthMatch[1].toLowerCase())
-          const year = parseInt(yearMatch[1])
-          const newMonth = new Date(year, month, 1)
-          
-          if (newMonth.getTime() !== currentMonth.getTime()) {
-            console.log('[ClientDashboard] 🔄 Month state updated to:', header)
-            setCurrentMonth(newMonth)
-          } else {
-            console.log('[ClientDashboard] Month unchanged, skipping update')
-          }
-        } else {
-          console.warn('[ClientDashboard] Could not parse month/year from header:', header)
-        }
-      }
-    }
-
-    // Use MutationObserver to watch for DOM changes in the calendar
-    const observer = new MutationObserver((mutations) => {
-      console.log('[ClientDashboard] MutationObserver detected changes:', mutations.length)
-      // Small delay to let DOM settle
-      setTimeout(checkMonthChange, 100)
-    })
-
-    // Observe the calendar wrapper for changes
-    if (calendarWrapperRef.current) {
-      observer.observe(calendarWrapperRef.current, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      })
-      console.log('[ClientDashboard] MutationObserver attached to calendar')
-    }
-
-    // Also listen for click events on navigation buttons
-    const handleClick = (e) => {
-      // Check if click is on a navigation button (prev/next month)
-      if (e.target.closest('button') && (e.target.textContent === '<' || e.target.textContent === '>' || e.target.textContent.includes('Previous') || e.target.textContent.includes('Next'))) {
-        console.log('[ClientDashboard] Navigation button clicked')
-        setTimeout(checkMonthChange, 300)
-      }
-    }
-    
-    if (calendarWrapperRef.current) {
-      calendarWrapperRef.current.addEventListener('click', handleClick)
-    }
-
-    // Also check immediately
-    checkMonthChange()
-    
-    return () => {
-      observer.disconnect()
-      if (calendarWrapperRef.current) {
-        calendarWrapperRef.current.removeEventListener('click', handleClick)
-      }
-    }
-  }, [currentMonth])
+  // Handle month change from Calendar component
+  const handleMonthChange = (date) => {
+    console.log('[ClientDashboard] Month changed to:', date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+    setDisplayedMonth(date)
+  }
 
   // Inject session times into DOM after calendar renders or month changes
   useEffect(() => {
@@ -237,28 +162,12 @@ function ClientDashboard() {
           dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
         }
         
-        // Get month/year from calendar header
-        const header = calendarWrapperRef.current.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
-                      calendarWrapperRef.current.querySelector('h2, h3')?.textContent ||
-                      ''
+        // Get month/year from displayedMonth state (controlled)
+        const month = displayedMonth.getMonth() + 1
+        const year = displayedMonth.getFullYear()
+        const monthName = displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         
-        let month = new Date().getMonth() + 1
-        let year = new Date().getFullYear()
-        
-        if (header) {
-          const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-          const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
-          const yearMatch = header.match(/(\d{4})/)
-          
-          if (monthMatch) {
-            month = monthNames.indexOf(monthMatch[1].toLowerCase()) + 1
-          }
-          if (yearMatch) {
-            year = parseInt(yearMatch[1])
-          }
-        }
-        
-        console.log(`[ClientDashboard] Injecting for month: ${header || `${month}/${year}`}, Found ${dayElements.length} day elements, SessionsByDate has ${sessionsByDate.size} dates`)
+        console.log(`[ClientDashboard] Injecting for month: ${monthName}, Found ${dayElements.length} day elements, SessionsByDate has ${sessionsByDate.size} dates`)
         
         let injectedCount = 0
         dayElements.forEach((dayEl) => {
@@ -324,7 +233,7 @@ function ClientDashboard() {
         })
         
         if (injectedCount > 0) {
-          console.log(`[ClientDashboard] Injected session times into ${injectedCount} days for ${header || `${month}/${year}`}`)
+          console.log(`[ClientDashboard] ✅ Injected session times into ${injectedCount} days for ${monthName}`)
         }
       } catch (err) {
         console.error('[ClientDashboard] Error in injectSessionTimes:', err)
@@ -342,7 +251,7 @@ function ClientDashboard() {
       clearTimeout(timeout2)
       clearTimeout(timeout3)
     }
-  }, [sessionsByDate, calendarKey, currentMonth])
+  }, [sessionsByDate, calendarKey, displayedMonth])
 
   if (loading) {
     return (
@@ -372,6 +281,8 @@ function ClientDashboard() {
             <Calendar
               key={calendarKey}
               value={null}
+              month={displayedMonth}
+              onMonthChange={handleMonthChange}
               onChange={handleDateClick}
               getDayProps={getDayProps}
               styles={{
