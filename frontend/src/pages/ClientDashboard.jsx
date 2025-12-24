@@ -144,64 +144,122 @@ function ClientDashboard() {
 
     const injectSessionTimes = () => {
       try {
-        // Wait a bit for calendar to render
-        setTimeout(() => {
-          if (!calendarWrapperRef.current) return
-          
-          // Find all calendar day buttons
-          const dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
-          console.log('[ClientDashboard] Found', dayElements.length, 'day buttons')
-          
-          dayElements.forEach((dayEl) => {
-            try {
-              // Get date key from data attribute
-              const dateKey = dayEl.getAttribute('data-date-key')
-              if (!dateKey) return
+        if (!calendarWrapperRef.current) return
+        
+        // Find all calendar day buttons - try multiple selectors
+        let dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+        if (dayElements.length === 0) {
+          dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td button')
+        }
+        if (dayElements.length === 0) {
+          dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
+        }
+        
+        console.log('[ClientDashboard] Found', dayElements.length, 'day elements')
+        console.log('[ClientDashboard] SessionsByDate keys:', Array.from(sessionsByDate.keys()))
+        
+        let injectedCount = 0
+        dayElements.forEach((dayEl) => {
+          try {
+            // Try to get date key from data attribute first
+            let dateKey = dayEl.getAttribute('data-date-key')
+            
+            // If no data attribute, try to extract from button text and calendar context
+            if (!dateKey) {
+              const dayText = dayEl.textContent?.trim()
+              const dayNumber = parseInt(dayText)
               
-              const sessions = sessionsByDate.get(dateKey) || []
-              if (sessions.length === 0) return
-              
-              // Remove existing session time element
-              const existing = dayEl.querySelector('.session-times')
-              if (existing) existing.remove()
-              
-              // Format session times
-              const times = sessions.map(session => {
-                if (session.session_time) {
-                  const [hours, minutes] = session.session_time.split(':')
-                  const hour = parseInt(hours)
-                  const ampm = hour >= 12 ? 'PM' : 'AM'
-                  const displayHour = hour % 12 || 12
-                  return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+              if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
+                // Get month/year from calendar header
+                const header = calendarWrapperRef.current.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
+                              calendarWrapperRef.current.querySelector('h2, h3')?.textContent ||
+                              ''
+                
+                let month = new Date().getMonth() + 1
+                let year = new Date().getFullYear()
+                
+                if (header) {
+                  const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+                  const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
+                  const yearMatch = header.match(/(\d{4})/)
+                  
+                  if (monthMatch) {
+                    month = monthNames.indexOf(monthMatch[1].toLowerCase()) + 1
+                  }
+                  if (yearMatch) {
+                    year = parseInt(yearMatch[1])
+                  }
                 }
-                return null
-              }).filter(Boolean).slice(0, 2)
-              
-              const sessionTimesStr = times.join(', ')
-              const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
-              
-              // Create and add session times element
-              const sessionEl = document.createElement('div')
-              sessionEl.className = 'session-times'
-              sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
-              sessionEl.textContent = extraCount > 0 ? `${sessionTimesStr} +${extraCount} more` : sessionTimesStr
-              
-              dayEl.appendChild(sessionEl)
-              
-              if (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01')) {
-                console.log(`[ClientDashboard] ✅ Added session times to ${dateKey}:`, sessionEl.textContent)
+                
+                dateKey = `${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
+                
+                // Set the attribute for future reference
+                dayEl.setAttribute('data-date-key', dateKey)
               }
-            } catch (err) {
-              console.error('[ClientDashboard] Error processing day:', err)
             }
-          })
-        }, 300)
+            
+            if (!dateKey) {
+              return // Skip if we can't determine the date
+            }
+            
+            const sessions = sessionsByDate.get(dateKey) || []
+            if (sessions.length === 0) {
+              return // No sessions for this date
+            }
+            
+            console.log(`[ClientDashboard] Processing ${dateKey} with ${sessions.length} sessions`)
+            
+            // Remove existing session time element
+            const existing = dayEl.querySelector('.session-times')
+            if (existing) existing.remove()
+            
+            // Format session times
+            const times = sessions.map(session => {
+              if (session.session_time) {
+                const [hours, minutes] = session.session_time.split(':')
+                const hour = parseInt(hours)
+                const ampm = hour >= 12 ? 'PM' : 'AM'
+                const displayHour = hour % 12 || 12
+                return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+              }
+              return null
+            }).filter(Boolean).slice(0, 2)
+            
+            const sessionTimesStr = times.join(', ')
+            const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
+            
+            // Create and add session times element
+            const sessionEl = document.createElement('div')
+            sessionEl.className = 'session-times'
+            sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
+            sessionEl.textContent = extraCount > 0 ? `${sessionTimesStr} +${extraCount} more` : sessionTimesStr
+            
+            dayEl.appendChild(sessionEl)
+            injectedCount++
+            
+            console.log(`[ClientDashboard] ✅ Added session times to ${dateKey}:`, sessionEl.textContent)
+          } catch (err) {
+            console.error('[ClientDashboard] Error processing day:', err)
+          }
+        })
+        
+        console.log(`[ClientDashboard] Injected session times into ${injectedCount} days`)
       } catch (err) {
         console.error('[ClientDashboard] Error in injectSessionTimes:', err)
       }
     }
     
+    // Try multiple times with delays to catch calendar rendering
     injectSessionTimes()
+    const timeout1 = setTimeout(injectSessionTimes, 200)
+    const timeout2 = setTimeout(injectSessionTimes, 500)
+    const timeout3 = setTimeout(injectSessionTimes, 1000)
+    
+    return () => {
+      clearTimeout(timeout1)
+      clearTimeout(timeout2)
+      clearTimeout(timeout3)
+    }
   }, [sessionsByDate, calendarKey])
 
   if (loading) {
