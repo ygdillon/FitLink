@@ -278,7 +278,7 @@ function TrainerDashboard() {
                     fullWidth
                   />
                 </div>
-                <Group justify="center" style={{ flexShrink: 0, height: '2.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', marginTop: '0.5rem', marginBottom: 0 }}>
+                <Group justify="center" style={{ flexShrink: 0, height: '2rem', paddingTop: '0.75rem', paddingBottom: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                   <Badge size="md" variant="dot" color="green" radius="md">
                     Has Sessions
                   </Badge>
