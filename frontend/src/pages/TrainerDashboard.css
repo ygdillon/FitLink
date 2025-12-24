@@ -492,12 +492,12 @@
   border: none !important;
   margin: 0 !important;
   width: 100% !important;
-  height: 5rem !important;
-  min-height: 5rem !important;
+  height: 4.5rem !important;
+  min-height: 4.5rem !important;
   display: flex !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
-  padding: 0.5rem !important;
+  padding: 0.4rem !important;
   transition: background-color 0.15s ease !important;
   background-color: var(--mantine-color-gray-0) !important;
   color: inherit !important;

@@ -176,7 +176,7 @@ function TrainerDashboard() {
         {/* Right Panel - Schedule Calendar - Full Height */}
         <Grid.Col span={{ base: 12, md: 9 }}>
           <Paper 
-            p="xl" 
+            p="lg" 
             shadow="md" 
             withBorder
             style={{ 
@@ -187,7 +187,7 @@ function TrainerDashboard() {
               minHeight: 0
             }}
           >
-            <Group justify="flex-end" mb="md" style={{ flexShrink: 0 }}>
+            <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
               <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
                 View All Clients →
               </Anchor>
@@ -198,7 +198,7 @@ function TrainerDashboard() {
                 <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
               </Stack>
             ) : (
-              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
+              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                   <Calendar
                     value={null}
@@ -250,8 +250,8 @@ function TrainerDashboard() {
                       },
                       day: {
                         fontSize: '0.95rem',
-                        height: '5rem',
-                        minHeight: '5rem',
+                        height: '4.5rem',
+                        minHeight: '4.5rem',
                         width: '100%',
                         borderRadius: 0,
                         border: 'none',
@@ -259,7 +259,7 @@ function TrainerDashboard() {
                         display: 'flex',
                         alignItems: 'flex-start',
                         justifyContent: 'flex-start',
-                        padding: '0.5rem',
+                        padding: '0.4rem',
                         transition: 'background-color 0.15s ease',
                         position: 'relative',
                       },
@@ -274,7 +274,7 @@ function TrainerDashboard() {
                     fullWidth
                   />
                 </div>
-                <Group justify="center" style={{ flexShrink: 0, height: '2.5rem', marginTop: '0.5rem' }}>
+                <Group justify="center" style={{ flexShrink: 0, height: '2.5rem', paddingTop: '0.5rem' }}>
                   <Badge size="md" variant="dot" color="green" radius="md">
                     Has Sessions
                   </Badge>
