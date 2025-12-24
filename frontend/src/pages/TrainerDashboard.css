@@ -562,6 +562,16 @@
   border-bottom: 1px solid var(--mantine-color-gray-4) !important;
 }
 
+/* Calendar Paper Wrapper - ensures complete border */
+.calendar-paper-wrapper {
+  border: 1px solid var(--mantine-color-gray-4) !important;
+  border-top: 1px solid var(--mantine-color-gray-4) !important;
+  border-right: 1px solid var(--mantine-color-gray-4) !important;
+  border-bottom: 1px solid var(--mantine-color-gray-4) !important;
+  border-left: 1px solid var(--mantine-color-gray-4) !important;
+  border-radius: var(--mantine-radius-md) !important;
+}
+
 /* Force complete bottom border line that connects both corners */
 .calendar-paper::after {
   content: '';

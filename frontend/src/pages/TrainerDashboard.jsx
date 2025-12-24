@@ -175,23 +175,26 @@ function TrainerDashboard() {
 
         {/* Right Panel - Schedule Calendar - Full Height */}
         <Grid.Col span={{ base: 12, md: 9 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <Paper 
-            p="lg" 
-            shadow="md" 
-            withBorder
-            className="calendar-paper"
-            style={{ 
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'visible',
-              minHeight: 0,
-              width: '100%',
-              boxSizing: 'border-box',
-              position: 'relative',
-              borderBottom: '1px solid var(--mantine-color-gray-4)'
-            }}
-          >
+          <div className="calendar-paper-wrapper" style={{ height: '100%', position: 'relative', border: '1px solid var(--mantine-color-gray-4)', borderRadius: 'var(--mantine-radius-md)', overflow: 'hidden' }}>
+            <Paper 
+              p="lg" 
+              shadow="md" 
+              withBorder={false}
+              className="calendar-paper"
+              style={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                minHeight: 0,
+                width: '100%',
+                boxSizing: 'border-box',
+                position: 'relative',
+                border: 'none',
+                borderRadius: 0,
+                boxShadow: 'none'
+              }}
+            >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
               <Anchor component={Link} to="/trainer/clients" size="sm" fw={500}>
                 View All Clients →
@@ -286,7 +289,8 @@ function TrainerDashboard() {
                 </Group>
               </Stack>
             )}
-          </Paper>
+            </Paper>
+          </div>
         </Grid.Col>
       </Grid>
 
