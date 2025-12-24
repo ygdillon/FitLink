@@ -206,16 +206,57 @@ function ClientDashboard() {
           return
         }
         
-        // Use the same approach as TrainerDashboard - find Mantine calendar day elements
-        const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+        // Try multiple selectors to find calendar day elements
+        // Mantine Calendar structure can vary, so we need to try different approaches
+        let dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+        
+        if (dayElements.length === 0) {
+          // Try finding buttons inside table cells
+          dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td button')
+        }
+        
+        if (dayElements.length === 0) {
+          // Try finding all buttons in the calendar
+          dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
+        }
+        
+        if (dayElements.length === 0) {
+          // Try finding by Mantine classes
+          dayElements = calendarWrapperRef.current.querySelectorAll('.mantine-Calendar-day')
+        }
+        
+        if (dayElements.length === 0) {
+          // Try finding table cells
+          dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td')
+        }
+        
         console.log(`[STEP 4] ✅ Found ${dayElements.length} calendar day elements`)
         
         if (dayElements.length === 0) {
-          console.warn('[STEP 4] ❌ No calendar day elements found!')
-          // Try to see what's actually in the wrapper
-          console.log('[STEP 4] 🔍 Calendar wrapper HTML structure:', calendarWrapperRef.current.innerHTML.substring(0, 500))
+          console.error('[STEP 4] ❌ No calendar day elements found with any selector!')
+          // Inspect the actual DOM structure
+          const allButtons = calendarWrapperRef.current.querySelectorAll('button')
+          const allTds = calendarWrapperRef.current.querySelectorAll('td')
+          const allDivs = calendarWrapperRef.current.querySelectorAll('div')
+          console.log('[STEP 4] 🔍 DOM inspection:', {
+            totalButtons: allButtons.length,
+            totalTds: allTds.length,
+            totalDivs: allDivs.length,
+            sampleButton: allButtons[0] ? {
+              className: allButtons[0].className,
+              textContent: allButtons[0].textContent?.trim(),
+              attributes: Array.from(allButtons[0].attributes).map(a => `${a.name}="${a.value}"`).join(', ')
+            } : null,
+            sampleTd: allTds[0] ? {
+              className: allTds[0].className,
+              innerHTML: allTds[0].innerHTML.substring(0, 100)
+            } : null
+          })
           return
         }
+        
+        // Log what selector worked
+        console.log(`[STEP 4] ✅ Successfully found ${dayElements.length} day elements`)
         
         // Get month/year from displayedMonth state (controlled)
         const month = displayedMonth.getMonth() + 1
