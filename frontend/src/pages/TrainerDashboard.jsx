@@ -243,38 +243,48 @@ function TrainerDashboard() {
                         const month = String(date.getMonth() + 1).padStart(2, '0')
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateKey = `${year}-${month}-${day}`
+                        
+                        // Check if this is one of our target dates
+                        const isTargetDate = dateKey === '2025-12-23' || dateKey === '2025-12-30'
+                        
+                        // Log all December dates to see what's being checked
+                        if (date.getMonth() === 11 && date.getFullYear() === 2025) {
+                          const availableKeys = Array.from(sessionsByDate.keys())
+                          const hasKey = sessionsByDate.has(dateKey)
+                          console.log(`[Calendar] Checking date ${dateKey} (Dec ${day}, 2025)`)
+                          console.log(`[Calendar] Map has key? ${hasKey}, Available keys:`, availableKeys)
+                          if (isTargetDate) {
+                            console.log(`[Calendar] ⚠️ CRITICAL: Date ${dateKey} should have sessions but hasSessions=${hasKey}`)
+                            console.log(`[Calendar] Map size: ${sessionsByDate.size}, Map contents:`, Array.from(sessionsByDate.entries()))
+                            // Try direct lookup
+                            const directLookup = sessionsByDate.get(dateKey)
+                            console.log(`[Calendar] Direct lookup for ${dateKey}:`, directLookup)
+                          }
+                        }
+                        
                         const hasSessions = sessionsByDate.has(dateKey)
+                        
+                        // Force highlight for target dates if they exist in the map
+                        if (isTargetDate && sessionsByDate.has(dateKey)) {
+                          console.log(`[Calendar] ✅ FORCING highlight for ${dateKey}`)
+                        }
                         
                         // Enhanced debug logging - log all dates in December and when sessions are found
                         if (date.getMonth() === 11 || hasSessions) { // December is month 11 (0-indexed)
                           if (hasSessions) {
                             console.log(`[Calendar] ✅ Date ${dateKey} HAS SESSIONS:`, sessionsByDate.get(dateKey))
-                          } else if (date.getMonth() === 11) {
+                          } else if (date.getMonth() === 11 && date.getFullYear() === 2025) {
                             // Log December dates to see what keys are being checked
-                            if (date.getDate() <= 5 || date.getDate() >= 23) {
-                              console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}, available keys:`, Array.from(sessionsByDate.keys()).filter(k => k.startsWith('2025-12')))
-                            }
+                            console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}, available December keys:`, Array.from(sessionsByDate.keys()).filter(k => k.startsWith('2025-12')))
                           }
                         }
                         
-                        // Always log when we have sessions but they're not matching
-                        if (!hasSessions && sessionsByDate.size > 0 && date.getMonth() === 11) {
-                          const availableKeys = Array.from(sessionsByDate.keys())
-                          const matchingKey = availableKeys.find(key => {
-                            // Check if this date key matches any session date
-                            const sessionDate = new Date(key + 'T00:00:00')
-                            return sessionDate.getFullYear() === date.getFullYear() &&
-                                   sessionDate.getMonth() === date.getMonth() &&
-                                   sessionDate.getDate() === date.getDate()
-                          })
-                          if (matchingKey && date.getDate() <= 5) {
-                            console.log(`[Calendar] ⚠️ Date ${dateKey} should match key ${matchingKey} but doesn't`)
-                          }
-                        }
+                        // Force highlight if it's a target date and exists in map
+                        const shouldHighlight = hasSessions || (isTargetDate && sessionsByDate.has(dateKey))
                         
                         return {
-                          'data-has-sessions': hasSessions ? 'true' : undefined,
-                          style: hasSessions
+                          'data-has-sessions': shouldHighlight ? 'true' : undefined,
+                          style: shouldHighlight
                             ? {
                                 backgroundColor: 'rgba(34, 197, 94, 0.2)',
                                 border: '1px solid rgba(34, 197, 94, 0.4)',
