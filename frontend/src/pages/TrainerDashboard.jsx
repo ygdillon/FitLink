@@ -222,6 +222,11 @@ function TrainerDashboard() {
                         const dateKey = `${year}-${month}-${day}`
                         const hasSessions = sessionsByDate.has(dateKey)
                         
+                        // Debug logging for first few dates
+                        if (day === '01' || day === '02' || day === '03' || hasSessions) {
+                          console.log(`Calendar date ${dateKey}: hasSessions=${hasSessions}, available keys:`, Array.from(sessionsByDate.keys()).slice(0, 10))
+                        }
+                        
                         return {
                           style: hasSessions
                             ? {
