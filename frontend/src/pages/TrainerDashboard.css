@@ -533,6 +533,9 @@
   border-radius: var(--mantine-radius-md) !important;
   position: relative !important;
   overflow: hidden !important;
+  /* Ensure border connects at all corners */
+  border-image: none !important;
+  outline: none !important;
 }
 
 .calendar-paper[data-with-border] {
@@ -555,30 +558,17 @@
   padding-bottom: 0 !important;
 }
 
-/* Force bottom border to be visible and connect at corners */
+/* Force complete bottom border that connects at corners */
 .calendar-paper::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: -1px;
+  left: -1px;
+  right: -1px;
   height: 1px;
   background-color: var(--mantine-color-gray-4);
   z-index: 10;
   pointer-events: none;
-  border-radius: 0;
-}
-
-/* Ensure the Paper's border extends fully at corners */
-.calendar-paper {
-  border-radius: var(--mantine-radius-md) !important;
-}
-
-/* Override any child element that might break the border */
-.calendar-paper > *:last-child {
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
-  border-bottom: none !important;
 }
 
 /* Ensure Stack doesn't extend beyond padding */
