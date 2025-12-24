@@ -238,15 +238,19 @@ function TrainerDashboard() {
                         const dateKey = `${year}-${month}-${day}`
                         const hasSessions = sessionsByDate.has(dateKey)
                         
-                        // Enhanced debug logging
-                        if (hasSessions || (date.getDate() <= 3 && date.getMonth() === 11)) {
-                          console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}`)
+                        // Enhanced debug logging - log all dates in December
+                        if (date.getMonth() === 11) { // December is month 11 (0-indexed)
                           if (hasSessions) {
-                            console.log(`[Calendar] Found sessions for ${dateKey}:`, sessionsByDate.get(dateKey))
+                            console.log(`[Calendar] ✅ Date ${dateKey} HAS SESSIONS:`, sessionsByDate.get(dateKey))
+                          }
+                          // Log first few dates and any date with sessions
+                          if (date.getDate() <= 5 || hasSessions) {
+                            console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}, checking against keys:`, Array.from(sessionsByDate.keys()))
                           }
                         }
                         
                         return {
+                          'data-has-sessions': hasSessions ? 'true' : undefined,
                           style: hasSessions
                             ? {
                                 backgroundColor: 'rgba(34, 197, 94, 0.2)',
