@@ -37,14 +37,11 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
     params.push(parseInt(limit))
     
     const result = await pool.query(query, params)
-    console.log(`[Schedule API] Fetched ${result.rows.length} sessions for trainer ${req.user.id}`)
+    // Log for debugging - removed detailed session logging
     if (result.rows.length > 0) {
-      console.log(`[Schedule API] Sample session:`, {
-        id: result.rows[0].id,
-        session_date: result.rows[0].session_date,
-        status: result.rows[0].status,
-        client_name: result.rows[0].client_name
-      })
+      console.log(`[Schedule API] Fetched ${result.rows.length} sessions for trainer ${req.user.id} (user: ${req.user.email})`)
+    } else {
+      console.log(`[Schedule API] No sessions found for trainer ${req.user.id} (user: ${req.user.email})`)
     }
     res.json(result.rows)
   } catch (error) {
