@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
@@ -148,6 +148,52 @@ function TrainerDashboard() {
     }
   }
 
+  // Memoize getDayProps to ensure it has access to the latest sessionsByDate
+  const getDayProps = useCallback((date) => {
+    // Validate that date is a Date object
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return { style: { cursor: 'pointer' } }
+    }
+    try {
+      // Normalize date to YYYY-MM-DD format
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const dateKey = `${year}-${month}-${day}`
+      
+      // Check if this date has sessions
+      const hasSessions = sessionsByDate.has(dateKey)
+      
+      // Log for December 30th to debug
+      if (dateKey === '2025-12-30') {
+        console.log(`[Calendar] December 30th check:`, {
+          dateKey,
+          hasSessions,
+          mapSize: sessionsByDate.size,
+          mapHasKey: sessionsByDate.has(dateKey),
+          directLookup: sessionsByDate.get(dateKey),
+          allKeys: Array.from(sessionsByDate.keys())
+        })
+      }
+      
+      return {
+        'data-has-sessions': hasSessions ? 'true' : undefined,
+        style: hasSessions
+          ? {
+              backgroundColor: 'rgba(34, 197, 94, 0.2) !important',
+              border: '1px solid rgba(34, 197, 94, 0.4) !important',
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: 'rgba(34, 197, 94, 0.9) !important',
+            }
+          : { cursor: 'pointer' },
+      }
+    } catch (error) {
+      console.error('Error in getDayProps:', error)
+      return { style: { cursor: 'pointer' } }
+    }
+  }, [sessionsByDate])
+
   // Handle date click
   const handleDateClick = (date) => {
     if (!date) return
@@ -235,77 +281,7 @@ function TrainerDashboard() {
                   <Calendar
                     value={null}
                     onChange={handleDateClick}
-                    getDayProps={(date) => {
-                      // Validate that date is a Date object
-                      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-                        return { style: { cursor: 'pointer' } }
-                      }
-                      try {
-                        // Normalize date to YYYY-MM-DD format
-                        // Use the date directly without timezone conversion to match session dates
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        const dateKey = `${year}-${month}-${day}`
-                        
-                        // Check if this is December 2025 or a date with sessions
-                        const isDecember2025 = date.getMonth() === 11 && date.getFullYear() === 2025
-                        const isTargetDate = dateKey === '2025-12-30' // Focus on the date we know has sessions
-                        
-                        // Always log December 30th and any date that should have sessions
-                        if (isTargetDate || (isDecember2025 && date.getDate() >= 28)) {
-                          const availableKeys = Array.from(sessionsByDate.keys())
-                          const hasKey = sessionsByDate.has(dateKey)
-                          console.log(`[Calendar] Checking date ${dateKey} (Dec ${day}, 2025)`)
-                          console.log(`[Calendar] Map has key? ${hasKey}, Map size: ${sessionsByDate.size}`)
-                          console.log(`[Calendar] Available keys:`, availableKeys)
-                          if (isTargetDate) {
-                            console.log(`[Calendar] ⚠️ CRITICAL: Date ${dateKey} should have sessions!`)
-                            console.log(`[Calendar] Map contents:`, Array.from(sessionsByDate.entries()))
-                            // Try direct lookup
-                            const directLookup = sessionsByDate.get(dateKey)
-                            console.log(`[Calendar] Direct lookup for ${dateKey}:`, directLookup)
-                            console.log(`[Calendar] Type check - dateKey type:`, typeof dateKey, 'Map key types:', Array.from(sessionsByDate.keys()).map(k => typeof k))
-                          }
-                        }
-                        
-                        const hasSessions = sessionsByDate.has(dateKey)
-                        
-                        // Force highlight for target dates if they exist in the map
-                        if (isTargetDate && sessionsByDate.has(dateKey)) {
-                          console.log(`[Calendar] ✅ FORCING highlight for ${dateKey}`)
-                        }
-                        
-                        // Enhanced debug logging - log all dates in December and when sessions are found
-                        if (date.getMonth() === 11 || hasSessions) { // December is month 11 (0-indexed)
-                          if (hasSessions) {
-                            console.log(`[Calendar] ✅ Date ${dateKey} HAS SESSIONS:`, sessionsByDate.get(dateKey))
-                          } else if (date.getMonth() === 11 && date.getFullYear() === 2025) {
-                            // Log December dates to see what keys are being checked
-                            console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}, available December keys:`, Array.from(sessionsByDate.keys()).filter(k => k.startsWith('2025-12')))
-                          }
-                        }
-                        
-                        // Force highlight if it's a target date and exists in map
-                        const shouldHighlight = hasSessions || (isTargetDate && sessionsByDate.has(dateKey))
-                        
-                        return {
-                          'data-has-sessions': shouldHighlight ? 'true' : undefined,
-                          style: shouldHighlight
-                            ? {
-                                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                                border: '1px solid rgba(34, 197, 94, 0.4)',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                color: 'rgba(34, 197, 94, 0.9)',
-                              }
-                            : { cursor: 'pointer' },
-                        }
-                      } catch (error) {
-                        console.error('Error in getDayProps:', error)
-                        return { style: { cursor: 'pointer' } }
-                      }
-                    }}
+                    getDayProps={getDayProps}
                     styles={{
                       calendar: {
                         width: '100%',
