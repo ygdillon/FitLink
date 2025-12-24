@@ -64,34 +64,37 @@ function TrainerDashboard() {
     upcomingSessions.forEach(session => {
       if (session.session_date) {
         // Normalize date key to YYYY-MM-DD format
-        // PostgreSQL DATE columns come as strings in 'YYYY-MM-DD' format
-        // But we need to handle all possible formats
+        // Backend returns ISO format like '2025-12-23T08:00:00.000Z'
+        // We need to extract just the date part to avoid timezone issues
         let dateKey
         try {
           if (typeof session.session_date === 'string') {
-            // Handle 'YYYY-MM-DD', 'YYYY-MM-DDTHH:mm:ss.sssZ', or 'YYYY-MM-DD HH:mm:ss' formats
+            // Extract just the date part (before T or space) - this avoids timezone conversion
             const dateStr = session.session_date.trim()
-            // Extract just the date part (before T or space)
             dateKey = dateStr.split('T')[0].split(' ')[0]
+            
             // Validate it's in YYYY-MM-DD format
             if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-              // If not, try parsing as Date and reformat
+              console.warn('Invalid date format after extraction:', session.session_date, 'extracted:', dateKey)
+              // Fallback: parse as Date but use UTC methods to avoid timezone shift
               const date = new Date(session.session_date)
               if (!isNaN(date.getTime())) {
-                dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                // Use UTC methods to avoid timezone conversion
+                dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
               } else {
                 console.warn('Invalid date format:', session.session_date)
                 return
               }
             }
           } else {
-            // If it's a Date object, convert to YYYY-MM-DD using local timezone
+            // If it's a Date object, use UTC methods to avoid timezone shift
             const date = new Date(session.session_date)
             if (isNaN(date.getTime())) {
               console.warn('Invalid date object:', session.session_date)
               return
             }
-            dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+            // Use UTC methods to get the date without timezone conversion
+            dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
           }
           
           if (!grouped.has(dateKey)) {
@@ -103,7 +106,7 @@ function TrainerDashboard() {
         }
       }
     })
-    console.log('Sessions grouped by date:', Array.from(grouped.entries()))
+    console.log('Sessions grouped by date:', Array.from(grouped.entries()).slice(0, 10))
     console.log('Total sessions:', upcomingSessions.length, 'Grouped dates:', grouped.size)
     return grouped
   }, [upcomingSessions])
