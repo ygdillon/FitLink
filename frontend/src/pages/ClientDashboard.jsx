@@ -139,13 +139,28 @@ function ClientDashboard() {
 
   // Handle month change from Calendar component
   const handleMonthChange = (date) => {
-    console.log('[ClientDashboard] Month changed to:', date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+    console.log('[ClientDashboard] 🔵 handleMonthChange CALLED with date:', date)
+    console.log('[ClientDashboard] 🔵 New month:', date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+    console.log('[ClientDashboard] 🔵 Current displayedMonth before update:', displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
     setDisplayedMonth(date)
+    console.log('[ClientDashboard] 🔵 setDisplayedMonth called, state update queued')
   }
+
+  // Debug: Log when displayedMonth changes
+  useEffect(() => {
+    console.log('[ClientDashboard] 🟢 displayedMonth state changed to:', displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+  }, [displayedMonth])
 
   // Inject session times into DOM after calendar renders or month changes
   useEffect(() => {
+    console.log('[ClientDashboard] 🟡 Injection effect triggered')
+    console.log('[ClientDashboard] 🟡 calendarWrapperRef.current:', !!calendarWrapperRef.current)
+    console.log('[ClientDashboard] 🟡 sessionsByDate.size:', sessionsByDate.size)
+    console.log('[ClientDashboard] 🟡 displayedMonth:', displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+    console.log('[ClientDashboard] 🟡 calendarKey:', calendarKey)
+    
     if (!calendarWrapperRef.current || sessionsByDate.size === 0) {
+      console.log('[ClientDashboard] 🟡 Injection effect EXITING early - missing ref or no sessions')
       return
     }
 
@@ -282,9 +297,21 @@ function ClientDashboard() {
               key={calendarKey}
               value={null}
               month={displayedMonth}
-              onMonthChange={handleMonthChange}
-              onChange={handleDateClick}
-              getDayProps={getDayProps}
+              onMonthChange={(date) => {
+                console.log('[ClientDashboard] 🔴 Calendar onMonthChange prop called with:', date)
+                handleMonthChange(date)
+              }}
+              onChange={(date) => {
+                console.log('[ClientDashboard] 🔴 Calendar onChange prop called with:', date)
+                handleDateClick(date)
+              }}
+              getDayProps={(date) => {
+                // Log first few calls to see if getDayProps is being called for new month
+                if (date && date.getDate() <= 3) {
+                  console.log('[ClientDashboard] 🟣 getDayProps called for date:', date.toLocaleDateString())
+                }
+                return getDayProps(date)
+              }}
               styles={{
                 calendar: {
                   width: '100%',
