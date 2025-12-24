@@ -492,15 +492,46 @@
   border: none !important;
   margin: 0 !important;
   width: 100% !important;
-  height: 4.5rem !important;
-  min-height: 4.5rem !important;
+  height: 5.5rem !important;
+  min-height: 5.5rem !important;
   display: flex !important;
+  flex-direction: column !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
-  padding: 0.4rem !important;
+  padding: 0.3rem !important;
   transition: background-color 0.15s ease !important;
   background-color: var(--mantine-color-gray-0) !important;
   color: inherit !important;
+  overflow: hidden !important;
+}
+
+/* Day number styling */
+.calendar-wrapper [data-mantine-calendar-day] > *:first-child {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin-bottom: 0.2rem;
+}
+
+/* Session times display */
+.calendar-wrapper [data-mantine-calendar-day][data-has-sessions="true"]::after {
+  content: attr(data-session-times);
+  display: block;
+  font-size: 0.65rem;
+  line-height: 1.1;
+  color: rgba(34, 197, 94, 0.9);
+  font-weight: 500;
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* If more than 3 sessions, show count */
+.calendar-wrapper [data-mantine-calendar-day][data-session-count]:not([data-session-count="1"]):not([data-session-count="2"]):not([data-session-count="3"])::after {
+  content: attr(data-session-times) " +" attr(data-session-count);
+  font-size: 0.6rem;
 }
 
 /* Override any white backgrounds that might be applied by Mantine */

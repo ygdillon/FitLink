@@ -169,37 +169,30 @@ function TrainerDashboard() {
       const day = String(date.getDate()).padStart(2, '0')
       const dateKey = `${year}-${month}-${day}`
       
-      // Log for December 30th ALWAYS to see if it's being checked
-      if (dateKey === '2025-12-30') {
-        console.log(`[Calendar] ⚠️ December 30th check:`, {
-          dateKey,
-          mapSize: sessionsByDate.size,
-          mapHasKey: sessionsByDate.has(dateKey),
-          directLookup: sessionsByDate.get(dateKey),
-          allKeys: Array.from(sessionsByDate.keys()),
-          mapIsEmpty: sessionsByDate.size === 0
-        })
-      }
+      // Get sessions for this date
+      const sessions = sessionsByDate.get(dateKey) || []
+      const hasSessions = sessions.length > 0
       
-      // Check if this date has sessions
-      const hasSessions = sessionsByDate.has(dateKey)
-      
-      // Log any date that has sessions
-      if (hasSessions) {
-        console.log(`[Calendar] ✅ ${dateKey} HAS SESSIONS:`, sessionsByDate.get(dateKey))
-      }
+      // Format session times for display (e.g., "8:00 AM", "2:00 PM")
+      const sessionTimes = sessions.map(session => {
+        if (session.session_time) {
+          const [hours, minutes] = session.session_time.split(':')
+          const hour = parseInt(hours)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour % 12 || 12
+          return `${displayHour}:${minutes} ${ampm}`
+        }
+        return null
+      }).filter(Boolean).slice(0, 3) // Limit to 3 sessions per day
       
       return {
         'data-has-sessions': hasSessions ? 'true' : undefined,
-        style: hasSessions
-          ? {
-              backgroundColor: 'rgba(34, 197, 94, 0.2)',
-              border: '1px solid rgba(34, 197, 94, 0.4)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: 'rgba(34, 197, 94, 0.9)',
-            }
-          : { cursor: 'pointer' },
+        'data-session-times': hasSessions ? JSON.stringify(sessionTimes) : undefined,
+        'data-session-count': hasSessions ? sessions.length.toString() : undefined,
+        style: {
+          cursor: 'pointer',
+          position: 'relative',
+        },
       }
     } catch (error) {
       console.error('Error in getDayProps:', error)
@@ -316,16 +309,17 @@ function TrainerDashboard() {
                       },
                       day: {
                         fontSize: '0.95rem',
-                        height: '4.5rem',
-                        minHeight: '4.5rem',
+                        height: '5.5rem',
+                        minHeight: '5.5rem',
                         width: '100%',
                         borderRadius: 0,
                         border: 'none',
                         margin: 0,
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'flex-start',
                         justifyContent: 'flex-start',
-                        padding: '0.4rem',
+                        padding: '0.3rem',
                         transition: 'background-color 0.15s ease',
                         position: 'relative',
                       },
@@ -340,11 +334,6 @@ function TrainerDashboard() {
                     fullWidth
                   />
                 </div>
-                <Group justify="center" style={{ flexShrink: 0, height: '2rem', paddingTop: '0.75rem', paddingBottom: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                  <Badge size="md" variant="dot" color="green" radius="md">
-                    Has Sessions
-                  </Badge>
-                </Group>
               </Stack>
             )}
             </Paper>
