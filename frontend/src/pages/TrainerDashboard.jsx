@@ -149,8 +149,8 @@ function TrainerDashboard() {
     <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Grid gutter={0} style={{ height: '100%', flex: 1, minHeight: 0, alignItems: 'stretch' }}>
         {/* Left Sidebar - Total Revenue */}
-        <Grid.Col span={{ base: 12, md: 3 }} style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingRight: '0.5rem' }}>
-          <Paper p="md" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Grid.Col span={{ base: 12, md: 3 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Paper p="md" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}>
             <Title order={3} mb="md">Total Revenue</Title>
             <Stack gap="md">
               <Text size="2rem" fw={700} c="green.5">
@@ -174,7 +174,7 @@ function TrainerDashboard() {
         </Grid.Col>
 
         {/* Right Panel - Schedule Calendar - Full Height */}
-        <Grid.Col span={{ base: 12, md: 9 }} style={{ height: '100%', display: 'flex', flexDirection: 'column', paddingLeft: '0.5rem' }}>
+        <Grid.Col span={{ base: 12, md: 9 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Paper 
             p="lg" 
             shadow="md" 
@@ -185,7 +185,10 @@ function TrainerDashboard() {
               flexDirection: 'column',
               overflow: 'hidden',
               minHeight: 0,
-              width: '100%'
+              width: '100%',
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+              borderLeft: 'none'
             }}
           >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
