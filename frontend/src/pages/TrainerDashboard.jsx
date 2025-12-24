@@ -53,6 +53,7 @@ function TrainerDashboard() {
         console.log('[Fetch] First session:', {
           id: sessions[0].id,
           session_date: sessions[0].session_date,
+          trainer_id: sessions[0].trainer_id,
           client_name: sessions[0].client_name,
           status: sessions[0].status
         })
@@ -60,6 +61,8 @@ function TrainerDashboard() {
         const testDate = sessions[0].session_date
         const extracted = typeof testDate === 'string' ? testDate.split('T')[0].split(' ')[0] : 'N/A'
         console.log('[Fetch] Date extraction test:', { original: testDate, extracted })
+      } else {
+        console.warn('[Fetch] No sessions found. Make sure you have scheduled sessions for your clients.')
       }
       setUpcomingSessions(sessions)
     } catch (error) {
