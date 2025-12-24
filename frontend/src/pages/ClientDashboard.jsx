@@ -292,14 +292,75 @@ function ClientDashboard() {
             <Text size="sm" c="dimmed">Your trainer will schedule sessions for you</Text>
           </Stack>
         ) : (
-          <div ref={calendarWrapperRef} className="client-calendar-wrapper" style={{ width: '100%' }}>
+          <div 
+            ref={calendarWrapperRef} 
+            className="client-calendar-wrapper" 
+            style={{ width: '100%' }}
+            onClick={(e) => {
+              // Debug: Log all clicks to see what's being clicked
+              const target = e.target
+              console.log('[ClientDashboard] 🟪 Click detected on:', {
+                tagName: target.tagName,
+                textContent: target.textContent?.trim(),
+                className: target.className,
+                id: target.id,
+                role: target.getAttribute('role'),
+                'data-mantine': target.getAttribute('data-mantine-calendar-day') || target.getAttribute('data-mantine-calendar-month-label')
+              })
+              
+              // Check if it's a navigation button
+              if (target.tagName === 'BUTTON' || target.closest('button')) {
+                const button = target.tagName === 'BUTTON' ? target : target.closest('button')
+                const buttonText = button?.textContent?.trim() || ''
+                console.log('[ClientDashboard] 🟪 Button clicked:', buttonText)
+                
+                // If it's a navigation button, manually trigger month change detection
+                if (buttonText === '<' || buttonText === '>' || buttonText.includes('Previous') || buttonText.includes('Next') || button?.getAttribute('aria-label')?.includes('month')) {
+                  console.log('[ClientDashboard] 🟪 Navigation button detected! Waiting for DOM update...')
+                  setTimeout(() => {
+                    // Try to read the new month from the calendar header
+                    const header = calendarWrapperRef.current?.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
+                                  calendarWrapperRef.current?.querySelector('h2, h3')?.textContent ||
+                                  ''
+                    console.log('[ClientDashboard] 🟪 After navigation click, header is:', header)
+                    
+                    if (header) {
+                      const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
+                      const yearMatch = header.match(/(\d{4})/)
+                      
+                      if (monthMatch && yearMatch) {
+                        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+                        const month = monthNames.indexOf(monthMatch[1].toLowerCase())
+                        const year = parseInt(yearMatch[1])
+                        const newMonth = new Date(year, month, 1)
+                        
+                        console.log('[ClientDashboard] 🟪 Parsed new month from header:', newMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+                        console.log('[ClientDashboard] 🟪 Current displayedMonth:', displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+                        
+                        if (newMonth.getTime() !== displayedMonth.getTime()) {
+                          console.log('[ClientDashboard] 🟪 Months differ! Updating displayedMonth state')
+                          setDisplayedMonth(newMonth)
+                        } else {
+                          console.log('[ClientDashboard] 🟪 Months are the same, no update needed')
+                        }
+                      }
+                    }
+                  }, 200)
+                }
+              }
+            }}
+          >
             <Calendar
               key={calendarKey}
               value={null}
               month={displayedMonth}
               onMonthChange={(date) => {
                 console.log('[ClientDashboard] 🔴 Calendar onMonthChange prop called with:', date)
-                handleMonthChange(date)
+                if (date) {
+                  handleMonthChange(date)
+                } else {
+                  console.log('[ClientDashboard] 🔴 onMonthChange called with null/undefined!')
+                }
               }}
               onChange={(date) => {
                 console.log('[ClientDashboard] 🔴 Calendar onChange prop called with:', date)
