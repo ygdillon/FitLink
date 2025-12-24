@@ -120,6 +120,7 @@ function TrainerDashboard() {
     console.log('[SessionsByDate] Sessions grouped by date:', Array.from(grouped.entries()).slice(0, 10))
     console.log('[SessionsByDate] Total sessions:', upcomingSessions.length, 'Grouped dates:', grouped.size)
     console.log('[SessionsByDate] All date keys:', Array.from(grouped.keys()))
+    console.log('[SessionsByDate] December 2025 dates:', Array.from(grouped.keys()).filter(key => key.startsWith('2025-12')))
     return grouped
   }, [upcomingSessions])
 
@@ -231,7 +232,10 @@ function TrainerDashboard() {
                     value={null}
                     onChange={handleDateClick}
                     getDayProps={(date) => {
-                      if (!date) return {}
+                      // Validate that date is a Date object
+                      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                        return { style: { cursor: 'pointer' } }
+                      }
                       try {
                         // Normalize date to YYYY-MM-DD format
                         // Use the date directly without timezone conversion to match session dates
@@ -245,9 +249,11 @@ function TrainerDashboard() {
                         if (date.getMonth() === 11 || hasSessions) { // December is month 11 (0-indexed)
                           if (hasSessions) {
                             console.log(`[Calendar] ✅ Date ${dateKey} HAS SESSIONS:`, sessionsByDate.get(dateKey))
-                          } else if (date.getMonth() === 11 && date.getDate() <= 5) {
-                            // Log first few dates to see what keys are being checked
-                            console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}`)
+                          } else if (date.getMonth() === 11) {
+                            // Log December dates to see what keys are being checked
+                            if (date.getDate() <= 5 || date.getDate() >= 23) {
+                              console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}, available keys:`, Array.from(sessionsByDate.keys()).filter(k => k.startsWith('2025-12')))
+                            }
                           }
                         }
                         
