@@ -562,6 +562,19 @@
   border-bottom: 1px solid var(--mantine-color-gray-4) !important;
 }
 
+/* Use both ::before and ::after to ensure border is complete */
+.calendar-paper::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  background-color: var(--mantine-color-gray-4);
+  z-index: 100;
+  pointer-events: none;
+}
+
 .calendar-paper::after {
   content: '';
   position: absolute;
