@@ -87,6 +87,10 @@ function ClientDashboard() {
       const sessions = sessionsByDate.get(dateKey) || []
       const hasSessions = sessions.length > 0
       
+      if (hasSessions && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
+        console.log(`[ClientDashboard getDayProps] ${dateKey}: ${sessions.length} sessions`)
+      }
+      
       // Format session times for display
       const sessionTimes = sessions.map(session => {
         if (session.session_time) {
@@ -110,9 +114,14 @@ function ClientDashboard() {
         style: {
           cursor: 'pointer',
           position: 'relative',
+          ...(hasSessions ? {
+            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+          } : {}),
         },
       }
     } catch (error) {
+      console.error('[ClientDashboard getDayProps] Error:', error)
       return { style: { cursor: 'pointer' } }
     }
   }, [sessionsByDate])
