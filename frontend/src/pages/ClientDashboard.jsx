@@ -149,48 +149,116 @@ function ClientDashboard() {
     }
 
     console.log('[ClientDashboard] Injecting session times, mapSize:', sessionsByDate.size)
-    const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
-    console.log('[ClientDashboard] Found', dayElements.length, 'day elements')
     
-    let injectedCount = 0
-    dayElements.forEach((dayEl) => {
-      const dateKey = dayEl.getAttribute('data-date-key')
-      const hasSessions = dayEl.getAttribute('data-has-sessions') === 'true'
-      const sessionTimes = dayEl.getAttribute('data-session-times')
+    // Function to inject session times
+    const injectSessionTimes = () => {
+      // Try multiple selectors to find calendar day elements
+      let dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
       
-      if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
-        console.log(`[ClientDashboard] Checking ${dateKey}: hasSessions=${hasSessions}, times=${sessionTimes}`)
+      // If that doesn't work, try finding table cells
+      if (dayElements.length === 0) {
+        dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td button, table tbody td [role="button"]')
       }
       
-      if (hasSessions && sessionTimes) {
-        // Remove existing session time element
-        const existing = dayEl.querySelector('.session-times')
-        if (existing) existing.remove()
+      // If still nothing, try finding any button in the calendar
+      if (dayElements.length === 0) {
+        dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
+      }
+      
+      console.log('[ClientDashboard] Found', dayElements.length, 'day elements')
+      
+      if (dayElements.length === 0) {
+        console.log('[ClientDashboard] No day elements found, will retry...')
+        return false
+      }
+      
+      let injectedCount = 0
+      dayElements.forEach((dayEl) => {
+        // Try to get the date from various attributes
+        const dateKey = dayEl.getAttribute('data-date-key') || 
+                       dayEl.getAttribute('data-day') ||
+                       dayEl.closest('[data-date-key]')?.getAttribute('data-date-key')
         
-        // Create and add session times element
-        const sessionEl = document.createElement('div')
-        sessionEl.className = 'session-times'
-        sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
-        sessionEl.textContent = sessionTimes
+        const hasSessions = dayEl.getAttribute('data-has-sessions') === 'true' ||
+                          dayEl.closest('[data-has-sessions="true"]') !== null
         
-        const extraCount = dayEl.getAttribute('data-extra-count')
-        if (extraCount) {
-          sessionEl.textContent = `${sessionTimes} +${extraCount} more`
+        let sessionTimes = dayEl.getAttribute('data-session-times') ||
+                         dayEl.closest('[data-session-times]')?.getAttribute('data-session-times')
+        
+        // If we don't have sessionTimes from attributes, try to get it from sessionsByDate
+        if (!sessionTimes && dateKey) {
+          const sessions = sessionsByDate.get(dateKey) || []
+          if (sessions.length > 0) {
+            const times = sessions.map(session => {
+              if (session.session_time) {
+                const [hours, minutes] = session.session_time.split(':')
+                const hour = parseInt(hours)
+                const ampm = hour >= 12 ? 'PM' : 'AM'
+                const displayHour = hour % 12 || 12
+                return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+              }
+              return null
+            }).filter(Boolean).slice(0, 2)
+            sessionTimes = times.join(', ')
+            
+            // Set the attribute for future reference
+            dayEl.setAttribute('data-date-key', dateKey)
+            dayEl.setAttribute('data-has-sessions', 'true')
+            dayEl.setAttribute('data-session-times', sessionTimes)
+          }
         }
-        
-        dayEl.appendChild(sessionEl)
-        injectedCount++
         
         if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
-          console.log(`[ClientDashboard] ✅ Injected session times for ${dateKey}:`, sessionEl.textContent)
+          console.log(`[ClientDashboard] Checking ${dateKey}: hasSessions=${hasSessions}, times=${sessionTimes}`)
         }
-      } else {
-        const existing = dayEl.querySelector('.session-times')
-        if (existing) existing.remove()
-      }
-    })
+        
+        if (hasSessions && sessionTimes) {
+          // Remove existing session time element
+          const existing = dayEl.querySelector('.session-times')
+          if (existing) existing.remove()
+          
+          // Create and add session times element
+          const sessionEl = document.createElement('div')
+          sessionEl.className = 'session-times'
+          sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
+          sessionEl.textContent = sessionTimes
+          
+          const extraCount = dayEl.getAttribute('data-extra-count') ||
+                           dayEl.closest('[data-extra-count]')?.getAttribute('data-extra-count')
+          if (extraCount && parseInt(extraCount) > 0) {
+            sessionEl.textContent = `${sessionTimes} +${extraCount} more`
+          }
+          
+          dayEl.appendChild(sessionEl)
+          injectedCount++
+          
+          if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
+            console.log(`[ClientDashboard] ✅ Injected session times for ${dateKey}:`, sessionEl.textContent)
+          }
+        } else {
+          const existing = dayEl.querySelector('.session-times')
+          if (existing) existing.remove()
+        }
+      })
+      
+      console.log('[ClientDashboard] Injected session times into', injectedCount, 'days')
+      return true
+    }
     
-    console.log('[ClientDashboard] Injected session times into', injectedCount, 'days')
+    // Try immediately
+    if (!injectSessionTimes()) {
+      // If it fails, wait a bit and try again
+      const timeout1 = setTimeout(() => {
+        if (!injectSessionTimes()) {
+          // Try one more time after a longer delay
+          const timeout2 = setTimeout(() => {
+            injectSessionTimes()
+          }, 500)
+          return () => clearTimeout(timeout2)
+        }
+      }, 100)
+      return () => clearTimeout(timeout1)
+    }
   }, [sessionsByDate, calendarKey])
 
   if (loading) {
