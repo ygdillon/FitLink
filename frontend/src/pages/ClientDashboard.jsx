@@ -19,7 +19,16 @@ function ClientDashboard() {
   const fetchDashboardData = async () => {
     try {
       const sessionsRes = await api.get('/schedule/client/upcoming').catch(() => ({ data: [] }))
-      setUpcomingSessions(sessionsRes.data || [])
+      const sessions = sessionsRes.data || []
+      console.log('[ClientDashboard] Fetched sessions:', sessions.length)
+      if (sessions.length > 0) {
+        console.log('[ClientDashboard] First session:', {
+          id: sessions[0].id,
+          session_date: sessions[0].session_date,
+          session_time: sessions[0].session_time
+        })
+      }
+      setUpcomingSessions(sessions)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -40,8 +49,10 @@ function ClientDashboard() {
           grouped.set(dateKey, [])
         }
         grouped.get(dateKey).push(session)
+        console.log(`[ClientDashboard] Added session ${session.id} to date ${dateKey}`)
       }
     })
+    console.log('[ClientDashboard] Sessions grouped by date:', Array.from(grouped.keys()))
     return grouped
   }, [upcomingSessions])
 
@@ -115,13 +126,29 @@ function ClientDashboard() {
 
   // Inject session times into DOM after calendar renders
   useEffect(() => {
-    if (!calendarWrapperRef.current || sessionsByDate.size === 0) return
-
-    const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+    if (!calendarWrapperRef.current) {
+      console.log('[ClientDashboard] Calendar wrapper not ready')
+      return
+    }
     
+    if (sessionsByDate.size === 0) {
+      console.log('[ClientDashboard] No sessions to display')
+      return
+    }
+
+    console.log('[ClientDashboard] Injecting session times, mapSize:', sessionsByDate.size)
+    const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+    console.log('[ClientDashboard] Found', dayElements.length, 'day elements')
+    
+    let injectedCount = 0
     dayElements.forEach((dayEl) => {
+      const dateKey = dayEl.getAttribute('data-date-key')
       const hasSessions = dayEl.getAttribute('data-has-sessions') === 'true'
       const sessionTimes = dayEl.getAttribute('data-session-times')
+      
+      if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
+        console.log(`[ClientDashboard] Checking ${dateKey}: hasSessions=${hasSessions}, times=${sessionTimes}`)
+      }
       
       if (hasSessions && sessionTimes) {
         // Remove existing session time element
@@ -140,11 +167,18 @@ function ClientDashboard() {
         }
         
         dayEl.appendChild(sessionEl)
+        injectedCount++
+        
+        if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
+          console.log(`[ClientDashboard] ✅ Injected session times for ${dateKey}:`, sessionEl.textContent)
+        }
       } else {
         const existing = dayEl.querySelector('.session-times')
         if (existing) existing.remove()
       }
     })
+    
+    console.log('[ClientDashboard] Injected session times into', injectedCount, 'days')
   }, [sessionsByDate, upcomingSessions])
 
   if (loading) {
