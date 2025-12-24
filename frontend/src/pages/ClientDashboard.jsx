@@ -138,163 +138,136 @@ function ClientDashboard() {
 
   // Inject session times into DOM after calendar renders
   useEffect(() => {
-    if (!calendarWrapperRef.current) {
-      console.log('[ClientDashboard] Calendar wrapper not ready')
-      return
-    }
-    
-    if (sessionsByDate.size === 0) {
-      console.log('[ClientDashboard] No sessions to display')
+    // Only run if we have sessions and the calendar is rendered
+    if (sessionsByDate.size === 0 || !calendarWrapperRef.current) {
       return
     }
 
-    console.log('[ClientDashboard] Injecting session times, mapSize:', sessionsByDate.size)
-    
-    // Function to inject session times
-    const injectSessionTimes = () => {
-      // Try multiple selectors to find calendar day elements
-      let dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+    try {
+      console.log('[ClientDashboard] Injecting session times, mapSize:', sessionsByDate.size)
       
-      // If that doesn't work, try finding table cells with buttons
-      if (dayElements.length === 0) {
-        dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td button')
-      }
-      
-      // If still nothing, try finding any button in tbody
-      if (dayElements.length === 0) {
-        dayElements = calendarWrapperRef.current.querySelectorAll('tbody button')
-      }
-      
-      console.log('[ClientDashboard] Found', dayElements.length, 'day elements')
-      
-      if (dayElements.length === 0) {
-        console.log('[ClientDashboard] No day elements found, will retry...')
-        return false
-      }
-      
-      let injectedCount = 0
-      dayElements.forEach((dayEl) => {
-        // Get the date from the button's text or parent
-        // First try to get from data attributes set by getDayProps
-        let dateKey = dayEl.getAttribute('data-date-key')
-        let hasSessions = dayEl.getAttribute('data-has-sessions') === 'true'
-        let sessionTimes = dayEl.getAttribute('data-session-times')
-        
-        // If we don't have dateKey, try to extract from the button's text (day number)
-        if (!dateKey) {
-          const dayText = dayEl.textContent?.trim()
-          const dayNumber = parseInt(dayText)
-          if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
-            // We need to get the month/year from the calendar header or current view
-            const calendarHeader = calendarWrapperRef.current.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
-                                 calendarWrapperRef.current.querySelector('h2, h3')?.textContent
-            // Try to parse month/year from header (e.g., "January 2026")
-            let month = new Date().getMonth() + 1
-            let year = new Date().getFullYear()
-            
-            if (calendarHeader) {
-              const monthMatch = calendarHeader.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
-              const yearMatch = calendarHeader.match(/(\d{4})/)
-              if (monthMatch) {
-                const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-                month = monthNames.indexOf(monthMatch[1].toLowerCase()) + 1
+      // Function to inject session times
+      const injectSessionTimes = () => {
+        try {
+          if (!calendarWrapperRef.current) return false
+          
+          // Try multiple selectors to find calendar day elements
+          let dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+          
+          // If that doesn't work, try finding table cells with buttons
+          if (dayElements.length === 0) {
+            dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td button')
+          }
+          
+          // If still nothing, try finding any button in tbody
+          if (dayElements.length === 0) {
+            dayElements = calendarWrapperRef.current.querySelectorAll('tbody button')
+          }
+          
+          if (dayElements.length === 0) {
+            return false
+          }
+          
+          let injectedCount = 0
+          dayElements.forEach((dayEl) => {
+            try {
+              // Get the date from data attributes set by getDayProps
+              let dateKey = dayEl.getAttribute('data-date-key')
+              let hasSessions = dayEl.getAttribute('data-has-sessions') === 'true'
+              let sessionTimes = dayEl.getAttribute('data-session-times')
+              
+              // If we don't have sessionTimes, calculate from sessionsByDate
+              if (!sessionTimes && dateKey) {
+                const sessions = sessionsByDate.get(dateKey) || []
+                if (sessions.length > 0) {
+                  hasSessions = true
+                  const times = sessions.map(session => {
+                    if (session.session_time) {
+                      const [hours, minutes] = session.session_time.split(':')
+                      const hour = parseInt(hours)
+                      const ampm = hour >= 12 ? 'PM' : 'AM'
+                      const displayHour = hour % 12 || 12
+                      return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+                    }
+                    return null
+                  }).filter(Boolean).slice(0, 2)
+                  sessionTimes = times.join(', ')
+                  
+                  // Set the attributes for future reference
+                  dayEl.setAttribute('data-date-key', dateKey)
+                  dayEl.setAttribute('data-has-sessions', 'true')
+                  dayEl.setAttribute('data-session-times', sessionTimes)
+                }
               }
-              if (yearMatch) {
-                year = parseInt(yearMatch[1])
+              
+              if (hasSessions && sessionTimes) {
+                // Remove existing session time element
+                const existing = dayEl.querySelector('.session-times')
+                if (existing) existing.remove()
+                
+                // Create and add session times element
+                const sessionEl = document.createElement('div')
+                sessionEl.className = 'session-times'
+                sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
+                sessionEl.textContent = sessionTimes
+                
+                const extraCount = dayEl.getAttribute('data-extra-count')
+                if (extraCount && parseInt(extraCount) > 0) {
+                  sessionEl.textContent = `${sessionTimes} +${extraCount} more`
+                }
+                
+                dayEl.appendChild(sessionEl)
+                injectedCount++
+              } else {
+                const existing = dayEl.querySelector('.session-times')
+                if (existing) existing.remove()
               }
+            } catch (err) {
+              console.error('[ClientDashboard] Error processing day element:', err)
             }
-            
-            dateKey = `${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-          }
-        }
-        
-        // If we still don't have sessionTimes, calculate from sessionsByDate
-        if (!sessionTimes && dateKey) {
-          const sessions = sessionsByDate.get(dateKey) || []
-          if (sessions.length > 0) {
-            hasSessions = true
-            const times = sessions.map(session => {
-              if (session.session_time) {
-                const [hours, minutes] = session.session_time.split(':')
-                const hour = parseInt(hours)
-                const ampm = hour >= 12 ? 'PM' : 'AM'
-                const displayHour = hour % 12 || 12
-                return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
-              }
-              return null
-            }).filter(Boolean).slice(0, 2)
-            sessionTimes = times.join(', ')
-            
-            // Set the attributes for future reference
-            dayEl.setAttribute('data-date-key', dateKey)
-            dayEl.setAttribute('data-has-sessions', 'true')
-            dayEl.setAttribute('data-session-times', sessionTimes)
-          }
-        }
-        
-        if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
-          console.log(`[ClientDashboard] Checking ${dateKey}: hasSessions=${hasSessions}, times=${sessionTimes}`)
-        }
-        
-        if (hasSessions && sessionTimes) {
-          // Remove existing session time element
-          const existing = dayEl.querySelector('.session-times')
-          if (existing) existing.remove()
+          })
           
-          // Create and add session times element
-          const sessionEl = document.createElement('div')
-          sessionEl.className = 'session-times'
-          sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
-          sessionEl.textContent = sessionTimes
-          
-          const extraCount = dayEl.getAttribute('data-extra-count')
-          if (extraCount && parseInt(extraCount) > 0) {
-            sessionEl.textContent = `${sessionTimes} +${extraCount} more`
-          }
-          
-          dayEl.appendChild(sessionEl)
-          injectedCount++
-          
-          if (dateKey && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
-            console.log(`[ClientDashboard] ✅ Injected session times for ${dateKey}:`, sessionEl.textContent)
-          }
-        } else {
-          const existing = dayEl.querySelector('.session-times')
-          if (existing) existing.remove()
+          return injectedCount > 0
+        } catch (err) {
+          console.error('[ClientDashboard] Error in injectSessionTimes:', err)
+          return false
         }
-      })
+      }
       
-      console.log('[ClientDashboard] Injected session times into', injectedCount, 'days')
-      return injectedCount > 0 || dayElements.length > 0
-    }
-    
-    // Use MutationObserver to watch for when calendar days are added
-    const observer = new MutationObserver(() => {
+      // Use MutationObserver to watch for when calendar days are added
+      let observer = null
+      if (calendarWrapperRef.current) {
+        observer = new MutationObserver(() => {
+          injectSessionTimes()
+        })
+        
+        observer.observe(calendarWrapperRef.current, {
+          childList: true,
+          subtree: true
+        })
+      }
+      
+      // Try immediately
       injectSessionTimes()
-    })
-    
-    // Start observing
-    observer.observe(calendarWrapperRef.current, {
-      childList: true,
-      subtree: true
-    })
-    
-    // Try immediately
-    injectSessionTimes()
-    
-    // Also try with delays as fallback
-    const timeout1 = setTimeout(() => {
-      injectSessionTimes()
-    }, 100)
-    
-    const timeout2 = setTimeout(() => {
-      injectSessionTimes()
-    }, 500)
-    
-    return () => {
-      observer.disconnect()
-      clearTimeout(timeout1)
-      clearTimeout(timeout2)
+      
+      // Also try with delays as fallback
+      const timeout1 = setTimeout(() => {
+        injectSessionTimes()
+      }, 100)
+      
+      const timeout2 = setTimeout(() => {
+        injectSessionTimes()
+      }, 500)
+      
+      return () => {
+        if (observer) {
+          observer.disconnect()
+        }
+        clearTimeout(timeout1)
+        clearTimeout(timeout2)
+      }
+    } catch (error) {
+      console.error('[ClientDashboard] Error in useEffect:', error)
     }
   }, [sessionsByDate, calendarKey])
 
