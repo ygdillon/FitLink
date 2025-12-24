@@ -188,7 +188,10 @@ function TrainerDashboard() {
               minHeight: 0,
               width: '100%',
               boxSizing: 'border-box',
-              border: '1px solid var(--mantine-color-gray-4)'
+              border: '1px solid var(--mantine-color-gray-4)',
+              borderStyle: 'solid',
+              borderWidth: '1px',
+              borderColor: 'var(--mantine-color-gray-4)'
             }}
           >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
