@@ -80,22 +80,21 @@ function TrainerDashboard() {
         let dateKey
         try {
           if (typeof session.session_date === 'string') {
-            // Extract just the date part (before T or space) - this avoids timezone conversion
-            const dateStr = session.session_date.trim()
-            dateKey = dateStr.split('T')[0].split(' ')[0]
+            // Parse the ISO date string and convert to local date
+            // This ensures we match the calendar's local date representation
+            const date = new Date(session.session_date)
+            if (isNaN(date.getTime())) {
+              console.warn('Invalid date format:', session.session_date)
+              return
+            }
+            // Use LOCAL date components to match calendar dates
+            // This handles timezone differences correctly
+            dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
             
-            // Validate it's in YYYY-MM-DD format
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-              console.warn('Invalid date format after extraction:', session.session_date, 'extracted:', dateKey)
-              // Fallback: parse as Date but use UTC methods to avoid timezone shift
-              const date = new Date(session.session_date)
-              if (!isNaN(date.getTime())) {
-                // Use UTC methods to avoid timezone conversion
-                dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
-              } else {
-                console.warn('Invalid date format:', session.session_date)
-                return
-              }
+            // Log for debugging
+            const utcDateKey = session.session_date.split('T')[0].split(' ')[0]
+            if (dateKey !== utcDateKey) {
+              console.log(`[Grouping] Date conversion: ${session.session_date} → UTC: ${utcDateKey}, Local: ${dateKey}`)
             }
           } else {
             // If it's a Date object, use UTC methods to avoid timezone shift
