@@ -106,8 +106,9 @@ function TrainerDashboard() {
         }
       }
     })
-    console.log('Sessions grouped by date:', Array.from(grouped.entries()).slice(0, 10))
-    console.log('Total sessions:', upcomingSessions.length, 'Grouped dates:', grouped.size)
+    console.log('[SessionsByDate] Sessions grouped by date:', Array.from(grouped.entries()).slice(0, 10))
+    console.log('[SessionsByDate] Total sessions:', upcomingSessions.length, 'Grouped dates:', grouped.size)
+    console.log('[SessionsByDate] All date keys:', Array.from(grouped.keys()))
     return grouped
   }, [upcomingSessions])
 
@@ -217,17 +218,20 @@ function TrainerDashboard() {
                     getDayProps={(date) => {
                       if (!date) return {}
                       try {
-                        // Normalize date to YYYY-MM-DD format using local timezone (not UTC)
-                        // This prevents timezone issues that could shift the date by a day
+                        // Normalize date to YYYY-MM-DD format
+                        // Use the date directly without timezone conversion to match session dates
                         const year = date.getFullYear()
                         const month = String(date.getMonth() + 1).padStart(2, '0')
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateKey = `${year}-${month}-${day}`
                         const hasSessions = sessionsByDate.has(dateKey)
                         
-                        // Debug logging for first few dates
-                        if (day === '01' || day === '02' || day === '03' || hasSessions) {
-                          console.log(`Calendar date ${dateKey}: hasSessions=${hasSessions}, available keys:`, Array.from(sessionsByDate.keys()).slice(0, 10))
+                        // Enhanced debug logging
+                        if (hasSessions || (date.getDate() <= 3 && date.getMonth() === 11)) {
+                          console.log(`[Calendar] Date ${dateKey}: hasSessions=${hasSessions}`)
+                          if (hasSessions) {
+                            console.log(`[Calendar] Found sessions for ${dateKey}:`, sessionsByDate.get(dateKey))
+                          }
                         }
                         
                         return {
