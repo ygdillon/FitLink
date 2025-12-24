@@ -1,153 +1,125 @@
-.client-dashboard-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: #F5F9F0;
-  min-height: calc(100vh - 80px);
+/* Client Calendar Styles - Similar to Trainer Dashboard */
+.client-calendar-wrapper {
+  width: 100%;
 }
 
-.client-dashboard-header {
-  margin-bottom: 2rem;
+.client-calendar-wrapper table,
+.client-calendar-wrapper [role="grid"] {
+  border-collapse: separate;
+  border-spacing: 1px;
+  width: 100%;
+  table-layout: fixed;
+  background-color: var(--mantine-color-gray-2);
 }
 
-.client-dashboard-header h1 {
-  color: #2c3e50;
+.client-calendar-wrapper table tbody td,
+.client-calendar-wrapper [role="gridcell"] {
+  border: none;
+  padding: 0;
   margin: 0;
+  vertical-align: top;
+  width: calc(100% / 7);
+  position: relative;
+  background-color: var(--mantine-color-gray-0);
 }
 
-.client-dashboard-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.client-dashboard-panel {
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.panel-header {
-  margin-bottom: 1.5rem;
-}
-
-.panel-header h2 {
-  color: #2c3e50;
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.empty-state {
+.client-calendar-wrapper table thead th,
+.client-calendar-wrapper [role="columnheader"] {
+  border: none;
+  padding: 0.75rem 0;
   text-align: center;
-  padding: 3rem 2rem;
-  color: #666;
-}
-
-.empty-hint {
-  color: #999;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-.sessions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.session-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #E8F5D8;
-  border-radius: 8px;
-  border-left: 4px solid #9BCF53;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.session-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.session-date {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 60px;
-  padding: 0.5rem;
-  background: white;
-  border-radius: 4px;
-}
-
-.session-day {
-  font-size: 0.75rem;
-  color: #666;
-  text-transform: uppercase;
   font-weight: 600;
+  background-color: transparent;
+  color: var(--mantine-color-gray-6);
 }
 
-.session-number {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #2c3e50;
+/* Day cells */
+.client-calendar-wrapper [data-mantine-calendar-day] {
+  border-radius: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 5.5rem !important;
+  min-height: 5.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 0.3rem !important;
+  transition: background-color 0.15s ease !important;
+  background-color: var(--mantine-color-gray-0) !important;
+  color: inherit !important;
+  overflow: hidden !important;
 }
 
-.session-details {
-  flex: 1;
-}
-
-.session-time {
+/* Day number styling */
+.client-calendar-wrapper [data-mantine-calendar-day] > *:first-child {
   font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 0.25rem;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin-bottom: 0.2rem;
 }
 
-.session-workout {
-  font-size: 0.875rem;
-  color: #9BCF53;
-  margin-bottom: 0.25rem;
+/* Days with sessions */
+.client-calendar-wrapper [data-mantine-calendar-day][data-has-sessions="true"] {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
 }
 
-.session-type {
-  font-size: 0.875rem;
-  color: #666;
+/* Session times display */
+.client-calendar-wrapper [data-mantine-calendar-day] .session-times {
+  font-size: 0.65rem !important;
+  line-height: 1.2;
+  color: rgba(34, 197, 94, 0.95) !important;
+  font-weight: 500;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  flex-shrink: 0;
 }
 
-.session-status {
-  display: flex;
-  align-items: center;
+/* Dark theme support */
+[data-mantine-color-scheme="dark"] .client-calendar-wrapper [data-mantine-calendar-day]:not([data-has-sessions]) {
+  background-color: var(--mantine-color-dark-6) !important;
 }
 
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  text-transform: capitalize;
+[data-mantine-color-scheme="dark"] .client-calendar-wrapper table tbody td,
+[data-mantine-color-scheme="dark"] .client-calendar-wrapper [role="gridcell"] {
+  background-color: var(--mantine-color-dark-6) !important;
 }
 
-.status-badge.scheduled {
-  background-color: #d1ecf1;
-  color: #0c5460;
+[data-mantine-color-scheme="dark"] .client-calendar-wrapper table,
+[data-mantine-color-scheme="dark"] .client-calendar-wrapper [role="grid"] {
+  background-color: var(--mantine-color-dark-5) !important;
 }
 
-.status-badge.confirmed {
-  background-color: #C8E6A0;
-  color: #5A7A3A;
+/* Weekend days */
+.client-calendar-wrapper [data-mantine-calendar-day][data-weekend] {
+  color: inherit !important;
 }
 
-.status-badge.completed {
-  background-color: #C8E6A0;
-  color: #5A7A3A;
+/* Other month days */
+.client-calendar-wrapper [data-mantine-calendar-day][data-outside] {
+  color: var(--mantine-color-gray-5) !important;
+  background-color: var(--mantine-color-gray-1) !important;
 }
 
-.status-badge.cancelled {
-  background-color: #f8d7da;
-  color: #721c24;
+/* Today styling */
+.client-calendar-wrapper [data-mantine-calendar-day][data-today] {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: inherit !important;
+  font-weight: 600 !important;
 }
 
+/* Hover effect */
+.client-calendar-wrapper [data-mantine-calendar-day]:hover:not([data-disabled]) {
+  background-color: var(--mantine-color-gray-1) !important;
+  z-index: 1;
+}
+
+/* Selected day */
+.client-calendar-wrapper [data-mantine-calendar-day][data-selected] {
+  background-color: rgba(59, 130, 246, 0.25) !important;
+}
