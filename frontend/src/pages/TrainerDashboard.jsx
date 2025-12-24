@@ -161,19 +161,29 @@ function TrainerDashboard() {
       const day = String(date.getDate()).padStart(2, '0')
       const dateKey = `${year}-${month}-${day}`
       
+      // Log ALL December dates to see what's being checked
+      const isDecember = date.getMonth() === 11 && date.getFullYear() === 2025
+      if (isDecember && (date.getDate() >= 28 || date.getDate() <= 5)) {
+        console.log(`[Calendar] Checking ${dateKey} (Dec ${day})`)
+      }
+      
       // Check if this date has sessions
       const hasSessions = sessionsByDate.has(dateKey)
       
-      // Log for December 30th to debug
-      if (dateKey === '2025-12-30') {
-        console.log(`[Calendar] December 30th check:`, {
-          dateKey,
-          hasSessions,
-          mapSize: sessionsByDate.size,
-          mapHasKey: sessionsByDate.has(dateKey),
-          directLookup: sessionsByDate.get(dateKey),
-          allKeys: Array.from(sessionsByDate.keys())
-        })
+      // Log for December 30th and any date with sessions
+      if (dateKey === '2025-12-30' || hasSessions) {
+        console.log(`[Calendar] ${dateKey}: hasSessions=${hasSessions}, mapSize=${sessionsByDate.size}`)
+        if (dateKey === '2025-12-30') {
+          console.log(`[Calendar] December 30th DETAILED:`, {
+            dateKey,
+            hasSessions,
+            mapSize: sessionsByDate.size,
+            mapHasKey: sessionsByDate.has(dateKey),
+            directLookup: sessionsByDate.get(dateKey),
+            allKeys: Array.from(sessionsByDate.keys()),
+            mapType: sessionsByDate.constructor.name
+          })
+        }
       }
       
       return {
