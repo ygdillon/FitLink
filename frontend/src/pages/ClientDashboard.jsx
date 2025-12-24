@@ -10,6 +10,7 @@ function ClientDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
+  const [calendarKey, setCalendarKey] = useState(0)
   const calendarWrapperRef = useRef(null)
 
   useEffect(() => {
@@ -29,6 +30,8 @@ function ClientDashboard() {
         })
       }
       setUpcomingSessions(sessions)
+      // Force calendar re-render when sessions are loaded
+      setCalendarKey(prev => prev + 1)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -179,7 +182,7 @@ function ClientDashboard() {
     })
     
     console.log('[ClientDashboard] Injected session times into', injectedCount, 'days')
-  }, [sessionsByDate, upcomingSessions])
+  }, [sessionsByDate, calendarKey])
 
   if (loading) {
     return (
@@ -207,6 +210,7 @@ function ClientDashboard() {
         ) : (
           <div ref={calendarWrapperRef} className="client-calendar-wrapper" style={{ width: '100%' }}>
             <Calendar
+              key={calendarKey}
               value={null}
               onChange={handleDateClick}
               getDayProps={getDayProps}
