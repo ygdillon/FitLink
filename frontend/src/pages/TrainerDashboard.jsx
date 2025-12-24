@@ -180,15 +180,19 @@ function TrainerDashboard() {
           const hour = parseInt(hours)
           const ampm = hour >= 12 ? 'PM' : 'AM'
           const displayHour = hour % 12 || 12
-          return `${displayHour}:${minutes} ${ampm}`
+          return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
         }
         return null
-      }).filter(Boolean).slice(0, 3) // Limit to 3 sessions per day
+      }).filter(Boolean).slice(0, 2) // Limit to 2 sessions per day for display
+      
+      const sessionTimesStr = sessionTimes.join(', ')
+      const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
       
       return {
         'data-has-sessions': hasSessions ? 'true' : undefined,
-        'data-session-times': hasSessions ? JSON.stringify(sessionTimes) : undefined,
+        'data-session-times': hasSessions ? sessionTimesStr : undefined,
         'data-session-count': hasSessions ? sessions.length.toString() : undefined,
+        'data-extra-count': extraCount > 0 ? extraCount.toString() : undefined,
         style: {
           cursor: 'pointer',
           position: 'relative',
