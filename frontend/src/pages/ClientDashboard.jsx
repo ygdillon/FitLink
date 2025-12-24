@@ -11,6 +11,7 @@ function ClientDashboard() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
   const [calendarKey, setCalendarKey] = useState(0)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const calendarWrapperRef = useRef(null)
 
   useEffect(() => {
@@ -136,7 +137,40 @@ function ClientDashboard() {
     }
   }
 
-  // Inject session times into DOM after calendar renders
+  // Watch for calendar month changes and re-inject sessions
+  useEffect(() => {
+    if (!calendarWrapperRef.current) return
+
+    const checkMonthChange = () => {
+      const header = calendarWrapperRef.current?.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
+                    calendarWrapperRef.current?.querySelector('h2, h3')?.textContent ||
+                    ''
+      
+      if (header) {
+        const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
+        const yearMatch = header.match(/(\d{4})/)
+        
+        if (monthMatch && yearMatch) {
+          const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+          const month = monthNames.indexOf(monthMatch[1].toLowerCase())
+          const year = parseInt(yearMatch[1])
+          const newMonth = new Date(year, month, 1)
+          
+          if (newMonth.getTime() !== currentMonth.getTime()) {
+            console.log('[ClientDashboard] Month changed to:', header)
+            setCurrentMonth(newMonth)
+          }
+        }
+      }
+    }
+
+    // Check for month changes periodically
+    const interval = setInterval(checkMonthChange, 500)
+    
+    return () => clearInterval(interval)
+  }, [currentMonth])
+
+  // Inject session times into DOM after calendar renders or month changes
   useEffect(() => {
     if (!calendarWrapperRef.current || sessionsByDate.size === 0) {
       return
@@ -155,8 +189,28 @@ function ClientDashboard() {
           dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
         }
         
-        console.log('[ClientDashboard] Found', dayElements.length, 'day elements')
-        console.log('[ClientDashboard] SessionsByDate keys:', Array.from(sessionsByDate.keys()))
+        // Get month/year from calendar header
+        const header = calendarWrapperRef.current.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
+                      calendarWrapperRef.current.querySelector('h2, h3')?.textContent ||
+                      ''
+        
+        let month = new Date().getMonth() + 1
+        let year = new Date().getFullYear()
+        
+        if (header) {
+          const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+          const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
+          const yearMatch = header.match(/(\d{4})/)
+          
+          if (monthMatch) {
+            month = monthNames.indexOf(monthMatch[1].toLowerCase()) + 1
+          }
+          if (yearMatch) {
+            year = parseInt(yearMatch[1])
+          }
+        }
+        
+        console.log(`[ClientDashboard] Injecting for month: ${header || `${month}/${year}`}, Found ${dayElements.length} day elements`)
         
         let injectedCount = 0
         dayElements.forEach((dayEl) => {
@@ -164,35 +218,13 @@ function ClientDashboard() {
             // Try to get date key from data attribute first
             let dateKey = dayEl.getAttribute('data-date-key')
             
-            // If no data attribute, try to extract from button text and calendar context
+            // If no data attribute, extract from button text and calendar context
             if (!dateKey) {
               const dayText = dayEl.textContent?.trim()
               const dayNumber = parseInt(dayText)
               
               if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
-                // Get month/year from calendar header
-                const header = calendarWrapperRef.current.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
-                              calendarWrapperRef.current.querySelector('h2, h3')?.textContent ||
-                              ''
-                
-                let month = new Date().getMonth() + 1
-                let year = new Date().getFullYear()
-                
-                if (header) {
-                  const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-                  const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
-                  const yearMatch = header.match(/(\d{4})/)
-                  
-                  if (monthMatch) {
-                    month = monthNames.indexOf(monthMatch[1].toLowerCase()) + 1
-                  }
-                  if (yearMatch) {
-                    year = parseInt(yearMatch[1])
-                  }
-                }
-                
                 dateKey = `${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-                
                 // Set the attribute for future reference
                 dayEl.setAttribute('data-date-key', dateKey)
               }
@@ -206,8 +238,6 @@ function ClientDashboard() {
             if (sessions.length === 0) {
               return // No sessions for this date
             }
-            
-            console.log(`[ClientDashboard] Processing ${dateKey} with ${sessions.length} sessions`)
             
             // Remove existing session time element
             const existing = dayEl.querySelector('.session-times')
@@ -237,13 +267,17 @@ function ClientDashboard() {
             dayEl.appendChild(sessionEl)
             injectedCount++
             
-            console.log(`[ClientDashboard] ✅ Added session times to ${dateKey}:`, sessionEl.textContent)
+            if (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01') || dateKey.startsWith('2026-02')) {
+              console.log(`[ClientDashboard] ✅ Added session times to ${dateKey}:`, sessionEl.textContent)
+            }
           } catch (err) {
             console.error('[ClientDashboard] Error processing day:', err)
           }
         })
         
-        console.log(`[ClientDashboard] Injected session times into ${injectedCount} days`)
+        if (injectedCount > 0) {
+          console.log(`[ClientDashboard] Injected session times into ${injectedCount} days for ${header || `${month}/${year}`}`)
+        }
       } catch (err) {
         console.error('[ClientDashboard] Error in injectSessionTimes:', err)
       }
@@ -260,7 +294,7 @@ function ClientDashboard() {
       clearTimeout(timeout2)
       clearTimeout(timeout3)
     }
-  }, [sessionsByDate, calendarKey])
+  }, [sessionsByDate, calendarKey, currentMonth])
 
   if (loading) {
     return (
