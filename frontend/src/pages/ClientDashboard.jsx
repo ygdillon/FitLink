@@ -137,16 +137,23 @@ function ClientDashboard() {
     }
   }
 
-  // Watch for calendar month changes and re-inject sessions
+  // Watch for calendar month changes using MutationObserver
   useEffect(() => {
     if (!calendarWrapperRef.current) return
 
+    let lastHeaderText = ''
+    
     const checkMonthChange = () => {
       const header = calendarWrapperRef.current?.querySelector('[data-mantine-calendar-month-label]')?.textContent ||
                     calendarWrapperRef.current?.querySelector('h2, h3')?.textContent ||
+                    calendarWrapperRef.current?.querySelector('[role="heading"]')?.textContent ||
                     ''
       
-      if (header) {
+      // Only update if header text actually changed
+      if (header && header !== lastHeaderText) {
+        lastHeaderText = header
+        console.log('[ClientDashboard] Detected month change to:', header)
+        
         const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
         const yearMatch = header.match(/(\d{4})/)
         
@@ -157,17 +164,33 @@ function ClientDashboard() {
           const newMonth = new Date(year, month, 1)
           
           if (newMonth.getTime() !== currentMonth.getTime()) {
-            console.log('[ClientDashboard] Month changed to:', header)
+            console.log('[ClientDashboard] Month state updated to:', header)
             setCurrentMonth(newMonth)
           }
         }
       }
     }
 
-    // Check for month changes periodically
-    const interval = setInterval(checkMonthChange, 500)
+    // Use MutationObserver to watch for DOM changes in the calendar
+    const observer = new MutationObserver(() => {
+      checkMonthChange()
+    })
+
+    // Observe the calendar wrapper for changes
+    if (calendarWrapperRef.current) {
+      observer.observe(calendarWrapperRef.current, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      })
+    }
+
+    // Also check immediately
+    checkMonthChange()
     
-    return () => clearInterval(interval)
+    return () => {
+      observer.disconnect()
+    }
   }, [currentMonth])
 
   // Inject session times into DOM after calendar renders or month changes
