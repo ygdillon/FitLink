@@ -179,6 +179,7 @@ function TrainerDashboard() {
             p="lg" 
             shadow="md" 
             withBorder
+            className="calendar-paper"
             style={{ 
               height: '100%',
               display: 'flex',
@@ -186,7 +187,8 @@ function TrainerDashboard() {
               overflow: 'hidden',
               minHeight: 0,
               width: '100%',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              border: '1px solid var(--mantine-color-gray-4)'
             }}
           >
             <Group justify="flex-end" mb="md" style={{ flexShrink: 0, height: '2.5rem' }}>
