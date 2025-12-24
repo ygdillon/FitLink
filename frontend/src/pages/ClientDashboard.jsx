@@ -20,21 +20,28 @@ function ClientDashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      console.log('[STEP 1] 🔵 Starting data fetch from API...')
       const sessionsRes = await api.get('/schedule/client/upcoming').catch(() => ({ data: [] }))
       const sessions = sessionsRes.data || []
-      console.log('[ClientDashboard] Fetched sessions:', sessions.length)
+      console.log('[STEP 1] ✅ Fetched', sessions.length, 'sessions from API')
+      
       if (sessions.length > 0) {
-        console.log('[ClientDashboard] First session:', {
+        console.log('[STEP 1] 📋 First session sample:', {
           id: sessions[0].id,
           session_date: sessions[0].session_date,
-          session_time: sessions[0].session_time
+          session_time: sessions[0].session_time,
+          status: sessions[0].status
         })
+        console.log('[STEP 1] 📋 All session dates:', sessions.map(s => s.session_date).slice(0, 5))
+      } else {
+        console.warn('[STEP 1] ⚠️ No sessions returned from API!')
       }
+      
       setUpcomingSessions(sessions)
       // Force calendar re-render when sessions are loaded
       setCalendarKey(prev => prev + 1)
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      console.error('[STEP 1] ❌ Error fetching dashboard data:', error)
     } finally {
       setLoading(false)
     }
@@ -42,6 +49,7 @@ function ClientDashboard() {
 
   // Group sessions by date for calendar display
   const sessionsByDate = useMemo(() => {
+    console.log('[STEP 2] 🔵 Grouping sessions by date, total sessions:', upcomingSessions.length)
     const grouped = new Map()
     upcomingSessions.forEach(session => {
       if (session.session_date) {
@@ -53,10 +61,17 @@ function ClientDashboard() {
           grouped.set(dateKey, [])
         }
         grouped.get(dateKey).push(session)
-        console.log(`[ClientDashboard] Added session ${session.id} to date ${dateKey}`)
+      } else {
+        console.warn('[STEP 2] ⚠️ Session missing session_date:', session.id)
       }
     })
-    console.log('[ClientDashboard] Sessions grouped by date:', Array.from(grouped.keys()))
+    console.log('[STEP 2] ✅ Sessions grouped into', grouped.size, 'unique dates')
+    console.log('[STEP 2] 📅 Date keys:', Array.from(grouped.keys()).sort())
+    // Log a sample of what's in each date
+    if (grouped.size > 0) {
+      const firstDate = Array.from(grouped.keys())[0]
+      console.log('[STEP 2] 📅 Sample date', firstDate, 'has', grouped.get(firstDate).length, 'sessions')
+    }
     return grouped
   }, [upcomingSessions])
 
@@ -98,8 +113,10 @@ function ClientDashboard() {
       const sessions = sessionsByDate.get(dateKey) || []
       const hasSessions = sessions.length > 0
       
-      if (hasSessions && (dateKey.startsWith('2025-12') || dateKey.startsWith('2026-01'))) {
-        console.log(`[ClientDashboard getDayProps] ${dateKey}: ${sessions.length} sessions`)
+      // Log for dates with sessions (only first few to avoid spam)
+      if (hasSessions) {
+        const sessionCount = sessions.length
+        console.log(`[STEP 3] 🟢 getDayProps for ${dateKey}: ${sessionCount} sessions, will highlight`)
       }
       
       // Format session times for display
@@ -117,7 +134,7 @@ function ClientDashboard() {
       const sessionTimesStr = sessionTimes.join(', ')
       const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
       
-      return {
+      const props = {
         'data-date-key': dateKey,
         'data-has-sessions': hasSessions ? 'true' : undefined,
         'data-session-times': hasSessions ? sessionTimesStr : undefined,
@@ -131,8 +148,14 @@ function ClientDashboard() {
           } : {}),
         },
       }
+      
+      if (hasSessions) {
+        console.log(`[STEP 3] 🟢 Returning props for ${dateKey} with data-date-key="${dateKey}", data-has-sessions="true"`)
+      }
+      
+      return props
     } catch (error) {
-      console.error('[ClientDashboard getDayProps] Error:', error)
+      console.error('[STEP 3] ❌ getDayProps Error:', error)
       return { style: { cursor: 'pointer' } }
     }
   }, [sessionsByDate])
@@ -176,14 +199,21 @@ function ClientDashboard() {
 
     const injectSessionTimes = () => {
       try {
-        if (!calendarWrapperRef.current) return
+        console.log('[STEP 4] 🔵 Starting session time injection...')
+        
+        if (!calendarWrapperRef.current) {
+          console.warn('[STEP 4] ❌ calendarWrapperRef.current is null!')
+          return
+        }
         
         // Use the same approach as TrainerDashboard - find Mantine calendar day elements
         const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
-        console.log(`[ClientDashboard] Found ${dayElements.length} calendar day elements`)
+        console.log(`[STEP 4] ✅ Found ${dayElements.length} calendar day elements`)
         
         if (dayElements.length === 0) {
-          console.warn('[ClientDashboard] No calendar day elements found!')
+          console.warn('[STEP 4] ❌ No calendar day elements found!')
+          // Try to see what's actually in the wrapper
+          console.log('[STEP 4] 🔍 Calendar wrapper HTML structure:', calendarWrapperRef.current.innerHTML.substring(0, 500))
           return
         }
         
@@ -192,15 +222,30 @@ function ClientDashboard() {
         const year = displayedMonth.getFullYear()
         const monthName = displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         
-        console.log(`[ClientDashboard] Injecting for month: ${monthName}, SessionsByDate has ${sessionsByDate.size} dates`)
-        console.log(`[ClientDashboard] Available session dates:`, Array.from(sessionsByDate.keys()).slice(0, 10))
+        console.log(`[STEP 4] 📅 Injecting for month: ${monthName}`)
+        console.log(`[STEP 4] 📊 SessionsByDate has ${sessionsByDate.size} dates with sessions`)
+        console.log(`[STEP 4] 📅 Available session dates:`, Array.from(sessionsByDate.keys()).sort())
         
         let injectedCount = 0
         let processedCount = 0
         let foundWithDataAttr = 0
         let extractedFromText = 0
+        let matchedWithSessions = 0
         
-        dayElements.forEach((dayEl) => {
+        // Sample a few elements to inspect their structure
+        if (dayElements.length > 0) {
+          const sampleEl = dayElements[0]
+          console.log('[STEP 4] 🔍 Sample day element:', {
+            tagName: sampleEl.tagName,
+            className: sampleEl.className,
+            textContent: sampleEl.textContent?.trim().substring(0, 30),
+            hasDataDateKey: !!sampleEl.getAttribute('data-date-key'),
+            hasDataHasSessions: !!sampleEl.getAttribute('data-has-sessions'),
+            attributes: Array.from(sampleEl.attributes).map(attr => `${attr.name}="${attr.value}"`).join(', ')
+          })
+        }
+        
+        dayElements.forEach((dayEl, index) => {
           try {
             processedCount++
             
@@ -209,31 +254,33 @@ function ClientDashboard() {
             
             if (dateKey) {
               foundWithDataAttr++
+              if (index < 5) {
+                console.log(`[STEP 4] ✅ Element ${index} has data-date-key="${dateKey}"`)
+              }
+            } else {
+              if (index < 5) {
+                console.log(`[STEP 4] ⚠️ Element ${index} missing data-date-key attribute`)
+              }
             }
             
             // Step 2: If no data attribute, extract from element's text content
             if (!dateKey) {
-              // Get the day number from the element's text
-              // The day number is usually the first number in the text content
               const dayText = dayEl.textContent?.trim() || ''
-              
-              // Try to find the day number - it's usually at the start
-              // But might have session times already injected, so look for first number
               const dayMatch = dayText.match(/(\d+)/)
               const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null
               
               if (dayNumber && dayNumber >= 1 && dayNumber <= 31) {
                 dateKey = `${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-                // Set the attribute for future reference
                 dayEl.setAttribute('data-date-key', dateKey)
                 extractedFromText++
-                console.log(`[ClientDashboard] Extracted dateKey ${dateKey} from day number ${dayNumber}, text was: "${dayText.substring(0, 20)}"`)
+                if (index < 5) {
+                  console.log(`[STEP 4] 📝 Extracted dateKey ${dateKey} from day number ${dayNumber}`)
+                }
               }
             }
             
             if (!dateKey) {
-              // Can't determine date, skip
-              return
+              return // Can't determine date, skip
             }
             
             // Step 3: Check if this date has sessions
@@ -242,13 +289,13 @@ function ClientDashboard() {
               return // No sessions for this date
             }
             
-            console.log(`[ClientDashboard] ✅ Found ${sessions.length} sessions for ${dateKey}`)
+            matchedWithSessions++
+            console.log(`[STEP 4] ✅ Date ${dateKey} has ${sessions.length} sessions - proceeding with injection`)
             
             // Step 4: Remove any existing session time element
             const existing = dayEl.querySelector('.session-times')
             if (existing) {
               existing.remove()
-              console.log(`[ClientDashboard] Removed existing session times element from ${dateKey}`)
             }
             
             // Step 5: Format session times
@@ -276,33 +323,46 @@ function ClientDashboard() {
             dayEl.appendChild(sessionEl)
             injectedCount++
             
-            console.log(`[ClientDashboard] ✅ Injected "${sessionEl.textContent}" into ${dateKey}`)
+            console.log(`[STEP 4] ✅ Injected "${sessionEl.textContent}" into ${dateKey}`)
             
             // Verify it was added
             const verify = dayEl.querySelector('.session-times')
             if (!verify) {
-              console.error(`[ClientDashboard] ❌ Session element not found after injection for ${dateKey}!`)
+              console.error(`[STEP 4] ❌ Session element not found after injection for ${dateKey}!`)
             } else {
-              console.log(`[ClientDashboard] ✅ Verified session element exists for ${dateKey}`)
+              console.log(`[STEP 4] ✅ Verified session element exists in DOM for ${dateKey}`)
+              // Also check if it's visible
+              const rect = verify.getBoundingClientRect()
+              console.log(`[STEP 4] 📐 Session element dimensions:`, { width: rect.width, height: rect.height, visible: rect.width > 0 && rect.height > 0 })
             }
           } catch (err) {
-            console.error('[ClientDashboard] Error processing day element:', err, dayEl)
+            console.error('[STEP 4] ❌ Error processing day element:', err, dayEl)
           }
         })
         
-        console.log(`[ClientDashboard] Summary: Processed ${processedCount} days, Found ${foundWithDataAttr} with data-date-key, Extracted ${extractedFromText} from text, Injected ${injectedCount} session times`)
+        console.log(`[STEP 4] 📊 Summary:`)
+        console.log(`  - Processed: ${processedCount} days`)
+        console.log(`  - Found with data-date-key: ${foundWithDataAttr}`)
+        console.log(`  - Extracted from text: ${extractedFromText}`)
+        console.log(`  - Matched with sessions: ${matchedWithSessions}`)
+        console.log(`  - Injected: ${injectedCount} session times`)
         
         if (injectedCount === 0 && sessionsByDate.size > 0) {
-          console.warn(`[ClientDashboard] ⚠️ No sessions injected!`)
-          console.warn(`[ClientDashboard] Debug info:`, {
+          console.error(`[STEP 4] ❌ NO SESSIONS INJECTED!`)
+          console.error(`[STEP 4] Debug info:`, {
             dayElementsFound: dayElements.length,
             sessionsByDateSize: sessionsByDate.size,
             month: monthName,
-            availableDates: Array.from(sessionsByDate.keys())
+            availableDates: Array.from(sessionsByDate.keys()).sort(),
+            foundWithDataAttr,
+            extractedFromText,
+            matchedWithSessions
           })
+        } else if (injectedCount > 0) {
+          console.log(`[STEP 4] ✅ Successfully injected ${injectedCount} session times!`)
         }
       } catch (err) {
-        console.error('[ClientDashboard] Error in injectSessionTimes:', err)
+        console.error('[STEP 4] ❌ Error in injectSessionTimes:', err)
       }
     }
     
