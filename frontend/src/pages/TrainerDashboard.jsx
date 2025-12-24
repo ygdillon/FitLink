@@ -150,6 +150,13 @@ function TrainerDashboard() {
 
   // Memoize getDayProps to ensure it has access to the latest sessionsByDate
   const getDayProps = useCallback((date) => {
+    // Log that getDayProps is being called (limit to avoid spam)
+    if (!window._calendarCallCount) window._calendarCallCount = 0
+    if (window._calendarCallCount < 10) {
+      console.log(`[Calendar] getDayProps called #${window._calendarCallCount + 1} for date:`, date)
+      window._calendarCallCount++
+    }
+    
     // Validate that date is a Date object
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
       return { style: { cursor: 'pointer' } }
@@ -164,7 +171,7 @@ function TrainerDashboard() {
       // Log ALL December dates to see what's being checked
       const isDecember = date.getMonth() === 11 && date.getFullYear() === 2025
       if (isDecember && (date.getDate() >= 28 || date.getDate() <= 5)) {
-        console.log(`[Calendar] Checking ${dateKey} (Dec ${day})`)
+        console.log(`[Calendar] Checking ${dateKey} (Dec ${day}), mapSize=${sessionsByDate.size}`)
       }
       
       // Check if this date has sessions
