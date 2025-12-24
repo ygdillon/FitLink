@@ -179,13 +179,25 @@ function ClientDashboard() {
         if (!calendarWrapperRef.current) return
         
         // Find all calendar day buttons - try multiple selectors
-        let dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+        // First, try to find elements with data-date-key attribute (set by getDayProps)
+        let dayElements = calendarWrapperRef.current.querySelectorAll('[data-date-key]')
+        
+        // If that doesn't work, try Mantine's data attribute
+        if (dayElements.length === 0) {
+          dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
+        }
+        
+        // Fallback to table buttons
         if (dayElements.length === 0) {
           dayElements = calendarWrapperRef.current.querySelectorAll('table tbody td button')
         }
+        
+        // Last resort: all buttons
         if (dayElements.length === 0) {
           dayElements = calendarWrapperRef.current.querySelectorAll('button[type="button"]')
         }
+        
+        console.log(`[ClientDashboard] Found ${dayElements.length} day elements using selector`)
         
         // Get month/year from displayedMonth state (controlled)
         const month = displayedMonth.getMonth() + 1
@@ -202,18 +214,27 @@ function ClientDashboard() {
             // Try to get date key from data attribute first (set by getDayProps)
             let dateKey = dayEl.getAttribute('data-date-key')
             
+            // Also check parent elements (Mantine might wrap the button)
+            if (!dateKey && dayEl.parentElement) {
+              dateKey = dayEl.parentElement.getAttribute('data-date-key')
+            }
+            
             // If no data attribute, extract from button text and calendar context
             if (!dateKey) {
               // Get the day number from the button text (it's usually the first text node)
-              const dayText = dayEl.textContent?.trim()
+              // Look for the first number in the text content
+              const dayText = dayEl.textContent?.trim() || ''
               // Extract just the number (remove any session times that might already be there)
-              const dayMatch = dayText?.match(/^(\d+)/)
+              const dayMatch = dayText.match(/^(\d+)/)
               const dayNumber = dayMatch ? parseInt(dayMatch[1]) : parseInt(dayText)
               
               if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
                 dateKey = `${year}-${String(month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-                // Set the attribute for future reference
+                // Set the attribute on both the element and its parent for future reference
                 dayEl.setAttribute('data-date-key', dateKey)
+                if (dayEl.parentElement) {
+                  dayEl.parentElement.setAttribute('data-date-key', dateKey)
+                }
                 console.log(`[ClientDashboard] Extracted dateKey ${dateKey} from day number ${dayNumber}`)
               }
             }
