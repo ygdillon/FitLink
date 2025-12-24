@@ -48,8 +48,19 @@ function TrainerDashboard() {
       }
       
       const sessions = sessionsRes.data || []
-      console.log('Fetched sessions:', sessions)
-      console.log('Sample session date format:', sessions[0]?.session_date)
+      console.log('[Fetch] Fetched sessions:', sessions.length)
+      if (sessions.length > 0) {
+        console.log('[Fetch] First session:', {
+          id: sessions[0].id,
+          session_date: sessions[0].session_date,
+          client_name: sessions[0].client_name,
+          status: sessions[0].status
+        })
+        // Test date extraction
+        const testDate = sessions[0].session_date
+        const extracted = typeof testDate === 'string' ? testDate.split('T')[0].split(' ')[0] : 'N/A'
+        console.log('[Fetch] Date extraction test:', { original: testDate, extracted })
+      }
       setUpcomingSessions(sessions)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -101,6 +112,7 @@ function TrainerDashboard() {
             grouped.set(dateKey, [])
           }
           grouped.get(dateKey).push(session)
+          console.log(`[Grouping] Added session ${session.id} to date ${dateKey} (from ${session.session_date})`)
         } catch (error) {
           console.error('Error processing session date:', session.session_date, error)
         }
