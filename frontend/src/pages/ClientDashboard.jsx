@@ -76,13 +76,23 @@ function ClientDashboard() {
 
   // Memoize getDayProps to add session data to calendar days
   const getDayProps = useCallback((date) => {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    // Handle both Date objects and date strings from Mantine Calendar
+    let dateObj = date
+    
+    // If it's a string, convert to Date
+    if (typeof date === 'string') {
+      dateObj = new Date(date)
+    }
+    
+    // Validate the date
+    if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
       return { style: { cursor: 'pointer' } }
     }
+    
     try {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
+      const year = dateObj.getFullYear()
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+      const day = String(dateObj.getDate()).padStart(2, '0')
       const dateKey = `${year}-${month}-${day}`
       
       const sessions = sessionsByDate.get(dateKey) || []
@@ -367,14 +377,23 @@ function ClientDashboard() {
                 handleDateClick(date)
               }}
               getDayProps={(date) => {
+                // Handle both Date objects and date strings
+                let dateObj = date
+                if (typeof date === 'string') {
+                  dateObj = new Date(date)
+                }
+                
                 // Validate date before processing
-                if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-                  console.log('[ClientDashboard] 🟣 getDayProps called with invalid date:', date)
+                if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+                  // Only log if it's actually invalid (not just a string that needs conversion)
+                  if (date && typeof date !== 'string') {
+                    console.log('[ClientDashboard] 🟣 getDayProps called with invalid date:', date)
+                  }
                   return { style: { cursor: 'pointer' } }
                 }
                 // Log first few calls to see if getDayProps is being called for new month
-                if (date.getDate() <= 3) {
-                  console.log('[ClientDashboard] 🟣 getDayProps called for date:', date.toLocaleDateString())
+                if (dateObj.getDate() <= 3) {
+                  console.log('[ClientDashboard] 🟣 getDayProps called for date:', dateObj.toLocaleDateString())
                 }
                 return getDayProps(date)
               }}
