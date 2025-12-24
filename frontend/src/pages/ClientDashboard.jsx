@@ -172,11 +172,14 @@ function ClientDashboard() {
 
   // Handle month change from Calendar component
   const handleMonthChange = (date) => {
-    console.log('[ClientDashboard] 🔵 handleMonthChange CALLED with date:', date)
-    console.log('[ClientDashboard] 🔵 New month:', date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
-    console.log('[ClientDashboard] 🔵 Current displayedMonth before update:', displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+    console.log('[MONTH CHANGE] 🔵 handleMonthChange CALLED with date:', date)
+    console.log('[MONTH CHANGE] 🔵 New month:', date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+    console.log('[MONTH CHANGE] 🔵 Current displayedMonth before update:', displayedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
     setDisplayedMonth(date)
-    console.log('[ClientDashboard] 🔵 setDisplayedMonth called, state update queued')
+    console.log('[MONTH CHANGE] 🔵 setDisplayedMonth called, state update queued')
+    // Force a calendar key update to ensure re-render
+    setCalendarKey(prev => prev + 1)
+    console.log('[MONTH CHANGE] 🔵 calendarKey incremented to force calendar re-render')
   }
 
   // Debug: Log when displayedMonth changes
@@ -408,15 +411,31 @@ function ClientDashboard() {
     }
     
     // Try multiple times with delays to catch calendar rendering
+    // When month changes, calendar needs time to re-render, so we use longer delays
+    console.log('[STEP 4] ⏱️ Scheduling injection attempts with delays...')
     injectSessionTimes()
-    const timeout1 = setTimeout(injectSessionTimes, 200)
-    const timeout2 = setTimeout(injectSessionTimes, 500)
-    const timeout3 = setTimeout(injectSessionTimes, 1000)
+    const timeout1 = setTimeout(() => {
+      console.log('[STEP 4] ⏱️ Retry #1 (200ms)')
+      injectSessionTimes()
+    }, 200)
+    const timeout2 = setTimeout(() => {
+      console.log('[STEP 4] ⏱️ Retry #2 (500ms)')
+      injectSessionTimes()
+    }, 500)
+    const timeout3 = setTimeout(() => {
+      console.log('[STEP 4] ⏱️ Retry #3 (1000ms)')
+      injectSessionTimes()
+    }, 1000)
+    const timeout4 = setTimeout(() => {
+      console.log('[STEP 4] ⏱️ Retry #4 (1500ms) - final attempt')
+      injectSessionTimes()
+    }, 1500)
     
     return () => {
       clearTimeout(timeout1)
       clearTimeout(timeout2)
       clearTimeout(timeout3)
+      clearTimeout(timeout4)
     }
   }, [sessionsByDate, calendarKey, displayedMonth])
 
