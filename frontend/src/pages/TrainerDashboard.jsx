@@ -13,6 +13,7 @@ function TrainerDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
+  const [calendarKey, setCalendarKey] = useState(0) // Force re-render when sessions load
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -65,6 +66,8 @@ function TrainerDashboard() {
         console.warn('[Fetch] No sessions found. Make sure you have scheduled sessions for your clients.')
       }
       setUpcomingSessions(sessions)
+      // Force calendar to re-render when sessions are loaded
+      setCalendarKey(prev => prev + 1)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -284,6 +287,7 @@ function TrainerDashboard() {
               <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%', paddingBottom: '0.5rem' }}>
                 <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
                   <Calendar
+                    key={calendarKey}
                     value={null}
                     onChange={handleDateClick}
                     getDayProps={getDayProps}
