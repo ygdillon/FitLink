@@ -233,7 +233,7 @@ function ClientDashboard() {
           }
         }
         
-        console.log(`[ClientDashboard] Injecting for month: ${header || `${month}/${year}`}, Found ${dayElements.length} day elements`)
+        console.log(`[ClientDashboard] Injecting for month: ${header || `${month}/${year}`}, Found ${dayElements.length} day elements, SessionsByDate has ${sessionsByDate.size} dates`)
         
         let injectedCount = 0
         dayElements.forEach((dayEl) => {
