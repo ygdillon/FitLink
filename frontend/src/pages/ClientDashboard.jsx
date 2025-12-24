@@ -137,7 +137,7 @@ function ClientDashboard() {
     }
   }
 
-  // Watch for calendar month changes using MutationObserver
+  // Watch for calendar month changes using MutationObserver and click events
   useEffect(() => {
     if (!calendarWrapperRef.current) return
 
@@ -149,10 +149,12 @@ function ClientDashboard() {
                     calendarWrapperRef.current?.querySelector('[role="heading"]')?.textContent ||
                     ''
       
+      console.log('[ClientDashboard] Checking month change, current header:', header, 'last:', lastHeaderText)
+      
       // Only update if header text actually changed
       if (header && header !== lastHeaderText) {
         lastHeaderText = header
-        console.log('[ClientDashboard] Detected month change to:', header)
+        console.log('[ClientDashboard] ✅ Detected month change to:', header)
         
         const monthMatch = header.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i)
         const yearMatch = header.match(/(\d{4})/)
@@ -164,16 +166,22 @@ function ClientDashboard() {
           const newMonth = new Date(year, month, 1)
           
           if (newMonth.getTime() !== currentMonth.getTime()) {
-            console.log('[ClientDashboard] Month state updated to:', header)
+            console.log('[ClientDashboard] 🔄 Month state updated to:', header)
             setCurrentMonth(newMonth)
+          } else {
+            console.log('[ClientDashboard] Month unchanged, skipping update')
           }
+        } else {
+          console.warn('[ClientDashboard] Could not parse month/year from header:', header)
         }
       }
     }
 
     // Use MutationObserver to watch for DOM changes in the calendar
-    const observer = new MutationObserver(() => {
-      checkMonthChange()
+    const observer = new MutationObserver((mutations) => {
+      console.log('[ClientDashboard] MutationObserver detected changes:', mutations.length)
+      // Small delay to let DOM settle
+      setTimeout(checkMonthChange, 100)
     })
 
     // Observe the calendar wrapper for changes
@@ -183,6 +191,20 @@ function ClientDashboard() {
         subtree: true,
         characterData: true
       })
+      console.log('[ClientDashboard] MutationObserver attached to calendar')
+    }
+
+    // Also listen for click events on navigation buttons
+    const handleClick = (e) => {
+      // Check if click is on a navigation button (prev/next month)
+      if (e.target.closest('button') && (e.target.textContent === '<' || e.target.textContent === '>' || e.target.textContent.includes('Previous') || e.target.textContent.includes('Next'))) {
+        console.log('[ClientDashboard] Navigation button clicked')
+        setTimeout(checkMonthChange, 300)
+      }
+    }
+    
+    if (calendarWrapperRef.current) {
+      calendarWrapperRef.current.addEventListener('click', handleClick)
     }
 
     // Also check immediately
@@ -190,6 +212,9 @@ function ClientDashboard() {
     
     return () => {
       observer.disconnect()
+      if (calendarWrapperRef.current) {
+        calendarWrapperRef.current.removeEventListener('click', handleClick)
+      }
     }
   }, [currentMonth])
 
