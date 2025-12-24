@@ -180,11 +180,11 @@ function TrainerDashboard() {
         'data-has-sessions': hasSessions ? 'true' : undefined,
         style: hasSessions
           ? {
-              backgroundColor: 'rgba(34, 197, 94, 0.2) !important',
-              border: '1px solid rgba(34, 197, 94, 0.4) !important',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              border: '1px solid rgba(34, 197, 94, 0.4)',
               fontWeight: 600,
               cursor: 'pointer',
-              color: 'rgba(34, 197, 94, 0.9) !important',
+              color: 'rgba(34, 197, 94, 0.9)',
             }
           : { cursor: 'pointer' },
       }
