@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group } from '@mantine/core'
+import { useState, useEffect, useRef } from 'react'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group, Avatar, Center } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,6 +9,9 @@ import './Profile.css'
 function Profile() {
   const { user, fetchUser } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [profileImage, setProfileImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const fileInputRef = useRef(null)
 
   const form = useForm({
     initialValues: {
@@ -38,8 +41,51 @@ function Profile() {
         hourly_rate: user.hourly_rate || '',
         phone_number: user.phone_number || ''
       })
+      setImagePreview(user.profile_image || null)
     }
   }, [user])
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        notifications.show({
+          title: 'Invalid File',
+          message: 'Please select an image file',
+          color: 'red',
+        })
+        return
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        notifications.show({
+          title: 'File Too Large',
+          message: 'Please select an image smaller than 5MB',
+          color: 'red',
+        })
+        return
+      }
+
+      // Read file and convert to base64
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result
+        setProfileImage(base64String)
+        setImagePreview(base64String)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setProfileImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   const handleSubmit = async (values) => {
     setLoading(true)
@@ -50,10 +96,12 @@ function Profile() {
         certifications: values.certifications ? values.certifications.split(',').map(s => s.trim()).filter(s => s) : [],
         specialties: values.specialties ? values.specialties.split(',').map(s => s.trim()).filter(s => s) : [],
         hourly_rate: values.hourly_rate ? parseFloat(values.hourly_rate) : null,
-        phone_number: values.phone_number || null
+        phone_number: values.phone_number || null,
+        profile_image: profileImage || null
       }
       await api.put('/profile', updateData)
       await fetchUser()
+      setProfileImage(null) // Reset after successful update
       notifications.show({
         title: 'Profile Updated',
         message: 'Your profile has been successfully updated!',
@@ -91,6 +139,59 @@ function Profile() {
         
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="lg">
+            {/* Profile Picture */}
+            <div>
+              <Title order={3} mb="md">Profile Picture</Title>
+              <Stack gap="md" align="center">
+                <Avatar
+                  src={imagePreview}
+                  size={120}
+                  radius="50%"
+                  style={{
+                    border: '3px solid var(--mantine-color-gray-3)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
+                <Group gap="xs">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={{ display: 'none' }}
+                    id="profile-image-input"
+                  />
+                  <label htmlFor="profile-image-input">
+                    <Button
+                      component="span"
+                      variant="light"
+                      size="sm"
+                      color="robinhoodGreen"
+                    >
+                      {imagePreview ? 'Change Picture' : 'Add Picture'}
+                    </Button>
+                  </label>
+                  {imagePreview && (
+                    <Button
+                      variant="light"
+                      size="sm"
+                      color="red"
+                      onClick={handleRemoveImage}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Group>
+                <Text size="xs" c="dimmed" ta="center">
+                  Upload a circular profile picture. Max size: 5MB
+                </Text>
+              </Stack>
+            </div>
+
+            <Divider />
+
             {/* Basic Information */}
             <div>
               <Title order={3} mb="md">Basic Information</Title>

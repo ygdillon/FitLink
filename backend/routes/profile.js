@@ -10,7 +10,7 @@ router.use(authenticate)
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role,
+      `SELECT u.id, u.name, u.email, u.role, u.profile_image,
               t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
@@ -44,12 +44,12 @@ router.get('/', async (req, res) => {
 // Update profile
 router.put('/', async (req, res) => {
   try {
-    const { name, email, bio, certifications, specialties, hourly_rate, phone_number } = req.body
+    const { name, email, bio, certifications, specialties, hourly_rate, phone_number, profile_image } = req.body
 
     // Update user
     await pool.query(
-      'UPDATE users SET name = $1, email = $2 WHERE id = $3',
-      [name, email, req.user.id]
+      'UPDATE users SET name = $1, email = $2, profile_image = COALESCE($4, profile_image) WHERE id = $3',
+      [name, email, req.user.id, profile_image || null]
     )
 
     // Update trainer profile if user is a trainer
