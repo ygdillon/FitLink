@@ -11,7 +11,8 @@ router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.name, u.email, u.role, u.profile_image,
-              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number
+              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number,
+              t.fitness_goals, t.client_age_ranges
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
        WHERE u.id = $1`,
@@ -33,6 +34,16 @@ router.get('/', async (req, res) => {
         ? user.specialties
         : JSON.parse(user.specialties || '[]')
     }
+    if (user.fitness_goals) {
+      user.fitness_goals = Array.isArray(user.fitness_goals)
+        ? user.fitness_goals
+        : JSON.parse(user.fitness_goals || '[]')
+    }
+    if (user.client_age_ranges) {
+      user.client_age_ranges = Array.isArray(user.client_age_ranges)
+        ? user.client_age_ranges
+        : JSON.parse(user.client_age_ranges || '[]')
+    }
 
     res.json(user)
   } catch (error) {
@@ -44,7 +55,7 @@ router.get('/', async (req, res) => {
 // Update profile
 router.put('/', async (req, res) => {
   try {
-    const { name, email, bio, certifications, specialties, hourly_rate, phone_number, profile_image } = req.body
+    const { name, email, bio, certifications, specialties, hourly_rate, phone_number, profile_image, fitness_goals, client_age_ranges } = req.body
 
     // Update user
     await pool.query(
@@ -56,14 +67,17 @@ router.put('/', async (req, res) => {
     if (req.user.role === 'trainer') {
       await pool.query(
         `UPDATE trainers 
-         SET bio = $1, certifications = $2, specialties = $3, hourly_rate = $4, phone_number = $5
-         WHERE user_id = $6`,
+         SET bio = $1, certifications = $2, specialties = $3, hourly_rate = $4, phone_number = $5,
+             fitness_goals = $6, client_age_ranges = $7
+         WHERE user_id = $8`,
         [
           bio || null,
           certifications ? JSON.stringify(certifications) : null,
           specialties ? JSON.stringify(specialties) : null,
           hourly_rate ? parseFloat(hourly_rate) : null,
           phone_number || null,
+          fitness_goals ? JSON.stringify(fitness_goals) : null,
+          client_age_ranges ? JSON.stringify(client_age_ranges) : null,
           req.user.id
         ]
       )

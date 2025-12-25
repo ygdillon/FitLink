@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group, Avatar, Center, Grid } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group, Avatar, Center, Grid, Checkbox, SimpleGrid } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
@@ -21,7 +21,9 @@ function Profile() {
       certifications: '',
       specialties: '',
       hourly_rate: '',
-      phone_number: ''
+      phone_number: '',
+      fitness_goals: [],
+      client_age_ranges: []
     },
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
@@ -39,11 +41,49 @@ function Profile() {
         certifications: user.certifications?.join(', ') || '',
         specialties: user.specialties?.join(', ') || '',
         hourly_rate: user.hourly_rate || '',
-        phone_number: user.phone_number || ''
+        phone_number: user.phone_number || '',
+        fitness_goals: user.fitness_goals || [],
+        client_age_ranges: user.client_age_ranges || []
       })
       setImagePreview(user.profile_image || null)
     }
   }, [user])
+
+  const fitnessGoalsOptions = [
+    'Lose weight',
+    'Build muscle',
+    'Boost endurance',
+    'Get toned',
+    'Gain flexibility'
+  ]
+
+  const clientAgeRanges = [
+    'Younger than 18',
+    '18 - 22 years old',
+    '23 - 30 years old',
+    '31 - 40 years old',
+    '41 - 50 years old',
+    '51 - 60 years old',
+    '61+ years old'
+  ]
+
+  const handleFitnessGoalToggle = (goal) => {
+    const current = form.values.fitness_goals || []
+    if (current.includes(goal)) {
+      form.setFieldValue('fitness_goals', current.filter(g => g !== goal))
+    } else {
+      form.setFieldValue('fitness_goals', [...current, goal])
+    }
+  }
+
+  const handleAgeRangeToggle = (range) => {
+    const current = form.values.client_age_ranges || []
+    if (current.includes(range)) {
+      form.setFieldValue('client_age_ranges', current.filter(r => r !== range))
+    } else {
+      form.setFieldValue('client_age_ranges', [...current, range])
+    }
+  }
 
   const handleImageChange = (event) => {
     const file = event.target.files?.[0]
@@ -97,7 +137,9 @@ function Profile() {
         specialties: values.specialties ? values.specialties.split(',').map(s => s.trim()).filter(s => s) : [],
         hourly_rate: values.hourly_rate ? parseFloat(values.hourly_rate) : null,
         phone_number: values.phone_number || null,
-        profile_image: profileImage || null
+        profile_image: profileImage || null,
+        fitness_goals: values.fitness_goals || [],
+        client_age_ranges: values.client_age_ranges || []
       }
       await api.put('/profile', updateData)
       await fetchUser()
@@ -261,6 +303,57 @@ function Profile() {
                       {...form.getInputProps('certifications')}
                       description="Comma-separated list of your professional certifications"
                     />
+                  </Stack>
+                </div>
+
+                <Divider />
+
+                {/* Trainer Preferences */}
+                <div>
+                  <Title order={3} mb="md">Client Preferences</Title>
+                  <Text c="dimmed" size="sm" mb="md">
+                    Select the types of clients and goals you prefer to work with. This helps match you with the right clients.
+                  </Text>
+                  <Stack gap="lg">
+                    {/* Fitness Goals */}
+                    <div>
+                      <Text fw={500} mb="sm">Fitness goals</Text>
+                      <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="sm">
+                        {fitnessGoalsOptions.map((goal) => (
+                          <Checkbox
+                            key={goal}
+                            label={goal}
+                            checked={form.values.fitness_goals?.includes(goal) || false}
+                            onChange={() => handleFitnessGoalToggle(goal)}
+                            styles={{
+                              label: {
+                                cursor: 'pointer'
+                              }
+                            }}
+                          />
+                        ))}
+                      </SimpleGrid>
+                    </div>
+
+                    {/* Client Age Ranges */}
+                    <div>
+                      <Text fw={500} mb="sm">Client age</Text>
+                      <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="sm">
+                        {clientAgeRanges.map((range) => (
+                          <Checkbox
+                            key={range}
+                            label={range}
+                            checked={form.values.client_age_ranges?.includes(range) || false}
+                            onChange={() => handleAgeRangeToggle(range)}
+                            styles={{
+                              label: {
+                                cursor: 'pointer'
+                              }
+                            }}
+                          />
+                        ))}
+                      </SimpleGrid>
+                    </div>
                   </Stack>
                 </div>
               </>
