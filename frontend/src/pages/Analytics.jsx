@@ -91,9 +91,13 @@ function Analytics() {
     try {
       setAlertsLoading(true)
       const response = await api.get('/trainer/analytics/alerts-widget')
-      setAlertsData(response.data)
+      console.log('Alerts widget data:', response.data)
+      setAlertsData(response.data || { items: [], counts: { alerts: 0, requests: 0, checkIns: 0, total: 0 } })
     } catch (error) {
       console.error('Error fetching alerts widget:', error)
+      console.error('Error details:', error.response?.data || error.message)
+      // Set empty state on error so widget still shows
+      setAlertsData({ items: [], counts: { alerts: 0, requests: 0, checkIns: 0, total: 0 } })
     } finally {
       setAlertsLoading(false)
     }
@@ -250,7 +254,7 @@ function Analytics() {
 
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
               {/* Alerts Widget */}
-              <Card withBorder p="md" radius="md" style={{ minHeight: '400px' }}>
+              <Card withBorder p="md" radius="md" style={{ minHeight: '400px' }} data-testid="alerts-widget">
                 <Group justify="space-between" mb="md">
                   <Group>
                     <IconBell size={20} color={theme.colors.blue[6]} />
