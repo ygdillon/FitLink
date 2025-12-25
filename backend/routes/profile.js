@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.name, u.email, u.role,
-              t.bio, t.certifications, t.specialties
+              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
        WHERE u.id = $1`,
@@ -44,7 +44,7 @@ router.get('/', async (req, res) => {
 // Update profile
 router.put('/', async (req, res) => {
   try {
-    const { name, email, bio, certifications, specialties } = req.body
+    const { name, email, bio, certifications, specialties, hourly_rate, phone_number } = req.body
 
     // Update user
     await pool.query(
@@ -56,12 +56,14 @@ router.put('/', async (req, res) => {
     if (req.user.role === 'trainer') {
       await pool.query(
         `UPDATE trainers 
-         SET bio = $1, certifications = $2, specialties = $3
-         WHERE user_id = $4`,
+         SET bio = $1, certifications = $2, specialties = $3, hourly_rate = $4, phone_number = $5
+         WHERE user_id = $6`,
         [
           bio || null,
           certifications ? JSON.stringify(certifications) : null,
           specialties ? JSON.stringify(specialties) : null,
+          hourly_rate ? parseFloat(hourly_rate) : null,
+          phone_number || null,
           req.user.id
         ]
       )

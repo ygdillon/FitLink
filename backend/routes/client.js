@@ -825,6 +825,13 @@ router.delete('/trainer', async (req, res) => {
 
     const trainerId = clientResult.rows[0].trainer_id
 
+    // Delete ALL trainer requests between this client and trainer
+    // This erases all previous request history
+    await pool.query(
+      'DELETE FROM trainer_requests WHERE client_id = $1 AND trainer_id = $2',
+      [req.user.id, trainerId]
+    )
+
     // Remove trainer from client
     await pool.query(
       'UPDATE clients SET trainer_id = NULL WHERE user_id = $1',

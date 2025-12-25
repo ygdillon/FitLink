@@ -126,6 +126,24 @@ router.get('/trainer/clients/:clientId/sessions', requireRole(['trainer']), asyn
 })
 
 // Helper function to generate recurring session dates
+// Helper function to convert time string (HH:MM) to minutes from midnight
+function timeToMinutes(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// Helper function to check if two time ranges overlap
+// Returns true if the new session overlaps with an existing session
+function checkTimeOverlap(newStartTime, newDuration, existingStartTime, existingDuration) {
+  const newStart = timeToMinutes(newStartTime)
+  const newEnd = newStart + (newDuration || 60)
+  const existingStart = timeToMinutes(existingStartTime)
+  const existingEnd = existingStart + (existingDuration || 60)
+  
+  // Two ranges overlap if: newStart < existingEnd AND newEnd > existingStart
+  return newStart < existingEnd && newEnd > existingStart
+}
+
 function generateRecurringDates(startDate, endDate, dayOfWeek, pattern = 'weekly') {
   const dates = []
   const start = new Date(startDate)
@@ -203,6 +221,32 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
           return res.status(400).json({ message: 'No valid dates found for recurring pattern' })
         }
         
+        // Check for conflicts on the first date before creating any sessions
+        const firstDateStr = dates[0].toISOString().split('T')[0]
+        const sessionDuration = duration || 60
+        const existingSessionsFirst = await dbClient.query(
+          `SELECT id, session_time, duration, client_id 
+           FROM sessions 
+           WHERE trainer_id = $1 
+             AND session_date = $2 
+             AND status IN ('scheduled', 'confirmed')`,
+          [req.user.id, firstDateStr]
+        )
+        
+        for (const existing of existingSessionsFirst.rows) {
+          if (checkTimeOverlap(sessionTime, sessionDuration, existing.session_time, existing.duration)) {
+            await dbClient.query('ROLLBACK')
+            const clientInfo = await dbClient.query(
+              'SELECT name FROM users WHERE id = $1',
+              [existing.client_id]
+            )
+            const clientName = clientInfo.rows[0]?.name || 'another client'
+            return res.status(400).json({ 
+              message: `The first session overlaps with an existing session for ${clientName} at ${existing.session_time} on ${firstDateStr}` 
+            })
+          }
+        }
+        
         // Create parent session (first one)
         const parentResult = await dbClient.query(
           `INSERT INTO sessions (
@@ -232,20 +276,32 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
         const createdSessions = [parentResult.rows[0]]
         
         // Create child sessions for remaining dates
+        // sessionDuration already declared above on line 226
+        const conflictDates = []
         for (let i = 1; i < dates.length; i++) {
           const dateStr = dates[i].toISOString().split('T')[0]
           
-          // Check for conflicts
-          const conflictCheck = await dbClient.query(
-            `SELECT id FROM sessions 
+          // Check for overlapping time conflicts
+          const existingSessions = await dbClient.query(
+            `SELECT id, session_time, duration 
+             FROM sessions 
              WHERE trainer_id = $1 
                AND session_date = $2 
-               AND session_time = $3 
                AND status IN ('scheduled', 'confirmed')`,
-            [req.user.id, dateStr, sessionTime]
+            [req.user.id, dateStr]
           )
           
-          if (conflictCheck.rows.length === 0) {
+          // Check if this session overlaps with any existing session
+          let hasConflict = false
+          for (const existing of existingSessions.rows) {
+            if (checkTimeOverlap(sessionTime, sessionDuration, existing.session_time, existing.duration)) {
+              hasConflict = true
+              conflictDates.push(dateStr)
+              break
+            }
+          }
+          
+          if (!hasConflict) {
             const childResult = await dbClient.query(
               `INSERT INTO sessions (
                 trainer_id, client_id, workout_id, session_date, session_time,
@@ -274,26 +330,43 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
         }
         
         await dbClient.query('COMMIT')
+        let message = `Created ${createdSessions.length} recurring session${createdSessions.length !== 1 ? 's' : ''}`
+        if (conflictDates.length > 0) {
+          message += `. ${conflictDates.length} date${conflictDates.length !== 1 ? 's' : ''} skipped due to conflicts: ${conflictDates.slice(0, 3).join(', ')}${conflictDates.length > 3 ? '...' : ''}`
+        }
         res.status(201).json({
-          message: `Created ${createdSessions.length} recurring sessions`,
+          message,
           sessions: createdSessions,
-          parentId
+          parentId,
+          conflicts: conflictDates.length > 0 ? conflictDates : undefined
         })
       } else {
         // Create single session
-        // Check for conflicts
-        const conflictCheck = await dbClient.query(
-          `SELECT id FROM sessions 
+        // Check for overlapping time conflicts based on start time and duration
+        const existingSessions = await dbClient.query(
+          `SELECT id, session_time, duration, client_id 
+           FROM sessions 
            WHERE trainer_id = $1 
              AND session_date = $2 
-             AND session_time = $3 
              AND status IN ('scheduled', 'confirmed')`,
-          [req.user.id, sessionDate, sessionTime]
+          [req.user.id, sessionDate]
         )
         
-        if (conflictCheck.rows.length > 0) {
-          await dbClient.query('ROLLBACK')
-          return res.status(400).json({ message: 'Time slot already booked' })
+        // Check if new session overlaps with any existing session
+        const sessionDuration = duration || 60
+        for (const existing of existingSessions.rows) {
+          if (checkTimeOverlap(sessionTime, sessionDuration, existing.session_time, existing.duration)) {
+            await dbClient.query('ROLLBACK')
+            // Get client name for better error message
+            const clientInfo = await dbClient.query(
+              'SELECT name FROM users WHERE id = $1',
+              [existing.client_id]
+            )
+            const clientName = clientInfo.rows[0]?.name || 'another client'
+            return res.status(400).json({ 
+              message: `This session overlaps with an existing session for ${clientName} at ${existing.session_time}` 
+            })
+          }
         }
         
         const result = await dbClient.query(
@@ -346,14 +419,46 @@ router.put('/trainer/sessions/:sessionId', requireRole(['trainer']), async (req,
       status
     } = req.body
     
-    // Verify session belongs to trainer
+    // Verify session belongs to trainer and get current session data
     const sessionCheck = await pool.query(
-      'SELECT id FROM sessions WHERE id = $1 AND trainer_id = $2',
+      'SELECT id, session_date, session_time, duration FROM sessions WHERE id = $1 AND trainer_id = $2',
       [sessionId, req.user.id]
     )
     
     if (sessionCheck.rows.length === 0) {
       return res.status(404).json({ message: 'Session not found' })
+    }
+    
+    const currentSession = sessionCheck.rows[0]
+    const finalDate = sessionDate !== undefined ? sessionDate : currentSession.session_date
+    const finalTime = sessionTime !== undefined ? sessionTime : currentSession.session_time
+    const finalDuration = duration !== undefined ? duration : currentSession.duration
+    
+    // Check for overlapping conflicts if date, time, or duration is being changed
+    if (sessionDate !== undefined || sessionTime !== undefined || duration !== undefined) {
+      const existingSessions = await pool.query(
+        `SELECT id, session_time, duration, client_id 
+         FROM sessions 
+         WHERE trainer_id = $1 
+           AND session_date = $2 
+           AND id != $3
+           AND status IN ('scheduled', 'confirmed')`,
+        [req.user.id, finalDate, sessionId]
+      )
+      
+      // Check if updated session overlaps with any existing session
+      for (const existing of existingSessions.rows) {
+        if (checkTimeOverlap(finalTime, finalDuration, existing.session_time, existing.duration)) {
+          const clientInfo = await pool.query(
+            'SELECT name FROM users WHERE id = $1',
+            [existing.client_id]
+          )
+          const clientName = clientInfo.rows[0]?.name || 'another client'
+          return res.status(400).json({ 
+            message: `This session overlaps with an existing session for ${clientName} at ${existing.session_time}` 
+          })
+        }
+      }
     }
     
     // Build update query dynamically

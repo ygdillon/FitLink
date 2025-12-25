@@ -1140,13 +1140,48 @@ router.post('/requests/:requestId/approve', async (req, res) => {
     try {
       await client.query('BEGIN')
 
-      // Update request status
-      await client.query(
+      // Step 1: Check what approved requests exist
+      const checkBefore = await client.query(
+        `SELECT id, status FROM trainer_requests 
+         WHERE client_id = $1 AND trainer_id = $2 AND status = 'approved'`,
+        [request.client_id, req.user.id]
+      )
+      console.log(`[APPROVE] Before delete - Found ${checkBefore.rows.length} approved request(s):`, checkBefore.rows)
+
+      // Step 2: Delete ALL existing approved requests for this client-trainer pair
+      // We do this first to clear the way for the new approved request
+      const deleteResult = await client.query(
+        `DELETE FROM trainer_requests 
+         WHERE client_id = $1 AND trainer_id = $2 AND status = 'approved'`,
+        [request.client_id, req.user.id]
+      )
+      
+      console.log(`[APPROVE] Deleted ${deleteResult.rowCount} existing approved request(s) for client ${request.client_id} and trainer ${req.user.id}`)
+      
+      // Verify deletion worked
+      const checkAfter = await client.query(
+        `SELECT id, status FROM trainer_requests 
+         WHERE client_id = $1 AND trainer_id = $2 AND status = 'approved'`,
+        [request.client_id, req.user.id]
+      )
+      console.log(`[APPROVE] After delete - Found ${checkAfter.rows.length} approved request(s):`, checkAfter.rows)
+
+      // Step 3: Now update the current request to approved
+      // This should work now since we deleted any existing approved requests above
+      const updateResult = await client.query(
         `UPDATE trainer_requests 
          SET status = 'approved', trainer_response = $1, updated_at = NOW()
-         WHERE id = $2`,
+         WHERE id = $2 AND status = 'pending'
+         RETURNING *`,
         [trainerResponse || null, requestId]
       )
+
+      if (updateResult.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(400).json({ message: 'Request not found, already processed, or constraint violation occurred' })
+      }
+      
+      console.log(`[APPROVE] Successfully updated request ${requestId} to approved`)
 
       // Check if client already has a trainer
       const existingClient = await client.query(
@@ -1154,22 +1189,31 @@ router.post('/requests/:requestId/approve', async (req, res) => {
         [request.client_id]
       )
 
+      let shouldIncrementCount = false
       if (existingClient.rows.length > 0 && existingClient.rows[0].trainer_id) {
-        // Client already has a trainer, disconnect them first
         const oldTrainerId = existingClient.rows[0].trainer_id
-        await client.query(
-          'UPDATE clients SET trainer_id = $1 WHERE user_id = $2',
-          [req.user.id, request.client_id]
-        )
+        
+        if (oldTrainerId !== req.user.id) {
+          // Client already has a different trainer, disconnect them first
+          await client.query(
+            'UPDATE clients SET trainer_id = $1 WHERE user_id = $2',
+            [req.user.id, request.client_id]
+          )
 
-        // Decrease old trainer's active client count
-        await client.query(
-          `UPDATE trainers 
-           SET active_clients = GREATEST(COALESCE(active_clients, 0) - 1, 0)
-           WHERE user_id = $1`,
-          [oldTrainerId]
-        )
+          // Decrease old trainer's active client count
+          await client.query(
+            `UPDATE trainers 
+             SET active_clients = GREATEST(COALESCE(active_clients, 0) - 1, 0)
+             WHERE user_id = $1`,
+            [oldTrainerId]
+          )
+          shouldIncrementCount = true
+        }
+        // If oldTrainerId === req.user.id, client already has this trainer
+        // This shouldn't happen if disconnect worked properly, but handle it gracefully
+        // Don't increment count since they're already connected
       } else {
+        // Client doesn't have a trainer (trainer_id is NULL or no record exists)
         // Update or create client record
         if (existingClient.rows.length > 0) {
           await client.query(
@@ -1182,16 +1226,19 @@ router.post('/requests/:requestId/approve', async (req, res) => {
             [request.client_id, req.user.id]
           )
         }
+        shouldIncrementCount = true
       }
 
-      // Update trainer's client count
-      await client.query(
-        `UPDATE trainers 
-         SET total_clients = COALESCE(total_clients, 0) + 1,
-             active_clients = COALESCE(active_clients, 0) + 1
-         WHERE user_id = $1`,
-        [req.user.id]
-      )
+      // Update trainer's client count only if this is a new connection
+      if (shouldIncrementCount) {
+        await client.query(
+          `UPDATE trainers 
+           SET total_clients = COALESCE(total_clients, 0) + 1,
+               active_clients = COALESCE(active_clients, 0) + 1
+           WHERE user_id = $1`,
+          [req.user.id]
+        )
+      }
 
       await client.query('COMMIT')
 
@@ -1201,13 +1248,25 @@ router.post('/requests/:requestId/approve', async (req, res) => {
       })
     } catch (error) {
       await client.query('ROLLBACK')
+      console.error('[APPROVE] Transaction error:', error)
       throw error
     } finally {
       client.release()
     }
   } catch (error) {
     console.error('Error approving request:', error)
-    res.status(500).json({ message: 'Failed to approve request' })
+    
+    // Provide more detailed error message
+    if (error.code === '23505') {
+      return res.status(400).json({ 
+        message: 'Cannot approve request: An approved request already exists for this client. Please try disconnecting and reconnecting the client first.' 
+      })
+    }
+    
+    res.status(500).json({ 
+      message: error.response?.data?.message || 'Failed to approve request',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 

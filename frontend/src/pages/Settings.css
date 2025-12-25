@@ -259,19 +259,14 @@
   gap: 1.5rem;
 }
 
-.trainer-result-card {
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.5rem;
-  background: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  transition: box-shadow 0.2s;
+.trainer-profile-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
 }
 
-.trainer-result-card:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+.trainer-profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
 }
 
 .trainer-result-info {

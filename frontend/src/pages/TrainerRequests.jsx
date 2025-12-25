@@ -6,7 +6,6 @@ import api from '../services/api'
 function TrainerRequests({ showTitle = true }) {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('pending') // 'pending', 'all', 'approved', 'rejected'
   const [message, setMessage] = useState('')
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [opened, { open, close }] = useDisclosure(false)
@@ -18,7 +17,7 @@ function TrainerRequests({ showTitle = true }) {
     fetchRequests()
     // Mark requests as read when page is viewed
     markRequestsAsRead()
-  }, [filter])
+  }, [])
 
   const markRequestsAsRead = async () => {
     try {
@@ -31,9 +30,7 @@ function TrainerRequests({ showTitle = true }) {
   const fetchRequests = async () => {
     setLoading(true)
     try {
-      const endpoint = filter === 'all' ? '/trainer/requests/all' : '/trainer/requests'
-      const params = filter !== 'pending' && filter !== 'all' ? `?status=${filter}` : ''
-      const response = await api.get(`${endpoint}${params}`)
+      const response = await api.get('/trainer/requests')
       setRequests(response.data)
     } catch (error) {
       console.error('Error fetching requests:', error)
@@ -103,36 +100,6 @@ function TrainerRequests({ showTitle = true }) {
         </Group>
       )}
 
-      <Group mb="md" gap="xs">
-        <Button
-          variant={filter === 'pending' ? 'filled' : 'outline'}
-          onClick={() => setFilter('pending')}
-          color="robinhoodGreen"
-        >
-          Pending {pendingCount > 0 && `(${pendingCount})`}
-        </Button>
-        <Button
-          variant={filter === 'all' ? 'filled' : 'outline'}
-          onClick={() => setFilter('all')}
-          color="robinhoodGreen"
-        >
-          All Requests
-        </Button>
-        <Button
-          variant={filter === 'approved' ? 'filled' : 'outline'}
-          onClick={() => setFilter('approved')}
-          color="robinhoodGreen"
-        >
-          Approved
-        </Button>
-        <Button
-          variant={filter === 'rejected' ? 'filled' : 'outline'}
-          onClick={() => setFilter('rejected')}
-          color="robinhoodGreen"
-        >
-          Rejected
-        </Button>
-      </Group>
 
       {message && (
         <Alert 
@@ -148,7 +115,7 @@ function TrainerRequests({ showTitle = true }) {
       {requests.length === 0 ? (
         <Paper p="xl" withBorder>
           <Text c="dimmed" ta="center">
-            No {filter === 'all' ? '' : filter} requests found.
+            No pending requests found.
           </Text>
         </Paper>
       ) : (

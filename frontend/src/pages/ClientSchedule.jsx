@@ -70,6 +70,59 @@ function ClientSchedule({ clientId, clientName }) {
     }
   }
 
+  // Helper function to convert time string to minutes from midnight
+  const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+
+  // Helper function to check if two time ranges overlap
+  const checkTimeOverlap = (newStartTime, newDuration, existingStartTime, existingDuration) => {
+    const newStart = timeToMinutes(newStartTime)
+    const newEnd = newStart + (newDuration || 60)
+    const existingStart = timeToMinutes(existingStartTime)
+    const existingEnd = existingStart + (existingDuration || 60)
+    
+    // Two ranges overlap if: newStart < existingEnd AND newEnd > existingStart
+    return newStart < existingEnd && newEnd > existingStart
+  }
+
+  // Check for overlapping sessions before submitting
+  // excludeSessionId: optional session ID to exclude from check (useful when updating)
+  const checkForOverlaps = (sessionDate, sessionTime, duration, excludeSessionId = null) => {
+    if (!sessionDate || !sessionTime) return null
+
+    const dateStr = sessionDate instanceof Date 
+      ? sessionDate.toISOString().split('T')[0]
+      : sessionDate
+    
+    const timeStr = sessionTime instanceof Date
+      ? sessionTime.toTimeString().slice(0, 5)
+      : sessionTime
+
+    const sessionDuration = duration || 60
+
+    // Check all sessions for the same date (excluding cancelled/completed and the session being updated)
+    const sameDateSessions = sessions.filter(s => {
+      const sDate = s.session_date.split('T')[0]
+      const isActive = s.status !== 'cancelled' && s.status !== 'completed'
+      const isNotExcluded = excludeSessionId ? s.id !== excludeSessionId : true
+      return sDate === dateStr && isActive && isNotExcluded
+    })
+
+    for (const existing of sameDateSessions) {
+      if (checkTimeOverlap(timeStr, sessionDuration, existing.session_time, existing.duration || 60)) {
+        return {
+          client: existing.client_name || 'a client',
+          time: existing.session_time,
+          date: dateStr
+        }
+      }
+    }
+
+    return null
+  }
+
   const handleCreateSession = async (values) => {
     setSubmitting(true)
     try {
@@ -80,6 +133,18 @@ function ClientSchedule({ clientId, clientName }) {
       const sessionTime = values.sessionTime instanceof Date
         ? values.sessionTime.toTimeString().slice(0, 5)
         : values.sessionTime
+
+      // Check for overlapping sessions before submitting
+      const overlap = checkForOverlaps(values.sessionDate, values.sessionTime, values.duration)
+      if (overlap) {
+        notifications.show({
+          title: 'Time Conflict',
+          message: `This session overlaps with an existing session for ${overlap.client} at ${new Date(`2000-01-01T${overlap.time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}. Please choose a different time.`,
+          color: 'red',
+        })
+        setSubmitting(false)
+        return
+      }
       const recurringEndDate = values.recurringEndDate instanceof Date
         ? values.recurringEndDate.toISOString().split('T')[0]
         : values.recurringEndDate
@@ -122,10 +187,11 @@ function ClientSchedule({ clientId, clientName }) {
       const response = await api.post('/schedule/trainer/sessions', payload)
       
       if (values.isRecurring && response.data.sessions) {
+        const color = response.data.conflicts && response.data.conflicts.length > 0 ? 'yellow' : 'green'
         notifications.show({
           title: 'Sessions Created',
-          message: `Successfully created ${response.data.sessions.length} recurring sessions!`,
-          color: 'green',
+          message: response.data.message || `Successfully created ${response.data.sessions.length} recurring sessions!`,
+          color,
         })
       } else {
         notifications.show({
@@ -158,6 +224,19 @@ function ClientSchedule({ clientId, clientName }) {
       const sessionTime = values.sessionTime instanceof Date
         ? values.sessionTime.toTimeString().slice(0, 5)
         : values.sessionTime
+
+      // Check for overlapping sessions before updating (exclude current session)
+      if (selectedSession) {
+        const overlap = checkForOverlaps(values.sessionDate, values.sessionTime, values.duration, selectedSession.id)
+        if (overlap) {
+          notifications.show({
+            title: 'Time Conflict',
+            message: `This session overlaps with an existing session for ${overlap.client} at ${new Date(`2000-01-01T${overlap.time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}. Please choose a different time.`,
+            color: 'red',
+          })
+          return
+        }
+      }
       
       // Normalize sessionType from display format to backend format
       const sessionTypeMap = {
@@ -471,7 +550,7 @@ function ClientSchedule({ clientId, clientName }) {
             />
             
             <Checkbox
-              label="Repeat this session weekly"
+              label="Repeat"
               {...form.getInputProps('isRecurring', { type: 'checkbox' })}
             />
             

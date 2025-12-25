@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
@@ -16,11 +16,14 @@ function Profile() {
       email: '',
       bio: '',
       certifications: '',
-      specialties: ''
+      specialties: '',
+      hourly_rate: '',
+      phone_number: ''
     },
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
       email: (value) => (!value ? 'Email is required' : /^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+      hourly_rate: (value) => (value && (isNaN(value) || value < 0) ? 'Must be a valid positive number' : null),
     },
   })
 
@@ -31,7 +34,9 @@ function Profile() {
         email: user.email || '',
         bio: user.bio || '',
         certifications: user.certifications?.join(', ') || '',
-        specialties: user.specialties?.join(', ') || ''
+        specialties: user.specialties?.join(', ') || '',
+        hourly_rate: user.hourly_rate || '',
+        phone_number: user.phone_number || ''
       })
     }
   }, [user])
@@ -42,8 +47,10 @@ function Profile() {
     try {
       const updateData = {
         ...values,
-        certifications: values.certifications.split(',').map(s => s.trim()).filter(s => s),
-        specialties: values.specialties.split(',').map(s => s.trim()).filter(s => s)
+        certifications: values.certifications ? values.certifications.split(',').map(s => s.trim()).filter(s => s) : [],
+        specialties: values.specialties ? values.specialties.split(',').map(s => s.trim()).filter(s => s) : [],
+        hourly_rate: values.hourly_rate ? parseFloat(values.hourly_rate) : null,
+        phone_number: values.phone_number || null
       }
       await api.put('/profile', updateData)
       await fetchUser()
@@ -56,7 +63,7 @@ function Profile() {
       console.error('Error updating profile:', error)
       notifications.show({
         title: 'Error',
-        message: 'Failed to update profile',
+        message: error.response?.data?.message || 'Failed to update profile',
         color: 'red',
       })
     } finally {
@@ -75,40 +82,91 @@ function Profile() {
   return (
     <Container size="md" py="xl">
       <Paper shadow="md" p="xl" radius="md" withBorder>
-        <Title order={1} mb="xl">Profile Settings</Title>
+        <Title order={1} mb="md">Profile Settings</Title>
+        <Text c="dimmed" mb="xl" size="sm">
+          {user.role === 'trainer' 
+            ? 'Update your profile information to help clients find and connect with you. A complete profile increases your visibility and helps clients make informed decisions.'
+            : 'Update your account information and preferences.'}
+        </Text>
+        
         <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack gap="md">
-            <TextInput
-              label="Name"
-              {...form.getInputProps('name')}
-              required
-            />
-            <TextInput
-              label="Email"
-              type="email"
-              {...form.getInputProps('email')}
-              required
-            />
+          <Stack gap="lg">
+            {/* Basic Information */}
+            <div>
+              <Title order={3} mb="md">Basic Information</Title>
+              <Stack gap="md">
+                <TextInput
+                  label="Full Name"
+                  placeholder="Enter your full name"
+                  {...form.getInputProps('name')}
+                  required
+                />
+                <TextInput
+                  label="Email Address"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  {...form.getInputProps('email')}
+                  required
+                />
+              </Stack>
+            </div>
+
             {user.role === 'trainer' && (
               <>
-                <Textarea
-                  label="Bio"
-                  rows={4}
-                  {...form.getInputProps('bio')}
-                />
-                <TextInput
-                  label="Certifications (comma-separated)"
-                  placeholder="NASM, ACE, etc."
-                  {...form.getInputProps('certifications')}
-                />
-                <TextInput
-                  label="Specialties (comma-separated)"
-                  placeholder="Weight Loss, Strength Training, etc."
-                  {...form.getInputProps('specialties')}
-                />
+                <Divider />
+                
+                {/* Professional Information */}
+                <div>
+                  <Title order={3} mb="md">Professional Information</Title>
+                  <Text c="dimmed" size="sm" mb="md">
+                    This information will be visible to clients when they search for trainers. Make it descriptive and engaging!
+                  </Text>
+                  <Stack gap="md">
+                    <Textarea
+                      label="Professional Bio"
+                      placeholder="Tell clients about your experience, approach, and what makes you unique. This is your chance to make a great first impression!"
+                      rows={6}
+                      {...form.getInputProps('bio')}
+                      description="Write a compelling bio that highlights your expertise, training philosophy, and what clients can expect when working with you."
+                    />
+                    <Group grow>
+                      <NumberInput
+                        label="Hourly Rate"
+                        placeholder="75.00"
+                        min={0}
+                        step={5}
+                        decimalScale={2}
+                        prefix="$"
+                        {...form.getInputProps('hourly_rate')}
+                        description="Your hourly training rate (optional)"
+                      />
+                      <TextInput
+                        label="Phone Number"
+                        placeholder="(555) 123-4567"
+                        {...form.getInputProps('phone_number')}
+                        description="Contact number for clients (optional)"
+                      />
+                    </Group>
+                    <TextInput
+                      label="Specialties"
+                      placeholder="Weight Loss, Strength Training, Athletic Performance, etc."
+                      {...form.getInputProps('specialties')}
+                      description="Comma-separated list of your training specialties (e.g., Weight Loss, Strength Training, Yoga)"
+                    />
+                    <TextInput
+                      label="Certifications"
+                      placeholder="NASM-CPT, ACE Certified, CSCS, etc."
+                      {...form.getInputProps('certifications')}
+                      description="Comma-separated list of your professional certifications"
+                    />
+                  </Stack>
+                </div>
               </>
             )}
-            <Button type="submit" loading={loading}>
+            
+            <Divider />
+            
+            <Button type="submit" loading={loading} size="md" color="robinhoodGreen">
               Save Changes
             </Button>
           </Stack>

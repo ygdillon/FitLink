@@ -132,6 +132,7 @@ function Settings() {
       await api.delete('/client/trainer')
       setMessage('Disconnected from trainer successfully')
       setCurrentTrainer(null)
+      setActiveTab('find') // Switch to Find Trainer tab after disconnecting
     } catch (error) {
       console.error('Error disconnecting trainer:', error)
       setMessage(error.response?.data?.message || 'Failed to disconnect from trainer')
@@ -168,10 +169,14 @@ function Settings() {
           {user?.role === 'client' && (
             <>
               <Tabs.Tab value="current">Current Trainer</Tabs.Tab>
-              <Tabs.Tab value="requests">
-                Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
-              </Tabs.Tab>
-              <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
+              {!currentTrainer && (
+                <>
+                  <Tabs.Tab value="requests">
+                    Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+                  </Tabs.Tab>
+                  <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
+                </>
+              )}
             </>
           )}
           <Tabs.Tab value="account">Account</Tabs.Tab>
@@ -301,53 +306,124 @@ function Settings() {
             </form>
 
             {searchResults.length > 0 && (
-              <Stack gap="md">
-                <Title order={3}>Search Results</Title>
+              <Stack gap="lg">
+                <Title order={3}>Search Results ({searchResults.length})</Title>
                 {searchResults.map(trainer => (
-                  <Card key={trainer.id} shadow="sm" padding="lg" radius="md" withBorder>
-                    <Group justify="space-between" align="flex-start">
-                      <Group>
-                        <Avatar color="green" size="md" radius="xl">
-                          {trainer.name.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Stack gap={4}>
-                          <Title order={4}>{trainer.name}</Title>
-                          <Text size="sm" c="dimmed">{trainer.email}</Text>
-                          {trainer.phoneNumber && (
-                            <Text size="sm" c="dimmed">📞 {trainer.phoneNumber}</Text>
-                          )}
-                          {trainer.bio && <Text size="sm">{trainer.bio}</Text>}
-                          {trainer.specialties && trainer.specialties.length > 0 && (
-                            <Group gap="xs" mt="xs">
-                              <Text size="sm" fw={500}>Specialties:</Text>
-                              {(Array.isArray(trainer.specialties) 
-                                ? trainer.specialties 
-                                : Object.values(trainer.specialties)
-                              ).map((spec, idx) => (
-                                <Badge key={idx} size="sm" variant="light">{spec}</Badge>
-                              ))}
+                  <Card key={trainer.id} shadow="md" padding="xl" radius="md" withBorder style={{ transition: 'transform 0.2s, box-shadow 0.2s' }} className="trainer-profile-card">
+                    <Stack gap="md">
+                      {/* Header Section */}
+                      <Group justify="space-between" align="flex-start">
+                        <Group gap="md">
+                          <Avatar 
+                            src={trainer.profile_image} 
+                            color="robinhoodGreen" 
+                            size="xl" 
+                            radius="xl"
+                          >
+                            {trainer.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Stack gap={4}>
+                            <Title order={3}>{trainer.name}</Title>
+                            <Group gap="md">
+                              <Text size="sm" c="dimmed">
+                                <Text component="span" fw={500}>Email:</Text> {trainer.email}
+                              </Text>
+                              {trainer.phoneNumber && (
+                                <Text size="sm" c="dimmed">
+                                  <Text component="span" fw={500}>Phone:</Text> {trainer.phoneNumber}
+                                </Text>
+                              )}
                             </Group>
+                          </Stack>
+                        </Group>
+                        <Stack align="flex-end" gap="xs">
+                          {currentTrainer && currentTrainer.id === trainer.id ? (
+                            <Button disabled size="md">Current Trainer</Button>
+                          ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
+                            <Button disabled variant="outline" size="md">Request Pending</Button>
+                          ) : (
+                            <Button 
+                              onClick={() => handleRequestTrainer(trainer.id)}
+                              size="md"
+                              color="robinhoodGreen"
+                            >
+                              Request Trainer
+                            </Button>
                           )}
                           {trainer.hourly_rate && (
-                            <Text size="sm"><Text span fw={500}>Rate:</Text> ${trainer.hourly_rate}/hour</Text>
-                          )}
-                          {trainer.total_clients !== undefined && (
-                            <Text size="sm" c="dimmed">
-                              <Text span fw={500}>Clients:</Text> {trainer.active_clients || 0} active / {trainer.total_clients || 0} total
+                            <Text size="lg" fw={700} c="robinhoodGreen">
+                              ${trainer.hourly_rate}/hr
                             </Text>
                           )}
                         </Stack>
                       </Group>
-                      {currentTrainer && currentTrainer.id === trainer.id ? (
-                        <Button disabled>Current Trainer</Button>
-                      ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
-                        <Button disabled variant="outline">Request Pending</Button>
-                      ) : (
-                        <Button onClick={() => handleRequestTrainer(trainer.id)}>
-                          Request Trainer
-                        </Button>
+
+                      <Divider />
+
+                      {/* Bio Section */}
+                      {trainer.bio && (
+                        <div>
+                          <Text fw={600} size="sm" mb="xs" c="dimmed">ABOUT</Text>
+                          <Text size="md" style={{ lineHeight: 1.6 }}>{trainer.bio}</Text>
+                        </div>
                       )}
-                    </Group>
+
+                      {/* Specialties Section */}
+                      {trainer.specialties && trainer.specialties.length > 0 && (
+                        <div>
+                          <Text fw={600} size="sm" mb="xs" c="dimmed">SPECIALTIES</Text>
+                          <Group gap="xs">
+                            {(Array.isArray(trainer.specialties) 
+                              ? trainer.specialties 
+                              : Object.values(trainer.specialties)
+                            ).map((spec, idx) => (
+                              <Badge key={idx} size="lg" variant="light" color="robinhoodGreen">
+                                {spec}
+                              </Badge>
+                            ))}
+                          </Group>
+                        </div>
+                      )}
+
+                      {/* Certifications Section */}
+                      {trainer.certifications && trainer.certifications.length > 0 && (
+                        <div>
+                          <Text fw={600} size="sm" mb="xs" c="dimmed">CERTIFICATIONS</Text>
+                          <Group gap="xs">
+                            {(Array.isArray(trainer.certifications) 
+                              ? trainer.certifications 
+                              : Object.values(trainer.certifications)
+                            ).map((cert, idx) => (
+                              <Badge key={idx} size="md" variant="outline" color="blue">
+                                ✓ {cert}
+                              </Badge>
+                            ))}
+                          </Group>
+                        </div>
+                      )}
+
+                      {/* Stats Section */}
+                      <Group gap="xl" mt="xs">
+                        {trainer.total_clients !== undefined && (
+                          <div>
+                            <Text size="xs" c="dimmed" fw={500}>TOTAL CLIENTS</Text>
+                            <Text size="xl" fw={700}>{trainer.total_clients || 0}</Text>
+                          </div>
+                        )}
+                        {trainer.active_clients !== undefined && (
+                          <div>
+                            <Text size="xs" c="dimmed" fw={500}>ACTIVE CLIENTS</Text>
+                            <Text size="xl" fw={700} c="robinhoodGreen">{trainer.active_clients || 0}</Text>
+                          </div>
+                        )}
+                        {trainer.hourly_rate && (
+                          <div>
+                            <Text size="xs" c="dimmed" fw={500}>HOURLY RATE</Text>
+                            <Text size="xl" fw={700} c="robinhoodGreen">${trainer.hourly_rate}</Text>
+                          </div>
+                        )}
+                      </Group>
+                    </Stack>
                   </Card>
                 ))}
               </Stack>

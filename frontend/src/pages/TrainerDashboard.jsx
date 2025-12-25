@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider } from '@mantine/core'
+import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider, useMantineTheme } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
@@ -8,12 +8,13 @@ import './Dashboard.css'
 import './TrainerDashboard.css'
 
 function TrainerDashboard() {
+  const theme = useMantineTheme()
   const [revenue, setRevenue] = useState({ total: 0, thisMonth: 0, thisWeek: 0 })
   const [upcomingSessions, setUpcomingSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
-  const [calendarKey, setCalendarKey] = useState(0) // Force re-render when sessions load
+  const [displayedMonth, setDisplayedMonth] = useState(new Date())
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -49,30 +50,7 @@ function TrainerDashboard() {
       }
       
       const sessions = sessionsRes.data || []
-      console.log('[Fetch] Fetched sessions:', sessions.length)
-      if (sessions.length > 0) {
-        console.log('[Fetch] First session:', {
-          id: sessions[0].id,
-          session_date: sessions[0].session_date,
-          trainer_id: sessions[0].trainer_id,
-          client_name: sessions[0].client_name,
-          status: sessions[0].status
-        })
-        // Test date extraction
-        const testDate = sessions[0].session_date
-        const extracted = typeof testDate === 'string' ? testDate.split('T')[0].split(' ')[0] : 'N/A'
-        console.log('[Fetch] Date extraction test:', { original: testDate, extracted })
-      } else {
-        console.warn('[Fetch] No sessions found. Make sure you have scheduled sessions for your clients.')
-      }
       setUpcomingSessions(sessions)
-      // Force calendar to re-render when sessions are loaded
-      console.log('[Fetch] Setting calendarKey to force re-render')
-      setCalendarKey(prev => {
-        const newKey = prev + 1
-        console.log('[Fetch] Calendar key changed from', prev, 'to', newKey)
-        return newKey
-      })
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -123,165 +101,174 @@ function TrainerDashboard() {
             grouped.set(dateKey, [])
           }
           grouped.get(dateKey).push(session)
-          console.log(`[Grouping] Added session ${session.id} to date ${dateKey} (from ${session.session_date})`)
         } catch (error) {
           console.error('Error processing session date:', session.session_date, error)
         }
       }
     })
-    console.log('[SessionsByDate] Sessions grouped by date:', Array.from(grouped.entries()).slice(0, 10))
-    console.log('[SessionsByDate] Total sessions:', upcomingSessions.length, 'Grouped dates:', grouped.size)
-    console.log('[SessionsByDate] All date keys:', Array.from(grouped.keys()))
-    console.log('[SessionsByDate] December 2025 dates:', Array.from(grouped.keys()).filter(key => key.startsWith('2025-12')))
     return grouped
   }, [upcomingSessions])
 
+  // Format date key from Date object
+  const getDateKey = useCallback((date) => {
+    if (!date) return null
+    
+    // Ensure date is a Date object
+    let dateObj = date
+    if (!(date instanceof Date)) {
+      // Try to convert if it's a string or number
+      if (typeof date === 'string' || typeof date === 'number') {
+        dateObj = new Date(date)
+      } else {
+        return null
+      }
+    }
+    
+    // Validate the date
+    if (isNaN(dateObj.getTime())) {
+      return null
+    }
+    
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
+
   // Get sessions for a specific date
-  const getSessionsForDate = (date) => {
+  const getSessionsForDate = useCallback((date) => {
     if (!date) return []
     try {
-      // Normalize date to YYYY-MM-DD format - use local date components
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const dateKey = `${year}-${month}-${day}`
-      const sessions = sessionsByDate.get(dateKey) || []
-      if (sessions.length > 0) {
-        console.log(`[getSessionsForDate] Found ${sessions.length} sessions for ${dateKey}`)
-      }
-      return sessions
+      const dateKey = getDateKey(date)
+      if (!dateKey) return []
+      return sessionsByDate.get(dateKey) || []
     } catch (error) {
       console.error('Error getting sessions for date:', error)
       return []
     }
-  }
+  }, [sessionsByDate, getDateKey])
 
-  // Memoize getDayProps to ensure it has access to the latest sessionsByDate
-  const getDayProps = useCallback((date) => {
-    // Validate that date is a Date object
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-      return { style: { cursor: 'pointer' } }
-    }
-    try {
-      // Normalize date to YYYY-MM-DD format
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const dateKey = `${year}-${month}-${day}`
-      
-      // Get sessions for this date
-      const sessions = sessionsByDate.get(dateKey) || []
-      const hasSessions = sessions.length > 0
-      
-      // Format session times for display (e.g., "8:00 AM", "2:00 PM")
-      const sessionTimes = sessions.map(session => {
-        if (session.session_time) {
-          const [hours, minutes] = session.session_time.split(':')
-          const hour = parseInt(hours)
-          const ampm = hour >= 12 ? 'PM' : 'AM'
-          const displayHour = hour % 12 || 12
-          return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
-        }
-        return null
-      }).filter(Boolean).slice(0, 2) // Limit to 2 sessions per day for display
-      
-      const sessionTimesStr = sessionTimes.join(', ')
-      const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
-      
-      // Log for December 30th to debug
-      if (dateKey === '2025-12-30') {
-        console.log(`[getDayProps] December 30th:`, {
-          hasSessions,
-          sessionsCount: sessions.length,
-          sessionTimesStr,
-          mapSize: sessionsByDate.size
-        })
-      }
-      
-      return {
-        'data-date-key': dateKey, // Add this to help identify the element
-        'data-has-sessions': hasSessions ? 'true' : undefined,
-        'data-session-times': hasSessions ? sessionTimesStr : undefined,
-        'data-session-count': hasSessions ? sessions.length.toString() : undefined,
-        'data-extra-count': extraCount > 0 ? extraCount.toString() : undefined,
-        style: {
-          cursor: 'pointer',
-          position: 'relative',
-        },
-      }
-    } catch (error) {
-      console.error('Error in getDayProps:', error)
-      return { style: { cursor: 'pointer' } }
-    }
-  }, [sessionsByDate])
-
-  // Use useEffect to inject session times directly into DOM after calendar renders
-  const calendarWrapperRef = useRef(null)
-  
-  useEffect(() => {
-    if (!calendarWrapperRef.current || sessionsByDate.size === 0) {
-      console.log('[useEffect] Calendar wrapper not ready or no sessions')
-      return
-    }
-
-    console.log('[useEffect] Injecting session times, mapSize:', sessionsByDate.size)
-
-    // Find all calendar day elements
-    const dayElements = calendarWrapperRef.current.querySelectorAll('[data-mantine-calendar-day]')
-    console.log('[useEffect] Found', dayElements.length, 'day elements')
-    
-    dayElements.forEach((dayEl) => {
-      const dateKey = dayEl.getAttribute('data-date-key')
-      const hasSessions = dayEl.getAttribute('data-has-sessions') === 'true'
-      const sessionTimes = dayEl.getAttribute('data-session-times')
-      
-      if (dateKey === '2025-12-30') {
-        console.log('[useEffect] December 30th element:', {
-          hasSessions,
-          sessionTimes,
-          element: dayEl
-        })
-      }
-      
-      if (hasSessions && sessionTimes) {
-        // Remove any existing session time element
-        const existing = dayEl.querySelector('.session-times')
-        if (existing) existing.remove()
-        
-        // Create and add session times element
-        const sessionEl = document.createElement('div')
-        sessionEl.className = 'session-times'
-        sessionEl.style.cssText = 'font-size: 0.65rem; line-height: 1.2; color: rgba(34, 197, 94, 0.95); font-weight: 500; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;'
-        sessionEl.textContent = sessionTimes
-        
-        // Check if there's an extra count
-        const extraCount = dayEl.getAttribute('data-extra-count')
-        if (extraCount) {
-          sessionEl.textContent = `${sessionTimes} +${extraCount} more`
-        }
-        
-        dayEl.appendChild(sessionEl)
-        
-        if (dateKey === '2025-12-30') {
-          console.log('[useEffect] ✅ Added session times to December 30th:', sessionEl.textContent)
-        }
-      } else {
-        // Remove session times if they exist but shouldn't
-        const existing = dayEl.querySelector('.session-times')
-        if (existing) existing.remove()
-      }
-    })
-  }, [sessionsByDate, calendarKey, upcomingSessions])
-
-  // Handle date click
-  const handleDateClick = (date) => {
+  // Handle date click - open modal to show session details
+  const handleDateClick = useCallback((date) => {
     if (!date) return
-    const sessions = getSessionsForDate(date)
-    if (sessions.length > 0) {
-      setSelectedDate(date)
-      openModal()
+    setSelectedDate(date)
+    openModal()
+  }, [openModal])
+
+  // Render custom day content using Mantine's renderDay prop
+  const renderDay = useCallback((date) => {
+    // Ensure date is a Date object
+    let dateObj = date
+    if (!(date instanceof Date)) {
+      if (typeof date === 'string' || typeof date === 'number') {
+        dateObj = new Date(date)
+      } else {
+        return null
+      }
     }
-  }
+    
+    if (isNaN(dateObj.getTime())) {
+      return null
+    }
+    
+    const dateKey = getDateKey(dateObj)
+    if (!dateKey) {
+      // Fallback: just return the day number
+      return dateObj.getDate()
+    }
+
+    const sessions = sessionsByDate.get(dateKey) || []
+    const hasSessions = sessions.length > 0
+
+    // Format session times for display
+    const sessionTimes = sessions.map(session => {
+      if (session.session_time) {
+        const [hours, minutes] = session.session_time.split(':')
+        const hour = parseInt(hours)
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour % 12 || 12
+        return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+      }
+      return null
+    }).filter(Boolean).slice(0, 2)
+
+    const sessionTimesStr = sessionTimes.join(', ')
+    const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
+
+    return (
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'flex-start', 
+          justifyContent: 'flex-start',
+          width: '100%',
+          height: '100%',
+          padding: '0.3rem'
+        }}
+      >
+        <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.2rem', pointerEvents: 'none' }}>
+          {dateObj.getDate()}
+        </div>
+        {hasSessions && (
+          <div className="session-times" style={{
+            fontSize: '0.65rem',
+            lineHeight: 1.2,
+            color: 'rgba(34, 197, 94, 0.95)',
+            fontWeight: 500,
+            marginTop: '0.15rem',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            width: '100%',
+            pointerEvents: 'none'
+          }}>
+            {sessionTimesStr}
+            {extraCount > 0 && ` +${extraCount} more`}
+          </div>
+        )}
+      </div>
+    )
+  }, [sessionsByDate, getDateKey])
+
+  // Get day props for styling
+  const getDayProps = useCallback((date) => {
+    // Ensure date is a Date object
+    let dateObj = date
+    if (!(date instanceof Date)) {
+      if (typeof date === 'string' || typeof date === 'number') {
+        dateObj = new Date(date)
+      } else {
+        return { style: { cursor: 'pointer' } }
+      }
+    }
+    
+    if (isNaN(dateObj.getTime())) {
+      return { style: { cursor: 'pointer' } }
+    }
+    
+    const dateKey = getDateKey(dateObj)
+    if (!dateKey) return { style: { cursor: 'pointer' } }
+
+    const sessions = sessionsByDate.get(dateKey) || []
+    const hasSessions = sessions.length > 0
+
+    return {
+      onClick: (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        handleDateClick(dateObj)
+      },
+      style: {
+        cursor: 'pointer',
+        position: 'relative',
+        ...(hasSessions ? {
+          backgroundColor: 'rgba(34, 197, 94, 0.15)',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
+        } : {}),
+      },
+    }
+  }, [sessionsByDate, getDateKey, handleDateClick])
 
 
   if (loading) {
@@ -356,11 +343,13 @@ function TrainerDashboard() {
               </Stack>
             ) : (
               <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%', paddingBottom: '0.5rem' }}>
-                <div ref={calendarWrapperRef} className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
+                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
                   <Calendar
-                    key={calendarKey}
                     value={null}
+                    month={displayedMonth}
+                    onMonthChange={setDisplayedMonth}
                     onChange={handleDateClick}
+                    renderDay={renderDay}
                     getDayProps={getDayProps}
                     styles={{
                       calendar: {
@@ -392,7 +381,7 @@ function TrainerDashboard() {
                         flexDirection: 'column',
                         alignItems: 'flex-start',
                         justifyContent: 'flex-start',
-                        padding: '0.3rem',
+                        padding: 0,
                         transition: 'background-color 0.15s ease',
                         position: 'relative',
                       },
@@ -414,26 +403,55 @@ function TrainerDashboard() {
         </Grid.Col>
       </Grid>
 
-      {/* Session Details Modal */}
+      {/* Session Details Modal - Compact Popup */}
       <Modal
         opened={modalOpened}
         onClose={closeModal}
         title={
           selectedDate
-            ? `Sessions on ${selectedDate.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
+            ? `${selectedDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
                 day: 'numeric',
-              })}`
-            : 'Sessions'
+              })} - Session Details`
+            : 'Session Details'
         }
-        size="md"
+        size="sm"
+        centered
+        styles={{
+          content: {
+            backgroundColor: theme.colorScheme === 'dark' 
+              ? theme.colors.dark[7] 
+              : theme.colors.gray[8],
+          },
+          header: {
+            backgroundColor: theme.colorScheme === 'dark' 
+              ? theme.colors.dark[7] 
+              : theme.colors.gray[8],
+            borderBottom: `1px solid ${theme.colorScheme === 'dark' 
+              ? theme.colors.dark[5] 
+              : theme.colors.gray[6]}`,
+            paddingBottom: theme.spacing.sm,
+            marginBottom: theme.spacing.sm,
+          },
+          body: {
+            backgroundColor: theme.colorScheme === 'dark' 
+              ? theme.colors.dark[7] 
+              : theme.colors.gray[8],
+            paddingTop: theme.spacing.md,
+          },
+          title: {
+            color: theme.colors.gray[0],
+          },
+          close: {
+            color: theme.colors.gray[0],
+          },
+        }}
       >
         {selectedDate && (
           <Stack gap="md">
             {getSessionsForDate(selectedDate).length === 0 ? (
-              <Text c="dimmed" ta="center" py="md">
+              <Text c="var(--mantine-color-gray-4)" ta="center" py="md" size="sm">
                 No sessions scheduled for this date
               </Text>
             ) : (
@@ -444,80 +462,127 @@ function TrainerDashboard() {
                   return timeA.localeCompare(timeB)
                 })
                 .map(session => (
-                  <Paper key={session.id} p="md" withBorder>
-                    <Stack gap="sm">
-                      <Group justify="space-between">
-                        <Text fw={600} size="lg">
-                          {session.client_name}
-                        </Text>
-                        <Badge color={session.status === 'completed' ? 'green' : 'blue'}>
-                          {session.status || 'scheduled'}
-                        </Badge>
-                      </Group>
-                      <Divider />
-                      <Group gap="md">
-                        <Stack gap={2}>
-                          <Text size="xs" c="dimmed" fw={500}>
-                            Time
+                  <Paper 
+                    key={session.id} 
+                    p="sm" 
+                    withBorder
+                    style={{ 
+                      backgroundColor: theme.colorScheme === 'dark' 
+                        ? theme.colors.dark[6] 
+                        : theme.colors.gray[7],
+                      borderColor: theme.colorScheme === 'dark' 
+                        ? theme.colors.dark[4] 
+                        : theme.colors.gray[6],
+                    }}
+                  >
+                    <Stack gap="xs">
+                      {/* Header: Client Name and Status */}
+                      <Group justify="space-between" align="flex-start">
+                        <div>
+                          <Text fw={600} size="md" c="var(--mantine-color-gray-0)">
+                            {session.client_name || 'Client'}
                           </Text>
-                          <Text fw={500}>
+                          <Text 
+                            size="sm" 
+                            fw={600}
+                            c="green.4"
+                            mt={4}
+                            style={{ 
+                              fontSize: '1rem',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
                             {session.session_time
                               ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', {
                                   hour: 'numeric',
                                   minute: '2-digit',
                                 })
-                              : 'Not specified'}
+                              : 'Time TBD'}
                           </Text>
-                        </Stack>
-                        {session.workout_name && (
-                          <Stack gap={2}>
-                            <Text size="xs" c="dimmed" fw={500}>
-                              Workout
-                            </Text>
-                            <Text fw={500}>{session.workout_name}</Text>
-                          </Stack>
-                        )}
-                        {session.session_type && (
-                          <Stack gap={2}>
-                            <Text size="xs" c="dimmed" fw={500}>
-                              Type
-                            </Text>
-                            <Text fw={500} tt="capitalize">
-                              {session.session_type.replace('_', ' ')}
-                            </Text>
-                          </Stack>
-                        )}
+                        </div>
+                        <Badge 
+                          color={session.status === 'completed' ? 'green' : session.status === 'confirmed' ? 'blue' : 'gray'}
+                          size="sm"
+                          variant="filled"
+                        >
+                          {session.status || 'scheduled'}
+                        </Badge>
                       </Group>
+
+                      {/* Workout Info */}
+                      {session.workout_name && (
+                        <Group gap="xs" align="center">
+                          <Text size="xs" c="var(--mantine-color-gray-4)" fw={500} style={{ minWidth: '60px' }}>
+                            Workout:
+                          </Text>
+                          <Text size="sm" fw={500} c="var(--mantine-color-gray-0)">
+                            {session.workout_name}
+                          </Text>
+                        </Group>
+                      )}
+
+                      {/* Session Type */}
+                      {session.session_type && (
+                        <Group gap="xs" align="center">
+                          <Text size="xs" c="var(--mantine-color-gray-4)" fw={500} style={{ minWidth: '60px' }}>
+                            Type:
+                          </Text>
+                          <Badge variant="light" size="xs" tt="capitalize" color="green">
+                            {session.session_type.replace('_', ' ')}
+                          </Badge>
+                        </Group>
+                      )}
+
+                      {/* Location */}
                       {session.location && (
-                        <Stack gap={2}>
-                          <Text size="xs" c="dimmed" fw={500}>
-                            Location
+                        <Group gap="xs" align="flex-start">
+                          <Text size="xs" c="var(--mantine-color-gray-4)" fw={500} style={{ minWidth: '60px' }}>
+                            Where:
                           </Text>
-                          <Text>{session.location}</Text>
-                        </Stack>
+                          <Text size="sm" c="var(--mantine-color-gray-0)" style={{ flex: 1 }}>
+                            {session.location}
+                          </Text>
+                        </Group>
                       )}
+
+                      {/* Meeting Link */}
                       {session.meeting_link && (
-                        <Stack gap={2}>
-                          <Text size="xs" c="dimmed" fw={500}>
-                            Meeting Link
+                        <Group gap="xs" align="flex-start">
+                          <Text size="xs" c="dimmed" fw={500} style={{ minWidth: '60px' }}>
+                            Link:
                           </Text>
-                          <Anchor href={session.meeting_link} target="_blank" size="sm">
-                            {session.meeting_link}
+                          <Anchor 
+                            href={session.meeting_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            size="sm"
+                            c="green.6"
+                            style={{ flex: 1, wordBreak: 'break-all' }}
+                          >
+                            Join Meeting
                           </Anchor>
-                        </Stack>
+                        </Group>
                       )}
+
+                      {/* Notes */}
                       {session.notes && (
-                        <Stack gap={2}>
-                          <Text size="xs" c="dimmed" fw={500}>
-                            Notes
+                        <Group gap="xs" align="flex-start">
+                          <Text size="xs" c="var(--mantine-color-gray-4)" fw={500} style={{ minWidth: '60px' }}>
+                            Notes:
                           </Text>
-                          <Text size="sm">{session.notes}</Text>
-                        </Stack>
+                          <Text size="xs" c="var(--mantine-color-gray-1)" style={{ flex: 1 }}>
+                            {session.notes}
+                          </Text>
+                        </Group>
                       )}
+
+                      {/* Action Button */}
                       <Group justify="flex-end" mt="xs">
                         <Button
                           variant="light"
-                          size="sm"
+                          size="xs"
+                          compact
+                          color="green"
                           onClick={() => {
                             const clientId = session.client_profile_id || session.client_id
                             if (clientId) {
@@ -526,7 +591,7 @@ function TrainerDashboard() {
                             }
                           }}
                         >
-                          View Client Profile
+                          View Client →
                         </Button>
                       </Group>
                     </Stack>
