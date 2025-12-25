@@ -44,6 +44,97 @@ router.get('/', async (req, res) => {
   }
 })
 
+// Get trainer alerts widget data (alerts, requests, recent check-ins)
+router.get('/alerts-widget', async (req, res) => {
+  try {
+    const trainerId = req.user.id
+    
+    // Get recent unread alerts (last 10)
+    const alertsResult = await pool.query(
+      `SELECT 
+        ta.*,
+        u.name as client_name,
+        u.email as client_email
+      FROM trainer_alerts ta
+      JOIN users u ON ta.client_id = u.id
+      WHERE ta.trainer_id = $1 AND ta.is_read = false
+      ORDER BY ta.created_at DESC
+      LIMIT 10`,
+      [trainerId]
+    )
+    
+    // Get pending trainer requests
+    const requestsResult = await pool.query(
+      `SELECT 
+        tr.*,
+        u.name as client_name,
+        u.email as client_email
+      FROM trainer_requests tr
+      JOIN users u ON tr.client_id = u.id
+      WHERE tr.trainer_id = $1 AND tr.status = 'pending'
+      ORDER BY tr.created_at DESC
+      LIMIT 10`,
+      [trainerId]
+    )
+    
+    // Get recent check-ins from last 24 hours
+    const checkInsResult = await pool.query(
+      `SELECT 
+        dci.*,
+        u.name as client_name,
+        u.email as client_email
+      FROM daily_check_ins dci
+      JOIN users u ON dci.client_id = u.id
+      JOIN clients c ON dci.client_id = c.user_id
+      WHERE c.trainer_id = $1 
+        AND dci.status = 'completed'
+        AND dci.created_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY dci.created_at DESC
+      LIMIT 10`,
+      [trainerId]
+    )
+    
+    // Parse metadata for alerts
+    const alerts = alertsResult.rows.map(alert => ({
+      ...alert,
+      metadata: alert.metadata ? (typeof alert.metadata === 'string' ? JSON.parse(alert.metadata) : alert.metadata) : null,
+      type: 'alert'
+    }))
+    
+    // Format requests
+    const requests = requestsResult.rows.map(req => ({
+      ...req,
+      type: 'request'
+    }))
+    
+    // Format check-ins
+    const checkIns = checkInsResult.rows.map(checkIn => ({
+      ...checkIn,
+      type: 'checkin'
+    }))
+    
+    // Combine and sort by date (most recent first)
+    const allItems = [...alerts, ...requests, ...checkIns].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.check_in_date)
+      const dateB = new Date(b.created_at || b.check_in_date)
+      return dateB - dateA
+    }).slice(0, 15) // Limit to 15 most recent items
+    
+    res.json({
+      items: allItems,
+      counts: {
+        alerts: alerts.length,
+        requests: requests.length,
+        checkIns: checkIns.length,
+        total: allItems.length
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching alerts widget data:', error)
+    res.status(500).json({ message: 'Failed to fetch alerts widget data' })
+  }
+})
+
 async function getFinancialAnalytics(trainerId, dateFilter) {
   // Total revenue (completed payments only)
   const totalRevenueResult = await pool.query(

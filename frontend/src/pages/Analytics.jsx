@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Container, Title, Text, Stack, Card, Badge, Group, Paper, Loader, SimpleGrid, Tabs, Select } from '@mantine/core'
+import { Container, Title, Text, Stack, Card, Badge, Group, Paper, Loader, SimpleGrid, Tabs, Select, ScrollArea, Button, ActionIcon, useMantineColorScheme } from '@mantine/core'
+import { IconBell, IconUserPlus, IconCheck, IconAlertTriangle, IconHeart, IconX } from '@tabler/icons-react'
+import { useNavigate } from 'react-router-dom'
+import { useMantineTheme } from '@mantine/core'
 import api from '../services/api'
 import './Analytics.css'
 
 function Analytics() {
+  const navigate = useNavigate()
+  const theme = useMantineTheme()
+  const { colorScheme } = useMantineColorScheme()
+  const isDark = colorScheme === 'dark'
   const [loading, setLoading] = useState(true)
+  const [alertsLoading, setAlertsLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('30') // days
   const [analytics, setAnalytics] = useState({
     financial: {},
@@ -12,10 +20,23 @@ function Analytics() {
     workouts: {},
     checkIns: {}
   })
+  const [alertsData, setAlertsData] = useState({
+    items: [],
+    counts: { alerts: 0, requests: 0, checkIns: 0, total: 0 }
+  })
 
   useEffect(() => {
     fetchAnalytics()
+    fetchAlertsWidget()
   }, [timeRange])
+
+  useEffect(() => {
+    // Refresh alerts every 30 seconds
+    const interval = setInterval(() => {
+      fetchAlertsWidget()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchAnalytics = async () => {
     try {
@@ -26,6 +47,73 @@ function Analytics() {
       console.error('Error fetching analytics:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAlertsWidget = async () => {
+    try {
+      setAlertsLoading(true)
+      const response = await api.get('/trainer/analytics/alerts-widget')
+      setAlertsData(response.data)
+    } catch (error) {
+      console.error('Error fetching alerts widget:', error)
+    } finally {
+      setAlertsLoading(false)
+    }
+  }
+
+  const markAlertAsRead = async (alertId) => {
+    try {
+      await api.put(`/trainer/alerts/${alertId}/read`)
+      fetchAlertsWidget() // Refresh
+    } catch (error) {
+      console.error('Error marking alert as read:', error)
+    }
+  }
+
+  const getAlertIcon = (item) => {
+    if (item.type === 'request') return <IconUserPlus size={18} />
+    if (item.type === 'checkin') return <IconCheck size={18} />
+    if (item.alert_type === 'low_rating' || item.alert_type === 'pain_report') return <IconAlertTriangle size={18} />
+    return <IconBell size={18} />
+  }
+
+  const getAlertColor = (item) => {
+    if (item.type === 'request') return 'blue'
+    if (item.type === 'checkin') return 'green'
+    if (item.severity === 'urgent') return 'red'
+    if (item.severity === 'high') return 'orange'
+    if (item.severity === 'medium') return 'yellow'
+    return 'blue'
+  }
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return 'Unknown'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Invalid date'
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+  }
+
+  const handleItemClick = (item) => {
+    if (item.type === 'request') {
+      navigate('/trainer/requests')
+    } else if (item.type === 'checkin') {
+      navigate(`/trainer/clients/${item.client_id}`)
+    } else if (item.type === 'alert') {
+      navigate(`/trainer/clients/${item.client_id}`)
+      if (!item.is_read) {
+        markAlertAsRead(item.id)
+      }
     }
   }
 
@@ -124,6 +212,141 @@ function Analytics() {
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              {/* Alerts Widget */}
+              <Card withBorder p="md" radius="md" style={{ minHeight: '400px' }}>
+                <Group justify="space-between" mb="md">
+                  <Group>
+                    <IconBell size={20} color={theme.colors.blue[6]} />
+                    <Title order={3}>Alerts & Notifications</Title>
+                  </Group>
+                  {alertsData.counts.total > 0 && (
+                    <Badge color="blue" variant="filled" size="lg">
+                      {alertsData.counts.total}
+                    </Badge>
+                  )}
+                </Group>
+
+                {alertsLoading ? (
+                  <Group justify="center" py="xl">
+                    <Loader size="sm" />
+                  </Group>
+                ) : alertsData.items.length === 0 ? (
+                  <Paper p="xl" withBorder style={{ backgroundColor: isDark ? theme.colors.dark[7] : theme.colors.gray[0] }}>
+                    <Stack align="center" gap="xs">
+                      <IconBell size={40} color={isDark ? theme.colors.gray[6] : theme.colors.gray[5]} />
+                      <Text c="dimmed" ta="center">No new alerts</Text>
+                      <Text size="sm" c="dimmed" ta="center">
+                        You're all caught up!
+                      </Text>
+                    </Stack>
+                  </Paper>
+                ) : (
+                  <ScrollArea h={350}>
+                    <Stack gap="xs">
+                      {alertsData.items.map((item, index) => (
+                        <Paper
+                          key={`${item.type}-${item.id || index}`}
+                          p="sm"
+                          withBorder
+                          style={{
+                            cursor: 'pointer',
+                            backgroundColor: item.is_read 
+                              ? (isDark ? theme.colors.dark[7] : theme.colors.gray[0])
+                              : (isDark ? theme.colors.blue[9] : theme.colors.blue[0]),
+                            borderLeft: `3px solid ${theme.colors[getAlertColor(item)][6]}`,
+                            transition: 'all 0.2s'
+                          }}
+                          onClick={() => handleItemClick(item)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = isDark ? theme.colors.dark[6] : theme.colors.gray[1]
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = item.is_read 
+                              ? (isDark ? theme.colors.dark[7] : theme.colors.gray[0])
+                              : (isDark ? theme.colors.blue[9] : theme.colors.blue[0])
+                          }}
+                        >
+                          <Group justify="space-between" align="flex-start" gap="xs">
+                            <Group gap="xs" style={{ flex: 1 }}>
+                              <div style={{ color: theme.colors[getAlertColor(item)][6] }}>
+                                {getAlertIcon(item)}
+                              </div>
+                              <Stack gap={2} style={{ flex: 1 }}>
+                                <Group gap="xs" align="center">
+                                  <Badge size="sm" color={getAlertColor(item)} variant="light">
+                                    {item.type === 'request' ? 'New Request' :
+                                     item.type === 'checkin' ? 'Check-in' :
+                                     item.alert_type === 'low_rating' ? 'Low Rating' :
+                                     item.alert_type === 'pain_report' ? 'Pain Report' :
+                                     item.alert_type === 'missed_checkin' ? 'Missed Check-in' :
+                                     item.alert_type || 'Alert'}
+                                  </Badge>
+                                  {!item.is_read && item.type === 'alert' && (
+                                    <Badge size="xs" color="blue" variant="dot">New</Badge>
+                                  )}
+                                </Group>
+                                <Text size="sm" fw={500} lineClamp={1}>
+                                  {item.type === 'request' 
+                                    ? `New request from ${item.client_name}`
+                                    : item.type === 'checkin'
+                                    ? `${item.client_name} submitted a check-in`
+                                    : item.title || item.message}
+                                </Text>
+                                {item.type === 'checkin' && item.workout_rating && (
+                                  <Text size="xs" c="dimmed">
+                                    Workout rating: {item.workout_rating}/10
+                                  </Text>
+                                )}
+                                {item.type === 'request' && item.message && (
+                                  <Text size="xs" c="dimmed" lineClamp={1}>
+                                    {item.message}
+                                  </Text>
+                                )}
+                                <Text size="xs" c="dimmed">
+                                  {formatTimeAgo(item.created_at || item.check_in_date || item.date)}
+                                </Text>
+                              </Stack>
+                            </Group>
+                            {item.type === 'alert' && !item.is_read && (
+                              <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  markAlertAsRead(item.id)
+                                }}
+                              >
+                                <IconX size={14} />
+                              </ActionIcon>
+                            )}
+                          </Group>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  </ScrollArea>
+                )}
+
+                {alertsData.counts.total > 0 && (
+                  <Group justify="space-between" mt="md" pt="md" style={{ borderTop: `1px solid ${theme.colors.gray[3]}` }}>
+                    <Text size="sm" c="dimmed">
+                      {alertsData.counts.alerts > 0 && `${alertsData.counts.alerts} alert${alertsData.counts.alerts !== 1 ? 's' : ''}`}
+                      {alertsData.counts.alerts > 0 && alertsData.counts.requests > 0 && ' • '}
+                      {alertsData.counts.requests > 0 && `${alertsData.counts.requests} request${alertsData.counts.requests !== 1 ? 's' : ''}`}
+                      {alertsData.counts.checkIns > 0 && (alertsData.counts.alerts > 0 || alertsData.counts.requests > 0) && ' • '}
+                      {alertsData.counts.checkIns > 0 && `${alertsData.counts.checkIns} check-in${alertsData.counts.checkIns !== 1 ? 's' : ''}`}
+                    </Text>
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      onClick={() => navigate('/alerts')}
+                    >
+                      View All
+                    </Button>
+                  </Group>
+                )}
+              </Card>
+
               <Card withBorder p="md" radius="md">
                 <Title order={3} mb="md">Revenue Breakdown</Title>
                 <Stack gap="sm">
