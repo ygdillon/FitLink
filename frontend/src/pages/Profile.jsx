@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group, Avatar, Center } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, TextInput, Textarea, Button, Loader, Alert, Divider, NumberInput, Group, Avatar, Center, Grid } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { useAuth } from '../contexts/AuthContext'
@@ -139,78 +139,79 @@ function Profile() {
         
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="lg">
-            {/* Profile Picture */}
-            <div>
-              <Title order={3} mb="md">Profile Picture</Title>
-              <Stack gap="md" align="center">
-                <Avatar
-                  src={imagePreview}
-                  size={120}
-                  radius="50%"
-                  style={{
-                    border: '3px solid var(--mantine-color-gray-3)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </Avatar>
-                <Group gap="xs">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    style={{ display: 'none' }}
-                    id="profile-image-input"
+            {/* Profile Picture and Basic Information Side by Side */}
+            <Grid gutter="xl">
+              {/* Left Side - Profile Picture */}
+              <Grid.Col span={{ base: 12, sm: 4 }}>
+                <Stack gap="md" align="center">
+                  <Title order={3} mb="xs" style={{ width: '100%' }}>Profile Picture</Title>
+                  <Avatar
+                    src={imagePreview}
+                    size={120}
+                    radius="50%"
+                    style={{
+                      border: '3px solid var(--mantine-color-gray-3)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </Avatar>
+                  <Group gap="xs" justify="center">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      style={{ display: 'none' }}
+                      id="profile-image-input"
+                    />
+                    <label htmlFor="profile-image-input">
+                      <Button
+                        component="span"
+                        variant="light"
+                        size="sm"
+                        color="robinhoodGreen"
+                      >
+                        {imagePreview ? 'Change Picture' : 'Add Picture'}
+                      </Button>
+                    </label>
+                    {imagePreview && (
+                      <Button
+                        variant="light"
+                        size="sm"
+                        color="red"
+                        onClick={handleRemoveImage}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </Group>
+                  <Text size="xs" c="dimmed" ta="center">
+                    Upload a circular profile picture. Max size: 5MB
+                  </Text>
+                </Stack>
+              </Grid.Col>
+
+              {/* Right Side - Basic Information */}
+              <Grid.Col span={{ base: 12, sm: 8 }}>
+                <Title order={3} mb="md">Basic Information</Title>
+                <Stack gap="md">
+                  <TextInput
+                    label="Full Name"
+                    placeholder="Enter your full name"
+                    {...form.getInputProps('name')}
+                    required
                   />
-                  <label htmlFor="profile-image-input">
-                    <Button
-                      component="span"
-                      variant="light"
-                      size="sm"
-                      color="robinhoodGreen"
-                    >
-                      {imagePreview ? 'Change Picture' : 'Add Picture'}
-                    </Button>
-                  </label>
-                  {imagePreview && (
-                    <Button
-                      variant="light"
-                      size="sm"
-                      color="red"
-                      onClick={handleRemoveImage}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </Group>
-                <Text size="xs" c="dimmed" ta="center">
-                  Upload a circular profile picture. Max size: 5MB
-                </Text>
-              </Stack>
-            </div>
-
-            <Divider />
-
-            {/* Basic Information */}
-            <div>
-              <Title order={3} mb="md">Basic Information</Title>
-              <Stack gap="md">
-                <TextInput
-                  label="Full Name"
-                  placeholder="Enter your full name"
-                  {...form.getInputProps('name')}
-                  required
-                />
-                <TextInput
-                  label="Email Address"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  {...form.getInputProps('email')}
-                  required
-                />
-              </Stack>
-            </div>
+                  <TextInput
+                    label="Email Address"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    {...form.getInputProps('email')}
+                    required
+                  />
+                </Stack>
+              </Grid.Col>
+            </Grid>
 
             {user.role === 'trainer' && (
               <>
