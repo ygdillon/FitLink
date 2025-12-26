@@ -577,6 +577,69 @@ router.get('/trainers/search', async (req, res) => {
 
     query += ` ORDER BY u.name ASC LIMIT 50`
 
+    // If no filters, just get all trainers
+    if (!q && !location && !specialties && !fitness_goals && !client_age_ranges && !special_needs) {
+      const allTrainersQuery = `
+        SELECT DISTINCT t.*, u.name, u.email, u.profile_image,
+               t.fitness_goals, t.client_age_ranges, t.location
+        FROM trainers t
+        JOIN users u ON t.user_id = u.id
+        ORDER BY u.name ASC
+        LIMIT 50
+      `
+      console.log('[TRAINER SEARCH] Fetching all trainers (no filters)')
+      const result = await pool.query(allTrainersQuery)
+      console.log('[TRAINER SEARCH] Found trainers:', result.rows.length)
+      
+      const trainers = result.rows.map(trainer => {
+        // Parse JSONB fields
+        let specialties = trainer.specialties
+        if (specialties) {
+          specialties = typeof specialties === 'string' 
+            ? JSON.parse(specialties) 
+            : specialties
+        }
+        let certifications = trainer.certifications
+        if (certifications) {
+          certifications = typeof certifications === 'string'
+            ? JSON.parse(certifications)
+            : certifications
+        }
+        let fitnessGoals = trainer.fitness_goals
+        if (fitnessGoals) {
+          fitnessGoals = typeof fitnessGoals === 'string'
+            ? JSON.parse(fitnessGoals)
+            : fitnessGoals
+        }
+        let clientAgeRanges = trainer.client_age_ranges
+        if (clientAgeRanges) {
+          clientAgeRanges = typeof clientAgeRanges === 'string'
+            ? JSON.parse(clientAgeRanges)
+            : clientAgeRanges
+        }
+
+        return {
+          id: trainer.user_id,
+          name: trainer.name,
+          email: trainer.email,
+          phoneNumber: trainer.phone_number,
+          bio: trainer.bio,
+          specialties: specialties,
+          certifications: certifications,
+          fitness_goals: fitnessGoals,
+          client_age_ranges: clientAgeRanges,
+          hourly_rate: trainer.hourly_rate,
+          total_clients: trainer.total_clients,
+          active_clients: trainer.active_clients,
+          profile_image: trainer.profile_image,
+          location: trainer.location
+        }
+      })
+
+      console.log('[TRAINER SEARCH] Returning', trainers.length, 'trainers')
+      return res.json(trainers)
+    }
+
     console.log('[TRAINER SEARCH] Query:', query)
     console.log('[TRAINER SEARCH] Params:', params)
     
@@ -629,10 +692,12 @@ router.get('/trainers/search', async (req, res) => {
       }
     })
 
+    console.log('[TRAINER SEARCH] Returning', trainers.length, 'trainers')
     res.json(trainers)
   } catch (error) {
     console.error('Error searching trainers:', error)
-    res.status(500).json({ message: 'Failed to search trainers' })
+    console.error('Error details:', error.message, error.stack)
+    res.status(500).json({ message: 'Failed to search trainers', error: error.message })
   }
 })
 
