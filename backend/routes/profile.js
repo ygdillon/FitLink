@@ -9,10 +9,35 @@ router.use(authenticate)
 // Get profile
 router.get('/', async (req, res) => {
   try {
+    // Check if the new columns exist first
+    let hasFitnessGoals = false
+    let hasClientAgeRanges = false
+    let hasLocation = false
+    
+    try {
+      const columnCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'trainers' 
+        AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+      `)
+      const existingColumns = columnCheck.rows.map(r => r.column_name)
+      hasFitnessGoals = existingColumns.includes('fitness_goals')
+      hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+      hasLocation = existingColumns.includes('location')
+    } catch (error) {
+      // Default to false if check fails
+    }
+    
+    // Build SELECT query with only existing columns
+    let selectColumns = 'u.id, u.name, u.email, u.role, u.profile_image, t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number'
+    if (hasFitnessGoals) selectColumns += ', t.fitness_goals'
+    if (hasClientAgeRanges) selectColumns += ', t.client_age_ranges'
+    if (hasLocation) selectColumns += ', t.location'
+    
     const result = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role, u.profile_image,
-              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number,
-              t.fitness_goals, t.client_age_ranges, t.location
+      `SELECT ${selectColumns}
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
        WHERE u.id = $1`,
@@ -65,23 +90,73 @@ router.put('/', async (req, res) => {
 
     // Update trainer profile if user is a trainer
     if (req.user.role === 'trainer') {
-      await pool.query(
-        `UPDATE trainers 
-         SET bio = $1, certifications = $2, specialties = $3, hourly_rate = $4, phone_number = $5,
-             fitness_goals = $6, client_age_ranges = $7, location = $8
-         WHERE user_id = $9`,
-        [
-          bio || null,
-          certifications ? JSON.stringify(certifications) : null,
-          specialties ? JSON.stringify(specialties) : null,
-          hourly_rate ? parseFloat(hourly_rate) : null,
-          phone_number || null,
-          fitness_goals ? JSON.stringify(fitness_goals) : null,
-          client_age_ranges ? JSON.stringify(client_age_ranges) : null,
-          location || null,
-          req.user.id
-        ]
-      )
+      // Check if the new columns exist first
+      let hasFitnessGoals = false
+      let hasClientAgeRanges = false
+      let hasLocation = false
+      
+      try {
+        const columnCheck = await pool.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' 
+          AND table_name = 'trainers' 
+          AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+        `)
+        const existingColumns = columnCheck.rows.map(r => r.column_name)
+        hasFitnessGoals = existingColumns.includes('fitness_goals')
+        hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+        hasLocation = existingColumns.includes('location')
+      } catch (error) {
+        console.log('[PROFILE UPDATE] Error checking columns, assuming they don\'t exist:', error.message)
+        // Default to false if check fails
+      }
+      
+      // Build UPDATE query with only existing columns
+      const updateFields = []
+      const updateValues = []
+      let paramCount = 1
+      
+      updateFields.push(`bio = $${paramCount++}`)
+      updateValues.push(bio || null)
+      
+      updateFields.push(`certifications = $${paramCount++}`)
+      updateValues.push(certifications ? JSON.stringify(certifications) : null)
+      
+      updateFields.push(`specialties = $${paramCount++}`)
+      updateValues.push(specialties ? JSON.stringify(specialties) : null)
+      
+      updateFields.push(`hourly_rate = $${paramCount++}`)
+      updateValues.push(hourly_rate ? parseFloat(hourly_rate) : null)
+      
+      updateFields.push(`phone_number = $${paramCount++}`)
+      updateValues.push(phone_number || null)
+      
+      if (hasFitnessGoals) {
+        updateFields.push(`fitness_goals = $${paramCount++}`)
+        updateValues.push(fitness_goals ? JSON.stringify(fitness_goals) : null)
+      }
+      
+      if (hasClientAgeRanges) {
+        updateFields.push(`client_age_ranges = $${paramCount++}`)
+        updateValues.push(client_age_ranges ? JSON.stringify(client_age_ranges) : null)
+      }
+      
+      if (hasLocation) {
+        updateFields.push(`location = $${paramCount++}`)
+        updateValues.push(location || null)
+      }
+      
+      updateFields.push(`user_id = $${paramCount++}`)
+      updateValues.push(req.user.id)
+      
+      const updateQuery = `
+        UPDATE trainers 
+        SET ${updateFields.join(', ')}
+        WHERE user_id = $${paramCount}
+      `
+      
+      await pool.query(updateQuery, updateValues)
     }
 
     res.json({ message: 'Profile updated successfully' })
