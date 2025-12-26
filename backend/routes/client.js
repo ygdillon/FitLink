@@ -552,8 +552,8 @@ router.get('/trainers/search', async (req, res) => {
         // Default to false if check fails
       }
       
-      // Build query with only existing columns
-      let selectColumns = 't.*, u.name, u.email, u.profile_image'
+      // Build query with only existing columns (explicitly list base columns to avoid t.* issues)
+      let selectColumns = 't.id, t.user_id, t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number, t.total_clients, t.active_clients, t.blockchain_reputation_score, t.created_at, t.updated_at, u.name, u.email, u.profile_image'
       if (hasFitnessGoals) selectColumns += ', t.fitness_goals'
       if (hasClientAgeRanges) selectColumns += ', t.client_age_ranges'
       if (hasLocation) selectColumns += ', t.location'
@@ -660,8 +660,8 @@ router.get('/trainers/search', async (req, res) => {
       // Default to false if check fails
     }
     
-    // Build query with only existing columns
-    let selectColumns = 't.*, u.name, u.email, u.profile_image'
+    // Build query with only existing columns (explicitly list base columns to avoid t.* issues)
+    let selectColumns = 't.id, t.user_id, t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number, t.total_clients, t.active_clients, t.blockchain_reputation_score, t.created_at, t.updated_at, u.name, u.email, u.profile_image'
     if (hasFitnessGoals) selectColumns += ', t.fitness_goals'
     if (hasClientAgeRanges) selectColumns += ', t.client_age_ranges'
     if (hasLocation) selectColumns += ', t.location'
