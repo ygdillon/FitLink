@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Container, Title, Text, Tabs, Paper, Card, Avatar, Badge, Button, TextInput, Textarea, Modal, Stack, Group, Alert, Loader, Divider, MultiSelect, Checkbox, SimpleGrid, Collapse } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
@@ -48,6 +48,7 @@ function Settings() {
   const [requestMessage, setRequestMessage] = useState('')
   const [opened, { open, close }] = useDisclosure(false)
   const [selectedTrainer, setSelectedTrainer] = useState(null)
+  const hasLoadedTrainersRef = useRef(false)
 
   const handleLogout = () => {
     logout()
@@ -60,8 +61,15 @@ function Settings() {
   }, [])
 
   useEffect(() => {
-    // Load all trainers when switching to find tab
-    if (user?.role === 'client' && activeTab === 'find' && !searching) {
+    // Reset the ref when switching away from find tab
+    if (activeTab !== 'find') {
+      hasLoadedTrainersRef.current = false
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    // Load all trainers when switching to find tab (only once per tab visit)
+    if (user?.role === 'client' && activeTab === 'find' && !searching && !hasLoadedTrainersRef.current) {
       // Only auto-load if no search has been performed yet
       const hasNoSearch = searchResults.length === 0 && 
                          !searchQuery.trim() && 
@@ -71,17 +79,8 @@ function Settings() {
                          selectedSpecialNeeds.length === 0 &&
                          !locationFilter.trim()
       
-      console.log('[Settings] Find Trainer tab active, hasNoSearch:', hasNoSearch, {
-        searchResultsLength: searchResults.length,
-        searchQuery: searchQuery,
-        selectedSpecialties: selectedSpecialties.length,
-        selectedFitnessGoals: selectedFitnessGoals.length,
-        selectedAgeRanges: selectedAgeRanges.length,
-        selectedSpecialNeeds: selectedSpecialNeeds.length,
-        locationFilter: locationFilter
-      })
-      
       if (hasNoSearch) {
+        hasLoadedTrainersRef.current = true
         const loadAllTrainers = async () => {
           console.log('[Settings] Loading all trainers...')
           setSearching(true)
@@ -89,6 +88,7 @@ function Settings() {
           try {
             const response = await api.get('/client/trainers/search')
             console.log('[Settings] Trainers response:', response.data)
+            console.log('[Settings] Response status:', response.status)
             setSearchResults(response.data || [])
             if (!response.data || response.data.length === 0) {
               setMessage('No trainers available at the moment.')
@@ -97,7 +97,10 @@ function Settings() {
             }
           } catch (error) {
             console.error('[Settings] Error fetching trainers:', error)
+            console.error('[Settings] Error response:', error.response?.data)
+            console.error('[Settings] Error status:', error.response?.status)
             setMessage('Failed to load trainers')
+            hasLoadedTrainersRef.current = false // Allow retry on error
           } finally {
             setSearching(false)
           }
@@ -105,7 +108,7 @@ function Settings() {
         loadAllTrainers()
       }
     }
-  }, [activeTab, user?.role, searching, searchResults.length, searchQuery, selectedSpecialties.length, selectedFitnessGoals.length, selectedAgeRanges.length, selectedSpecialNeeds.length, locationFilter])
+  }, [activeTab, user?.role])
 
   const fetchCurrentTrainer = async () => {
     try {
