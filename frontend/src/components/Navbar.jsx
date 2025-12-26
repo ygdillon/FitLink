@@ -131,23 +131,15 @@ function Navbar({ children }) {
           style={{ padding: '0.5rem 0.75rem' }}
         />
 
-        {/* Workouts - direct links */}
+        {/* Programs - direct link */}
         <MantineNavLink
           component={NavLink}
-                  to="/trainer/workouts?tab=create" 
-                  label="Create Workouts" 
+          to="/programs"
+          label="Programs"
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-                />
-        <MantineNavLink
-          component={NavLink}
-                  to="/trainer/workouts?tab=manage" 
-                  label="Manage Workouts" 
-          leftSection={<WorkoutIcon />}
-          className="nav-link"
-          style={{ padding: '0.5rem 0.75rem' }}
-                />
+        />
 
         {/* Requests - standalone with badge */}
         {user.role === 'trainer' ? (
@@ -220,8 +212,8 @@ function Navbar({ children }) {
         {/* Training - direct links */}
                 <MantineNavLink
                   component={NavLink}
-                  to="/client/workouts"
-                  label="Workouts"
+                  to="/programs"
+                  label="Programs"
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}

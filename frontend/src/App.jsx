@@ -30,6 +30,7 @@ import ClientOnboarding from './pages/ClientOnboarding'
 import Analytics from './pages/Analytics'
 import Alerts from './pages/Alerts'
 import TrainerProfile from './pages/TrainerProfile'
+import Programs from './pages/Programs'
 
 // Components
 import Navbar from './components/Navbar'
@@ -77,6 +78,7 @@ function AppRoutes() {
         <Route path="/trainer/clients/:clientId/progress" element={<ClientProgress />} />
         <Route path="/check-in" element={<DailyCheckIn />} />
         <Route path="/trainer/profile/:trainerId" element={<TrainerProfile />} />
+        <Route path="/programs" element={<Programs />} />
         <Route path="/" element={<Navigate to={user?.role === 'trainer' ? '/trainer' : '/client'} />} />
       </Route>
     </Routes>
