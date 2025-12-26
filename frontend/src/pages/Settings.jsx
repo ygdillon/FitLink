@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Container, Title, Text, Tabs, Paper, Card, Avatar, Badge, Button, TextInput, Textarea, Modal, Stack, Group, Alert, Loader, Divider } from '@mantine/core'
+import { Container, Title, Text, Tabs, Paper, Card, Avatar, Badge, Button, TextInput, Textarea, Modal, Stack, Group, Alert, Loader, Divider, MultiSelect, Checkbox, SimpleGrid, Collapse } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useAuth } from '../contexts/AuthContext'
 import ThemeToggle from '../components/ThemeToggle'
@@ -15,6 +15,32 @@ function Settings() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
+  const [selectedSpecialties, setSelectedSpecialties] = useState([])
+  const [selectedFitnessGoals, setSelectedFitnessGoals] = useState([])
+  const [selectedAgeRanges, setSelectedAgeRanges] = useState([])
+  const [selectedSpecialNeeds, setSelectedSpecialNeeds] = useState([])
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  
+  // Available options for filters
+  const specialtyOptions = [
+    'Weight Loss', 'Strength Training', 'Cardio', 'Yoga', 'Pilates',
+    'Athletic Performance', 'Rehabilitation', 'Injury Recovery', 'Nutrition Coaching',
+    'Bodybuilding', 'Functional Training', 'HIIT', 'Flexibility', 'Endurance Training'
+  ]
+  
+  const fitnessGoalOptions = [
+    'Lose weight', 'Build muscle', 'Boost endurance', 'Get toned', 'Gain flexibility'
+  ]
+  
+  const ageRangeOptions = [
+    'Younger than 18', '18 - 22 years old', '23 - 30 years old',
+    '31 - 40 years old', '41 - 50 years old', '51 - 60 years old', '61+ years old'
+  ]
+  
+  const specialNeedsOptions = [
+    'Injuries', 'Chronic Pain', 'Post-Surgery Recovery', 'Mobility Issues',
+    'Arthritis', 'Back Problems', 'Knee Issues', 'Shoulder Problems'
+  ]
   const [message, setMessage] = useState('')
   const [activeTab, setActiveTab] = useState(user?.role === 'client' ? 'current' : 'account') // 'current', 'find', 'requests', or 'account'
   const [pendingRequests, setPendingRequests] = useState([])
@@ -56,16 +82,39 @@ function Settings() {
   }
 
   const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!searchQuery.trim()) return
+    e?.preventDefault()
+    
+    // Allow search even without text query if filters are selected
+    if (!searchQuery.trim() && selectedSpecialties.length === 0 && 
+        selectedFitnessGoals.length === 0 && selectedAgeRanges.length === 0 && 
+        selectedSpecialNeeds.length === 0) {
+      return
+    }
 
     setSearching(true)
     setMessage('')
     try {
-      const response = await api.get(`/client/trainers/search?q=${encodeURIComponent(searchQuery)}`)
+      const params = new URLSearchParams()
+      if (searchQuery.trim()) {
+        params.append('q', searchQuery.trim())
+      }
+      if (selectedSpecialties.length > 0) {
+        selectedSpecialties.forEach(spec => params.append('specialties', spec))
+      }
+      if (selectedFitnessGoals.length > 0) {
+        selectedFitnessGoals.forEach(goal => params.append('fitness_goals', goal))
+      }
+      if (selectedAgeRanges.length > 0) {
+        selectedAgeRanges.forEach(age => params.append('client_age_ranges', age))
+      }
+      if (selectedSpecialNeeds.length > 0) {
+        selectedSpecialNeeds.forEach(need => params.append('special_needs', need))
+      }
+      
+      const response = await api.get(`/client/trainers/search?${params.toString()}`)
       setSearchResults(response.data)
       if (response.data.length === 0) {
-        setMessage('No trainers found. Try a different search term.')
+        setMessage('No trainers found. Try adjusting your search or filters.')
       }
     } catch (error) {
       console.error('Error searching trainers:', error)
@@ -73,6 +122,16 @@ function Settings() {
     } finally {
       setSearching(false)
     }
+  }
+  
+  const clearFilters = () => {
+    setSearchQuery('')
+    setSelectedSpecialties([])
+    setSelectedFitnessGoals([])
+    setSelectedAgeRanges([])
+    setSelectedSpecialNeeds([])
+    setSearchResults([])
+    setMessage('')
   }
 
   const handleRequestTrainer = async (trainerId) => {
@@ -291,72 +350,214 @@ function Settings() {
         {user?.role === 'client' && (
           <Tabs.Panel value="find" pt="md">
             <Title order={2} mb="md">Find a New Trainer</Title>
+            
+            {/* Search Bar */}
             <form onSubmit={handleSearch}>
               <Group mb="md">
                 <TextInput
-                  placeholder="Search by name, specialty, or email..."
+                  placeholder="Search by name, specialty, or needs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ flex: 1 }}
                 />
-                <Button type="submit" loading={searching} disabled={!searchQuery.trim()}>
+                <Button type="submit" loading={searching}>
                   Search
                 </Button>
+                <Button variant="light" onClick={() => setFiltersOpen(!filtersOpen)}>
+                  {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+                </Button>
+                {(selectedSpecialties.length > 0 || selectedFitnessGoals.length > 0 || 
+                  selectedAgeRanges.length > 0 || selectedSpecialNeeds.length > 0) && (
+                  <Button variant="subtle" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                )}
               </Group>
             </form>
 
+            {/* Advanced Filters */}
+            <Collapse in={filtersOpen} mb="lg">
+              <Paper p="md" withBorder>
+                <Stack gap="md">
+                  <Title order={4}>Filter by Your Needs</Title>
+                  
+                  <MultiSelect
+                    label="Specialties"
+                    placeholder="Select specialties (e.g., Injury Recovery, Weight Loss)"
+                    data={specialtyOptions}
+                    value={selectedSpecialties}
+                    onChange={setSelectedSpecialties}
+                    searchable
+                    clearable
+                  />
+                  
+                  <MultiSelect
+                    label="Fitness Goals"
+                    placeholder="Select your fitness goals"
+                    data={fitnessGoalOptions}
+                    value={selectedFitnessGoals}
+                    onChange={setSelectedFitnessGoals}
+                    clearable
+                  />
+                  
+                  <MultiSelect
+                    label="Your Age Range"
+                    placeholder="Select your age range"
+                    data={ageRangeOptions}
+                    value={selectedAgeRanges}
+                    onChange={setSelectedAgeRanges}
+                    clearable
+                  />
+                  
+                  <MultiSelect
+                    label="Special Needs"
+                    placeholder="Select if you have injuries or special needs"
+                    data={specialNeedsOptions}
+                    value={selectedSpecialNeeds}
+                    onChange={setSelectedSpecialNeeds}
+                    searchable
+                    clearable
+                  />
+                  
+                  <Button onClick={handleSearch} loading={searching}>
+                    Apply Filters
+                  </Button>
+                </Stack>
+              </Paper>
+            </Collapse>
+
+            {message && (
+              <Alert color={message.includes('No trainers') ? 'yellow' : 'red'} mb="md">
+                {message}
+              </Alert>
+            )}
+
             {searchResults.length > 0 && (
-              <Stack gap="lg">
-                <Title order={3}>Search Results ({searchResults.length})</Title>
-                {searchResults.map(trainer => (
-                  <Card key={trainer.id} shadow="md" padding="xl" radius="md" withBorder style={{ transition: 'transform 0.2s, box-shadow 0.2s' }} className="trainer-profile-card">
-                    <Stack gap="md">
-                      {/* Header Section */}
-                      <Group justify="space-between" align="flex-start">
+              <>
+                <Title order={3} mb="md">Search Results ({searchResults.length})</Title>
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
+                  {searchResults.map(trainer => (
+                    <Card 
+                      key={trainer.id} 
+                      shadow="md" 
+                      padding="lg" 
+                      radius="md" 
+                      withBorder 
+                      style={{ 
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        cursor: 'pointer',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }}
+                      className="trainer-profile-card"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)'
+                        e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <Stack gap="md" style={{ flex: 1 }}>
+                        {/* Profile Picture and Name */}
                         <Group gap="md">
                           <Avatar 
                             src={trainer.profile_image} 
                             color="robinhoodGreen" 
-                            size="xl" 
-                            radius="xl"
+                            size={80} 
+                            radius="50%"
                           >
                             {trainer.name.charAt(0).toUpperCase()}
                           </Avatar>
-                          <Stack gap={4}>
-                            <Title order={3}>{trainer.name}</Title>
-                            <Group gap="md">
-                              <Text size="sm" c="dimmed">
-                                <Text component="span" fw={500}>Email:</Text> {trainer.email}
-                              </Text>
-                              {trainer.phoneNumber && (
-                                <Text size="sm" c="dimmed">
-                                  <Text component="span" fw={500}>Phone:</Text> {trainer.phoneNumber}
-                                </Text>
-                              )}
+                          <Stack gap={4} style={{ flex: 1 }}>
+                            <Title order={4} lineClamp={1}>{trainer.name}</Title>
+                            {/* Rating placeholder - can be enhanced later */}
+                            <Group gap="xs">
+                              <Text size="sm" c="green" fw={500}>Exceptional 5.0</Text>
+                              <Text size="sm" c="dimmed">({trainer.total_clients || 0} clients)</Text>
                             </Group>
                           </Stack>
                         </Group>
-                        <Stack align="flex-end" gap="xs">
+
+                        {/* Specialties */}
+                        {trainer.specialties && trainer.specialties.length > 0 && (
+                          <div>
+                            <Text size="xs" fw={600} c="dimmed" mb="xs" tt="uppercase">Specialties</Text>
+                            <Group gap="xs">
+                              {(Array.isArray(trainer.specialties) 
+                                ? trainer.specialties 
+                                : Object.values(trainer.specialties)
+                              ).slice(0, 3).map((spec, idx) => (
+                                <Badge key={idx} size="sm" variant="light" color="blue">
+                                  {spec}
+                                </Badge>
+                              ))}
+                              {(Array.isArray(trainer.specialties) 
+                                ? trainer.specialties 
+                                : Object.values(trainer.specialties)
+                              ).length > 3 && (
+                                <Text size="xs" c="dimmed">+{(Array.isArray(trainer.specialties) ? trainer.specialties : Object.values(trainer.specialties)).length - 3} more</Text>
+                              )}
+                            </Group>
+                          </div>
+                        )}
+
+                        {/* Bio Preview */}
+                        {trainer.bio && (
+                          <Text size="sm" c="dimmed" lineClamp={2} style={{ flex: 1 }}>
+                            {trainer.bio}
+                          </Text>
+                        )}
+
+                        {/* Price and Action */}
+                        <Group justify="space-between" align="flex-end" mt="auto">
+                          <div>
+                            {trainer.hourly_rate ? (
+                              <>
+                                <Text size="xl" fw={700}>
+                                  ${trainer.hourly_rate}
+                                </Text>
+                                <Text size="xs" c="dimmed">per hour</Text>
+                              </>
+                            ) : (
+                              <Text size="sm" c="dimmed">Contact for price</Text>
+                            )}
+                          </div>
                           {currentTrainer && currentTrainer.id === trainer.id ? (
-                            <Button disabled size="md">Current Trainer</Button>
+                            <Button disabled size="sm" variant="light">Current Trainer</Button>
                           ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
-                            <Button disabled variant="outline" size="md">Request Pending</Button>
+                            <Button disabled size="sm" variant="outline">Request Pending</Button>
                           ) : (
                             <Button 
-                              onClick={() => handleRequestTrainer(trainer.id)}
-                              size="md"
-                              color="robinhoodGreen"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRequestTrainer(trainer.id)
+                              }}
+                              size="sm"
+                              color="blue"
                             >
-                              Request Trainer
+                              View Profile
                             </Button>
                           )}
-                          {trainer.hourly_rate && (
-                            <Text size="lg" fw={700} c="robinhoodGreen">
-                              ${trainer.hourly_rate}/hr
-                            </Text>
-                          )}
-                        </Stack>
-                      </Group>
+                        </Group>
+                      </Stack>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              </>
+            )}
+
+            {searchResults.length === 0 && !searching && (searchQuery.trim() || selectedSpecialties.length > 0 || 
+              selectedFitnessGoals.length > 0 || selectedAgeRanges.length > 0 || selectedSpecialNeeds.length > 0) && (
+              <Paper p="xl" withBorder>
+                <Stack gap="xs" align="center">
+                  <Text c="dimmed">No trainers found matching your criteria.</Text>
+                  <Text c="dimmed" size="sm">Try adjusting your search or filters.</Text>
+                </Stack>
+              </Paper>
+            )}
 
                       <Divider />
 

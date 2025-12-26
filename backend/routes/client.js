@@ -492,29 +492,83 @@ router.get('/trainer', async (req, res) => {
 // Search for trainers
 router.get('/trainers/search', async (req, res) => {
   try {
-    const { q } = req.query
+    const { q, specialties, fitness_goals, client_age_ranges, special_needs } = req.query
 
-    if (!q || q.trim().length === 0) {
-      return res.json([])
+    let query = `
+      SELECT DISTINCT t.*, u.name, u.email, u.profile_image,
+             t.fitness_goals, t.client_age_ranges
+      FROM trainers t
+      JOIN users u ON t.user_id = u.id
+      WHERE 1=1
+    `
+    const params = []
+    let paramCount = 1
+
+    // Text search (name, email, bio, specialties)
+    if (q && q.trim().length > 0) {
+      const searchTerm = `%${q.trim()}%`
+      query += ` AND (
+        u.name ILIKE $${paramCount} OR
+        u.email ILIKE $${paramCount} OR
+        t.bio ILIKE $${paramCount} OR
+        t.specialties::text ILIKE $${paramCount}
+      )`
+      params.push(searchTerm)
+      paramCount++
     }
 
-    const searchTerm = `%${q.trim()}%`
+    // Filter by specialties
+    if (specialties) {
+      const specialtyList = Array.isArray(specialties) ? specialties : [specialties]
+      const specialtyParams = []
+      specialtyList.forEach((spec, i) => {
+        specialtyParams.push(`$${paramCount + i}`)
+        params.push(`%${spec}%`)
+      })
+      query += ` AND (t.specialties::text ILIKE ANY(ARRAY[${specialtyParams.join(', ')}]))`
+      paramCount += specialtyList.length
+    }
 
-    // Search trainers by name, email, bio, or specialties
-    const result = await pool.query(
-      `SELECT DISTINCT t.*, u.name, u.email, u.profile_image
-       FROM trainers t
-       JOIN users u ON t.user_id = u.id
-       WHERE (
-         u.name ILIKE $1 OR
-         u.email ILIKE $1 OR
-         t.bio ILIKE $1 OR
-         t.specialties::text ILIKE $1
-       )
-       ORDER BY u.name ASC
-       LIMIT 20`,
-      [searchTerm]
-    )
+    // Filter by fitness goals
+    if (fitness_goals) {
+      const goalsList = Array.isArray(fitness_goals) ? fitness_goals : [fitness_goals]
+      const goalParams = []
+      goalsList.forEach((goal, i) => {
+        goalParams.push(`$${paramCount + i}`)
+        params.push(`%${goal}%`)
+      })
+      query += ` AND (t.fitness_goals::text ILIKE ANY(ARRAY[${goalParams.join(', ')}]))`
+      paramCount += goalsList.length
+    }
+
+    // Filter by client age ranges
+    if (client_age_ranges) {
+      const ageList = Array.isArray(client_age_ranges) ? client_age_ranges : [client_age_ranges]
+      const ageParams = []
+      ageList.forEach((age, i) => {
+        ageParams.push(`$${paramCount + i}`)
+        params.push(`%${age}%`)
+      })
+      query += ` AND (t.client_age_ranges::text ILIKE ANY(ARRAY[${ageParams.join(', ')}]))`
+      paramCount += ageList.length
+    }
+
+    // Filter by special needs (injuries, etc.) - search in bio and specialties
+    if (special_needs) {
+      const needsList = Array.isArray(special_needs) ? special_needs : [special_needs]
+      const needsConditions = []
+      needsList.forEach((need, i) => {
+        needsConditions.push(`(t.bio ILIKE $${paramCount} OR t.specialties::text ILIKE $${paramCount + 1})`)
+        params.push(`%${need}%`)
+        params.push(`%${need}%`)
+        paramCount += 2
+      })
+      query += ` AND (${needsConditions.join(' OR ')})`
+    }
+
+    query += ` ORDER BY u.name ASC LIMIT 50`
+
+    const result = await pool.query(query, params)
 
     const trainers = result.rows.map(trainer => {
       // Parse JSONB fields
@@ -530,6 +584,18 @@ router.get('/trainers/search', async (req, res) => {
           ? JSON.parse(certifications)
           : certifications
       }
+      let fitnessGoals = trainer.fitness_goals
+      if (fitnessGoals) {
+        fitnessGoals = typeof fitnessGoals === 'string'
+          ? JSON.parse(fitnessGoals)
+          : fitnessGoals
+      }
+      let clientAgeRanges = trainer.client_age_ranges
+      if (clientAgeRanges) {
+        clientAgeRanges = typeof clientAgeRanges === 'string'
+          ? JSON.parse(clientAgeRanges)
+          : clientAgeRanges
+      }
 
       return {
         id: trainer.user_id,
@@ -539,6 +605,8 @@ router.get('/trainers/search', async (req, res) => {
         bio: trainer.bio,
         specialties: specialties,
         certifications: certifications,
+        fitness_goals: fitnessGoals,
+        client_age_ranges: clientAgeRanges,
         hourly_rate: trainer.hourly_rate,
         total_clients: trainer.total_clients,
         active_clients: trainer.active_clients,
