@@ -281,7 +281,7 @@ function WorkoutLibrary() {
                   ) : (
                     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                       {filteredWorkouts.map(workout => (
-                        <Card key={workout.id} shadow="sm" padding="md" radius="md" withBorder>
+                        <Card key={workout.id} shadow="sm" padding="md" radius="sm" withBorder>
                           <Stack gap="sm">
                             <Group justify="space-between">
                               <Title order={5}>{workout.name}</Title>
@@ -355,7 +355,7 @@ function WorkoutLibrary() {
                   ) : (
                     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                       {filteredWorkouts.map(workout => (
-                        <Card key={workout.id} shadow="sm" padding="lg" radius="md" withBorder>
+                        <Card key={workout.id} shadow="sm" padding="lg" radius="sm" withBorder>
                           <Stack gap="sm">
                             <Group justify="space-between">
                               <Title order={4}>{workout.name}</Title>

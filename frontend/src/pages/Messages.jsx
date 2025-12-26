@@ -230,7 +230,7 @@ function Messages() {
                                 ? 'var(--mantine-color-robinhoodGreen-6)' 
                                 : 'var(--mantine-color-gray-1)',
                               color: isFromCurrentUser ? 'white' : 'inherit',
-                              borderRadius: 'var(--mantine-radius-md)'
+                              borderRadius: 'var(--mantine-radius-sm)'
                             }}
                           >
                             <Text size="sm" c={isFromCurrentUser ? 'white' : 'inherit'}>

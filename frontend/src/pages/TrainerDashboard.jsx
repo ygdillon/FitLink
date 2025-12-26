@@ -541,7 +541,7 @@ function TrainerDashboard() {
 
         {/* Right Panel - Schedule Calendar - Full Height */}
         <Grid.Col span={{ base: 12, md: 9 }} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <div className="calendar-paper-wrapper" style={{ height: '100%', position: 'relative', border: '1px solid var(--mantine-color-gray-4)', borderRadius: 'var(--mantine-radius-md)', overflow: 'hidden' }}>
+          <div className="calendar-paper-wrapper" style={{ height: '100%', position: 'relative', border: '1px solid var(--mantine-color-gray-4)', borderRadius: 'var(--mantine-radius-sm)', overflow: 'hidden' }}>
             <Paper 
               p="lg" 
               shadow="md" 

@@ -17,7 +17,7 @@
 .revenue-panel {
   flex: 0 0 280px;
   background: white;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   display: flex;
@@ -108,7 +108,7 @@
 .schedule-panel {
   flex: 0 0 50%;
   background: white;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   display: flex;
@@ -174,7 +174,7 @@
   gap: 1rem;
   padding: 1rem;
   background: #E8F5D8;
-  border-radius: 8px;
+  border-radius: 4px;
   border-left: 4px solid #9BCF53;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -260,7 +260,7 @@
 .clients-panel {
   flex: 0 0 50%;
   background: white;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   display: flex;
@@ -305,7 +305,7 @@
 .client-item-vertical {
   background: white;
   border: 1px solid #E8F5D8;
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 1rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -576,7 +576,7 @@
   border-right: 1px solid var(--mantine-color-gray-4) !important;
   border-bottom: 1px solid var(--mantine-color-gray-4) !important;
   border-left: 1px solid var(--mantine-color-gray-4) !important;
-  border-radius: var(--mantine-radius-md) !important;
+  border-radius: var(--mantine-radius-sm) !important;
   position: relative !important;
   overflow: visible !important;
   /* Ensure border connects at all corners */
@@ -615,7 +615,7 @@
   border-right: 1px solid var(--mantine-color-gray-4) !important;
   border-bottom: 1px solid var(--mantine-color-gray-4) !important;
   border-left: 1px solid var(--mantine-color-gray-4) !important;
-  border-radius: var(--mantine-radius-md) !important;
+  border-radius: var(--mantine-radius-sm) !important;
 }
 
 /* Force complete bottom border line that connects both corners */

@@ -216,7 +216,7 @@ function Profile() {
 
   return (
     <Container size="md" py="xl">
-      <Paper shadow="md" p="xl" radius="md" withBorder>
+      <Paper shadow="md" p="xl" radius="sm" withBorder>
         <Title order={1} mb="md">Profile Settings</Title>
         <Text c="dimmed" mb="xl" size="sm">
           {user.role === 'trainer' 

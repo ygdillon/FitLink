@@ -252,10 +252,11 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
 
   const handleAssignProgram = async (values) => {
     try {
-      await api.post(`/programs/${programToAssign.id}/assign`, {
+      const response = await api.post(`/programs/${programToAssign.id}/assign`, {
         client_id: values.client_id,
         start_date: values.start_date
       })
+      console.log('[DEBUG] Assignment response:', response.data)
       notifications.show({
         title: 'Success',
         message: 'Program assigned successfully',
@@ -264,8 +265,13 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
       closeAssign()
       assignForm.reset()
       onRefresh()
+      // Dispatch event to refresh client profiles if they're open
+      window.dispatchEvent(new CustomEvent('programAssigned', { 
+        detail: { client_id: values.client_id, program_id: programToAssign.id }
+      }))
     } catch (error) {
       console.error('Error assigning program:', error)
+      console.error('Error response:', error.response?.data)
       notifications.show({
         title: 'Error',
         message: error.response?.data?.message || 'Failed to assign program',
@@ -304,7 +310,7 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {programs.map((program) => (
-            <Card key={program.id} shadow="sm" padding="lg" radius="md" withBorder>
+            <Card key={program.id} shadow="sm" padding="lg" radius="sm" withBorder>
               <Stack gap="sm">
                 <Group justify="space-between">
                   <Title order={4}>{program.name}</Title>
@@ -604,7 +610,7 @@ function TrainerNutritionView({ clients, onRefresh }) {
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {nutritionPlans.map((plan) => (
-            <Card key={plan.id} shadow="sm" padding="lg" radius="md" withBorder>
+            <Card key={plan.id} shadow="sm" padding="lg" radius="sm" withBorder>
               <Stack gap="sm">
                 <Group justify="space-between">
                   <div style={{ flex: 1 }}>
@@ -898,7 +904,7 @@ function ClientNutritionView() {
   return (
     <>
       <Title order={2} mb="xl">My Nutrition Plan</Title>
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Card shadow="sm" padding="lg" radius="sm" withBorder>
         <Stack gap="md">
           <Group justify="space-between">
             <Title order={3}>{nutritionPlan.plan_name}</Title>
@@ -971,7 +977,7 @@ function ClientProgramsView({ programs, onViewProgram, selectedProgram, programV
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {programs.map((program) => (
-            <Card key={program.id} shadow="sm" padding="lg" radius="md" withBorder>
+            <Card key={program.id} shadow="sm" padding="lg" radius="sm" withBorder>
               <Stack gap="sm">
                 <Title order={4}>{program.name}</Title>
                 {program.description && (

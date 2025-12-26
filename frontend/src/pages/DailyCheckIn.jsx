@@ -192,7 +192,7 @@ function DailyCheckIn() {
 
   return (
     <Container size={800} py="xl">
-      <Paper shadow="md" p="xl" radius="md" withBorder>
+      <Paper shadow="md" p="xl" radius="sm" withBorder>
         <Tabs defaultValue="today" onTabChange={(value) => setShowHistory(value === 'history')}>
           <Tabs.List mb="xl">
             <Tabs.Tab value="today">Today's Check-In</Tabs.Tab>
@@ -272,7 +272,7 @@ function DailyCheckIn() {
                 {todayCheckIn.progress_photo && (
                   <Box>
                     <Text fw={500} mb="xs">Progress Photo:</Text>
-                    <Image src={todayCheckIn.progress_photo} alt="Progress" width={200} height={200} fit="cover" radius="md" />
+                    <Image src={todayCheckIn.progress_photo} alt="Progress" width={200} height={200} fit="cover" radius="sm" />
                   </Box>
                 )}
                 {todayCheckIn.notes && (
@@ -546,7 +546,7 @@ function DailyCheckIn() {
                   </FileButton>
                   {photoPreview && (
                     <Box>
-                      <Image src={photoPreview} alt="Progress photo" width={200} height={200} fit="cover" radius="md" />
+                      <Image src={photoPreview} alt="Progress photo" width={200} height={200} fit="cover" radius="sm" />
                       <Button 
                         size="xs" 
                         color="red" 
@@ -671,7 +671,7 @@ function DailyCheckIn() {
                       {checkIn.progress_photo && (
                         <Box>
                           <Text size="sm" fw={500} mb="xs">Progress Photo:</Text>
-                          <Image src={checkIn.progress_photo} alt="Progress" width={150} height={150} fit="cover" radius="md" />
+                          <Image src={checkIn.progress_photo} alt="Progress" width={150} height={150} fit="cover" radius="sm" />
                         </Box>
                       )}
 

@@ -68,7 +68,7 @@
 .action-card {
   background: white;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border-left: 4px solid #9BCF53;
 }
@@ -108,7 +108,7 @@
 .clients-list-section {
   background: white;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -172,7 +172,7 @@
 
 .client-card {
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s;

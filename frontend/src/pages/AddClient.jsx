@@ -129,7 +129,7 @@ function AddClient() {
 
   return (
     <Container size={800} py="xl">
-      <Paper shadow="md" p="xl" radius="md" withBorder>
+      <Paper shadow="md" p="xl" radius="sm" withBorder>
         <Title order={1} mb="xs" ta="center">Add New Client</Title>
         <Text c="dimmed" ta="center" mb="xl">Create a new client account and complete their profile</Text>
         

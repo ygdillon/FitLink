@@ -34,7 +34,7 @@
 .workout-card {
   background: white;
   padding: 1.5rem;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border-left: 4px solid #9BCF53;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -60,7 +60,7 @@
 
 .workout-status {
   padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: capitalize;

@@ -123,7 +123,7 @@ function TrainerRequests({ showTitle = true }) {
           {requests.map(request => {
             const profile = request.profile || {}
             return (
-              <Card key={request.id} shadow="sm" padding="lg" radius="md" withBorder>
+              <Card key={request.id} shadow="sm" padding="lg" radius="sm" withBorder>
                 <Stack gap="md">
                   <Group justify="space-between">
                     <Group>

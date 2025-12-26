@@ -158,7 +158,7 @@ function ProgramBuilder() {
 
             <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
               {templates.map((template) => (
-                <Card key={template.id} shadow="sm" padding="lg" radius="md" withBorder>
+                <Card key={template.id} shadow="sm" padding="lg" radius="sm" withBorder>
                   <Stack gap="sm">
                     <Group justify="space-between">
                       <Title order={4}>{template.name}</Title>
@@ -260,7 +260,7 @@ function ProgramBuilder() {
                 <Title order={3}>Recommended Programs</Title>
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                   {recommendations.recommendations.map((rec, idx) => (
-                    <Card key={rec.id} shadow="sm" padding="lg" radius="md" withBorder>
+                    <Card key={rec.id} shadow="sm" padding="lg" radius="sm" withBorder>
                       <Stack gap="sm">
                         <Group justify="space-between">
                           <Title order={4}>{rec.name}</Title>

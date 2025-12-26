@@ -258,7 +258,7 @@ function ProgressTracking() {
                                 width={150} 
                                 height={150} 
                                 fit="cover" 
-                                radius="md" 
+                                radius="sm" 
                               />
                             </Box>
                           )}

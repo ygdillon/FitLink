@@ -8,7 +8,7 @@ function ThemeToggle() {
       onClick={toggleColorScheme}
       variant="light"
       size="lg"
-      radius="md"
+      radius="sm"
       aria-label="Toggle color scheme"
       style={{ fontSize: '1.2rem' }}
     >

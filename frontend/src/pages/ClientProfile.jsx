@@ -111,7 +111,7 @@ function ClientProfile() {
             shadow="md"
             style={{ 
               backgroundColor: paperBgColor,
-              borderRadius: 'var(--mantine-radius-md)',
+              borderRadius: 'var(--mantine-radius-sm)',
               border: `1px solid ${paperBorderColor}`,
               boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
               marginBottom: '1.5rem'

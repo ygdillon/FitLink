@@ -63,7 +63,7 @@
 .settings-section {
   background: white;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -76,7 +76,7 @@
 /* Current Trainer Card */
 .trainer-card {
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 1.5rem;
   background: #f8f9fa;
 }
@@ -149,7 +149,7 @@
   background: #E8F5D8;
   color: #5A7A3A;
   padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -345,7 +345,7 @@
 
 .request-card {
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 1.5rem;
   background: white;
 }
@@ -381,7 +381,7 @@
 
 .request-status {
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -444,7 +444,7 @@
 
 .modal-content {
   background: white;
-  border-radius: 8px;
+  border-radius: 4px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;

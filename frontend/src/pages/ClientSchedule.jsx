@@ -395,7 +395,7 @@ function ClientSchedule({ clientId, clientName }) {
         ) : (
           <Stack gap="sm">
             {upcomingSessions.map(session => (
-              <Card key={session.id} shadow="sm" padding="lg" radius="md" withBorder>
+              <Card key={session.id} shadow="sm" padding="lg" radius="sm" withBorder>
                 <Group justify="space-between" align="flex-start">
                   <Stack gap="xs">
                     <Group gap="md">
@@ -462,7 +462,7 @@ function ClientSchedule({ clientId, clientName }) {
           <Title order={3} mb="md">Past Sessions ({pastSessions.length})</Title>
           <Group gap="xs">
             {pastSessions.slice(0, 10).map(session => (
-              <Card key={session.id} padding="sm" radius="md" withBorder>
+              <Card key={session.id} padding="sm" radius="sm" withBorder>
                 <Stack gap={4}>
                   <Text size="sm" fw={500}>
                     {new Date(session.session_date).toLocaleDateString('en-US', { 

@@ -95,7 +95,7 @@
 .navbar-sidebar .sidebar-link {
   color: rgba(255, 255, 255, 0.9) !important;
   padding: 0.75rem 1rem;
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-sm);
   transition: all 0.2s ease;
   font-size: 0.95rem;
   font-weight: 500;

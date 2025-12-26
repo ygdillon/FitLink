@@ -69,7 +69,7 @@ function ClientWorkouts({ clientId, clientName }) {
             const workoutName = workout.workout_name || workout.name
             const workoutId = workout.workout_id || workout.id
             return (
-              <Card key={workout.id} shadow="sm" padding="lg" radius="md" withBorder>
+              <Card key={workout.id} shadow="sm" padding="lg" radius="sm" withBorder>
                 <Stack gap="sm">
                   <Group justify="space-between">
                     <Title order={4}>{workoutName}</Title>

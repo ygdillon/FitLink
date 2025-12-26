@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Container, Title, Text, Stack, Card, Badge, Button, Group, Loader, Paper, SimpleGrid } from '@mantine/core'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
@@ -11,11 +11,7 @@ function ClientProgramsView({ clientId, clientName }) {
   // Determine if this is trainer view (has clientId prop) or client view
   const isTrainerView = !!clientId
 
-  useEffect(() => {
-    fetchPrograms()
-  }, [clientId])
-
-  const fetchPrograms = async () => {
+  const fetchPrograms = useCallback(async () => {
     try {
       let response
       if (isTrainerView) {
@@ -36,7 +32,24 @@ function ClientProgramsView({ clientId, clientName }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [clientId, isTrainerView])
+
+  useEffect(() => {
+    fetchPrograms()
+  }, [fetchPrograms])
+
+  // Listen for program assignment events to refresh
+  useEffect(() => {
+    const handleProgramAssigned = (event) => {
+      // Only refresh if this is the trainer view
+      if (isTrainerView) {
+        console.log('[DEBUG] Program assigned event received, refreshing...')
+        fetchPrograms()
+      }
+    }
+    window.addEventListener('programAssigned', handleProgramAssigned)
+    return () => window.removeEventListener('programAssigned', handleProgramAssigned)
+  }, [isTrainerView, fetchPrograms])
 
   if (loading) {
     return (
@@ -69,7 +82,7 @@ function ClientProgramsView({ clientId, clientName }) {
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {programs.map(program => (
-            <Card key={program.id} shadow="sm" padding="lg" radius="md" withBorder>
+            <Card key={program.id} shadow="sm" padding="lg" radius="sm" withBorder>
               <Stack gap="sm">
                 <Group justify="space-between">
                   <Title order={4}>{program.name}</Title>

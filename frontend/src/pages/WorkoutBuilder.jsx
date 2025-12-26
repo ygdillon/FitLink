@@ -263,7 +263,7 @@ function WorkoutBuilder() {
 
   return (
     <Container size="lg" py="xl">
-      <Paper shadow="md" p="xl" radius="md" withBorder>
+      <Paper shadow="md" p="xl" radius="sm" withBorder>
         {content}
       </Paper>
     </Container>

@@ -33,7 +33,7 @@ function Login() {
   return (
     <Box style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '2rem', backgroundColor: '#F5F9F0' }}>
       <Container size={420} my={40}>
-        <Paper shadow="md" p={30} radius="md" withBorder>
+        <Paper shadow="md" p={30} radius="sm" withBorder>
           <Title order={1} ta="center" mb="xl">
             Login
           </Title>

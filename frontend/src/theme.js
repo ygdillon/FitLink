@@ -90,7 +90,7 @@ export const theme = createTheme({
     },
   },
 
-  defaultRadius: 'md',
+  defaultRadius: 'sm',
 
   white: '#ffffff',
   black: '#0a0a0a',
@@ -98,7 +98,7 @@ export const theme = createTheme({
   components: {
     Button: {
       defaultProps: {
-        radius: 'md',
+        radius: 'sm',
       },
       styles: {
         root: {
@@ -109,39 +109,76 @@ export const theme = createTheme({
     },
     Card: {
       defaultProps: {
-        radius: 'md',
+        radius: 'sm',
         shadow: 'sm',
         withBorder: true,
       },
       styles: {
         root: {
           transition: 'box-shadow 0.2s ease',
+          borderWidth: '1.5px',
         },
       },
     },
     Input: {
       defaultProps: {
-        radius: 'md',
+        radius: 'sm',
       },
       styles: {
         input: {
           transition: 'border-color 0.2s ease',
+          borderWidth: '1.5px',
         },
       },
     },
     Paper: {
       defaultProps: {
-        radius: 'md',
+        radius: 'sm',
         shadow: 'sm',
         withBorder: true,
+      },
+      styles: {
+        root: {
+          borderWidth: '1.5px',
+        },
       },
     },
     NavLink: {
       styles: {
         root: {
-          borderRadius: 'var(--mantine-radius-md)',
+          borderRadius: 'var(--mantine-radius-sm)',
           transition: 'background-color 0.2s ease',
         },
+      },
+    },
+    Modal: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    Select: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    TextInput: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    NumberInput: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    Textarea: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    Badge: {
+      defaultProps: {
+        radius: 'sm',
       },
     },
   },

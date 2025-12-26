@@ -322,7 +322,7 @@ function Settings() {
           <Tabs.Panel value="current" pt="md">
           <Title order={2} mb="md">Your Current Trainer</Title>
           {currentTrainer ? (
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Card shadow="sm" padding="lg" radius="sm" withBorder>
               <Stack gap="md">
                 <Group>
                   <Avatar color="green" size="lg" radius="xl">
@@ -377,7 +377,7 @@ function Settings() {
           {pendingRequests.length > 0 ? (
             <Stack gap="md">
               {pendingRequests.map(request => (
-                <Card key={request.id} shadow="sm" padding="lg" radius="md" withBorder>
+                <Card key={request.id} shadow="sm" padding="lg" radius="sm" withBorder>
                   <Stack gap="sm">
                     <Group justify="space-between">
                       <div>
@@ -526,7 +526,7 @@ function Settings() {
                       key={trainer.id} 
                       shadow="md" 
                       padding="lg" 
-                      radius="md" 
+                      radius="sm" 
                       withBorder 
                       style={{ 
                         transition: 'transform 0.2s, box-shadow 0.2s',

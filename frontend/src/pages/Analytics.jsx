@@ -209,7 +209,7 @@ function Analytics() {
         <Tabs.Panel value="financial">
           <Stack gap="xl">
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Total Revenue</Text>
                 <Title order={2} c="robinhoodGreen.6">
                   {formatCurrency(analytics.financial.totalRevenue)}
@@ -219,7 +219,7 @@ function Analytics() {
                 </Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Monthly Recurring Revenue</Text>
                 <Title order={2} c="robinhoodGreen.6">
                   {formatCurrency(analytics.financial.monthlyRecurringRevenue)}
@@ -227,7 +227,7 @@ function Analytics() {
                 <Text size="xs" c="dimmed" mt="xs">From active subscriptions</Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Active Subscriptions</Text>
                 <Title order={2}>
                   {analytics.financial.activeSubscriptions || 0}
@@ -239,7 +239,7 @@ function Analytics() {
                 </Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Average Revenue Per Client</Text>
                 <Title order={2}>
                   {formatCurrency(analytics.financial.avgRevenuePerClient)}
@@ -254,7 +254,7 @@ function Analytics() {
 
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
               {/* Alerts Widget */}
-              <Card withBorder p="md" radius="md" style={{ minHeight: '400px' }} data-testid="alerts-widget">
+              <Card withBorder p="md" radius="sm" style={{ minHeight: '400px' }} data-testid="alerts-widget">
                 <Group justify="space-between" mb="md">
                   <Group>
                     <IconBell size={20} color={theme.colors.blue[6]} />
@@ -386,7 +386,7 @@ function Analytics() {
                 )}
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Revenue Breakdown</Title>
                 <Stack gap="sm">
                   <Group justify="space-between">
@@ -410,7 +410,7 @@ function Analytics() {
                 </Stack>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Subscription Metrics</Title>
                 <Stack gap="sm">
                   <Group justify="space-between">
@@ -440,7 +440,7 @@ function Analytics() {
             </SimpleGrid>
 
             {analytics.financial.topClients && analytics.financial.topClients.length > 0 && (
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Top Paying Clients</Title>
                 <Stack gap="sm">
                   {analytics.financial.topClients.map((client, index) => (
@@ -464,19 +464,19 @@ function Analytics() {
         <Tabs.Panel value="clients">
           <Stack gap="xl">
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Total Clients</Text>
                 <Title order={2}>{analytics.clients.totalClients || 0}</Title>
                 <Text size="xs" c="dimmed" mt="xs">All time</Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Active Clients</Text>
                 <Title order={2} c="green">{analytics.clients.activeClients || 0}</Title>
                 <Text size="xs" c="dimmed" mt="xs">Currently active</Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">New Clients</Text>
                 <Title order={2} c="blue">
                   {analytics.clients.newClients || 0}
@@ -486,7 +486,7 @@ function Analytics() {
                 </Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Client Retention Rate</Text>
                 <Title order={2}>
                   {formatPercentage(analytics.clients.retentionRate)}
@@ -496,7 +496,7 @@ function Analytics() {
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Client Engagement</Title>
                 <Stack gap="sm">
                   <Group justify="space-between">
@@ -516,7 +516,7 @@ function Analytics() {
                 </Stack>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Client Progress</Title>
                 <Stack gap="sm">
                   <Group justify="space-between">
@@ -547,7 +547,7 @@ function Analytics() {
         <Tabs.Panel value="workouts">
           <Stack gap="xl">
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Total Workouts Assigned</Text>
                 <Title order={2}>{analytics.workouts.totalAssigned || 0}</Title>
                 <Text size="xs" c="dimmed" mt="xs">
@@ -555,13 +555,13 @@ function Analytics() {
                 </Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Completed Workouts</Text>
                 <Title order={2} c="green">{analytics.workouts.totalCompleted || 0}</Title>
                 <Text size="xs" c="dimmed" mt="xs">Successfully completed</Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Completion Rate</Text>
                 <Title order={2}>
                   {formatPercentage(analytics.workouts.completionRate)}
@@ -578,7 +578,7 @@ function Analytics() {
                 </Badge>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Average Workout Rating</Text>
                 <Title order={2}>
                   {analytics.workouts.avgRating ? 
@@ -589,7 +589,7 @@ function Analytics() {
               </Card>
             </SimpleGrid>
 
-            <Card withBorder p="md" radius="md">
+            <Card withBorder p="md" radius="sm">
               <Title order={3} mb="md">Workout Performance</Title>
               <Stack gap="sm">
                 <Group justify="space-between">
@@ -621,7 +621,7 @@ function Analytics() {
         <Tabs.Panel value="checkins">
           <Stack gap="xl">
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Total Check-ins</Text>
                 <Title order={2}>{analytics.checkIns.totalCheckIns || 0}</Title>
                 <Text size="xs" c="dimmed" mt="xs">
@@ -629,7 +629,7 @@ function Analytics() {
                 </Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Check-in Completion Rate</Text>
                 <Title order={2}>
                   {formatPercentage(analytics.checkIns.completionRate)}
@@ -646,7 +646,7 @@ function Analytics() {
                 </Badge>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Average Sleep Quality</Text>
                 <Title order={2}>
                   {analytics.checkIns.avgSleepQuality ? 
@@ -656,7 +656,7 @@ function Analytics() {
                 <Text size="xs" c="dimmed" mt="xs">Client average</Text>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Text size="sm" c="dimmed" mb="xs">Average Energy Level</Text>
                 <Title order={2}>
                   {analytics.checkIns.avgEnergyLevel ? 
@@ -668,7 +668,7 @@ function Analytics() {
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Wellness Metrics</Title>
                 <Stack gap="sm">
                   <Group justify="space-between">
@@ -694,7 +694,7 @@ function Analytics() {
                 </Stack>
               </Card>
 
-              <Card withBorder p="md" radius="md">
+              <Card withBorder p="md" radius="sm">
                 <Title order={3} mb="md">Engagement</Title>
                 <Stack gap="sm">
                   <Group justify="space-between">

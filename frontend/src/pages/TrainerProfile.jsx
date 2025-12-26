@@ -151,7 +151,7 @@ function TrainerProfile() {
 
   return (
     <Container size="md" py="xl">
-      <Paper shadow="md" p="xl" radius="md" withBorder>
+      <Paper shadow="md" p="xl" radius="sm" withBorder>
         <Stack gap="lg">
           {/* Header */}
           <Group gap="md" align="flex-start">

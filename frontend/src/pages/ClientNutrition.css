@@ -17,7 +17,7 @@
 .today-progress-section {
   background: white;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   margin-bottom: 2rem;
 }
@@ -38,7 +38,7 @@
   background: linear-gradient(135deg, #9BCF53, #7BA53E);
   color: white;
   padding: 1.5rem;
-  border-radius: 8px;
+  border-radius: 4px;
   text-align: center;
 }
 
@@ -75,7 +75,7 @@
   width: 100%;
   height: 24px;
   background: #E8F5D8;
-  border-radius: 12px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -83,7 +83,7 @@
   height: 100%;
   background: linear-gradient(90deg, #9BCF53, #7BA53E);
   transition: width 0.3s ease;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .progress-text {
@@ -97,7 +97,7 @@
   padding: 4rem 2rem;
   color: #666;
   background: white;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
