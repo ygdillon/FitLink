@@ -141,7 +141,8 @@ router.get('/me', async (req, res) => {
 
     const result = await pool.query(
       `SELECT u.id, u.name, u.email, u.role, u.profile_image,
-              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number
+              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number,
+              t.fitness_goals, t.client_age_ranges, t.location
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
        WHERE u.id = $1`,
@@ -162,6 +163,16 @@ router.get('/me', async (req, res) => {
       user.specialties = Array.isArray(user.specialties)
         ? user.specialties
         : JSON.parse(user.specialties || '[]')
+    }
+    if (user.fitness_goals) {
+      user.fitness_goals = Array.isArray(user.fitness_goals)
+        ? user.fitness_goals
+        : JSON.parse(user.fitness_goals || '[]')
+    }
+    if (user.client_age_ranges) {
+      user.client_age_ranges = Array.isArray(user.client_age_ranges)
+        ? user.client_age_ranges
+        : JSON.parse(user.client_age_ranges || '[]')
     }
 
     res.json(user)

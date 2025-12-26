@@ -19,6 +19,7 @@ function Settings() {
   const [selectedFitnessGoals, setSelectedFitnessGoals] = useState([])
   const [selectedAgeRanges, setSelectedAgeRanges] = useState([])
   const [selectedSpecialNeeds, setSelectedSpecialNeeds] = useState([])
+  const [locationFilter, setLocationFilter] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   
   // Available options for filters
@@ -58,6 +59,29 @@ function Settings() {
     fetchPendingRequests()
   }, [])
 
+  useEffect(() => {
+    // Load all trainers when switching to find tab
+    if (user?.role === 'client' && activeTab === 'find' && searchResults.length === 0 && !searching) {
+      const loadAllTrainers = async () => {
+        setSearching(true)
+        setMessage('')
+        try {
+          const response = await api.get('/client/trainers/search')
+          setSearchResults(response.data || [])
+          if (response.data.length === 0) {
+            setMessage('No trainers available at the moment.')
+          }
+        } catch (error) {
+          console.error('Error fetching trainers:', error)
+          setMessage('Failed to load trainers')
+        } finally {
+          setSearching(false)
+        }
+      }
+      loadAllTrainers()
+    }
+  }, [activeTab, user?.role])
+
   const fetchCurrentTrainer = async () => {
     try {
       const response = await api.get('/client/trainer')
@@ -81,13 +105,32 @@ function Settings() {
     }
   }
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e, loadAll = false) => {
     e?.preventDefault()
+    
+    // If loadAll is true, fetch all trainers without any filters
+    if (loadAll) {
+      setSearching(true)
+      setMessage('')
+      try {
+        const response = await api.get('/client/trainers/search')
+        setSearchResults(response.data || [])
+        if (response.data.length === 0) {
+          setMessage('No trainers available at the moment.')
+        }
+      } catch (error) {
+        console.error('Error fetching trainers:', error)
+        setMessage('Failed to load trainers')
+      } finally {
+        setSearching(false)
+      }
+      return
+    }
     
     // Allow search even without text query if filters are selected
     if (!searchQuery.trim() && selectedSpecialties.length === 0 && 
         selectedFitnessGoals.length === 0 && selectedAgeRanges.length === 0 && 
-        selectedSpecialNeeds.length === 0) {
+        selectedSpecialNeeds.length === 0 && !locationFilter.trim()) {
       return
     }
 
@@ -97,6 +140,9 @@ function Settings() {
       const params = new URLSearchParams()
       if (searchQuery.trim()) {
         params.append('q', searchQuery.trim())
+      }
+      if (locationFilter.trim()) {
+        params.append('location', locationFilter.trim())
       }
       if (selectedSpecialties.length > 0) {
         selectedSpecialties.forEach(spec => params.append('specialties', spec))
@@ -126,12 +172,15 @@ function Settings() {
   
   const clearFilters = () => {
     setSearchQuery('')
+    setLocationFilter('')
     setSelectedSpecialties([])
     setSelectedFitnessGoals([])
     setSelectedAgeRanges([])
     setSelectedSpecialNeeds([])
     setSearchResults([])
     setMessage('')
+    // Reload all trainers after clearing
+    handleSearch(null, true)
   }
 
   const handleRequestTrainer = async (trainerId) => {
@@ -419,6 +468,14 @@ function Settings() {
                     clearable
                   />
                   
+                  <TextInput
+                    label="Location"
+                    placeholder="e.g., New York, NY or Los Angeles, CA"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    description="Search for trainers in a specific location"
+                  />
+                  
                   <Button onClick={handleSearch} loading={searching}>
                     Apply Filters
                   </Button>
@@ -478,6 +535,9 @@ function Settings() {
                               <Text size="sm" c="green" fw={500}>Exceptional 5.0</Text>
                               <Text size="sm" c="dimmed">({trainer.total_clients || 0} clients)</Text>
                             </Group>
+                            {trainer.location && (
+                              <Text size="xs" c="dimmed">📍 {trainer.location}</Text>
+                            )}
                           </Stack>
                         </Group>
 

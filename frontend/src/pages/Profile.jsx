@@ -23,7 +23,8 @@ function Profile() {
       hourly_rate: '',
       phone_number: '',
       fitness_goals: [],
-      client_age_ranges: []
+      client_age_ranges: [],
+      location: ''
     },
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
@@ -43,7 +44,8 @@ function Profile() {
         hourly_rate: user.hourly_rate || '',
         phone_number: user.phone_number || '',
         fitness_goals: user.fitness_goals || [],
-        client_age_ranges: user.client_age_ranges || []
+        client_age_ranges: user.client_age_ranges || [],
+        location: user.location || ''
       })
       setImagePreview(user.profile_image || null)
     }
@@ -139,7 +141,8 @@ function Profile() {
         phone_number: values.phone_number || null,
         profile_image: profileImage || null,
         fitness_goals: values.fitness_goals || [],
-        client_age_ranges: values.client_age_ranges || []
+        client_age_ranges: values.client_age_ranges || [],
+        location: values.location || null
       }
       await api.put('/profile', updateData)
       await fetchUser()
@@ -291,6 +294,12 @@ function Profile() {
                         description="Contact number for clients (optional)"
                       />
                     </Group>
+                    <TextInput
+                      label="Location"
+                      placeholder="e.g., New York, NY or Los Angeles, CA"
+                      {...form.getInputProps('location')}
+                      description="Your general location (city, state) to help clients find trainers nearby"
+                    />
                     <TextInput
                       label="Specialties"
                       placeholder="Weight Loss, Strength Training, Athletic Performance, etc."

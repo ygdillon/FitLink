@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.name, u.email, u.role, u.profile_image,
               t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number,
-              t.fitness_goals, t.client_age_ranges
+              t.fitness_goals, t.client_age_ranges, t.location
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
        WHERE u.id = $1`,
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
 // Update profile
 router.put('/', async (req, res) => {
   try {
-    const { name, email, bio, certifications, specialties, hourly_rate, phone_number, profile_image, fitness_goals, client_age_ranges } = req.body
+    const { name, email, bio, certifications, specialties, hourly_rate, phone_number, profile_image, fitness_goals, client_age_ranges, location } = req.body
 
     // Update user
     await pool.query(
@@ -68,8 +68,8 @@ router.put('/', async (req, res) => {
       await pool.query(
         `UPDATE trainers 
          SET bio = $1, certifications = $2, specialties = $3, hourly_rate = $4, phone_number = $5,
-             fitness_goals = $6, client_age_ranges = $7
-         WHERE user_id = $8`,
+             fitness_goals = $6, client_age_ranges = $7, location = $8
+         WHERE user_id = $9`,
         [
           bio || null,
           certifications ? JSON.stringify(certifications) : null,
@@ -78,6 +78,7 @@ router.put('/', async (req, res) => {
           phone_number || null,
           fitness_goals ? JSON.stringify(fitness_goals) : null,
           client_age_ranges ? JSON.stringify(client_age_ranges) : null,
+          location || null,
           req.user.id
         ]
       )

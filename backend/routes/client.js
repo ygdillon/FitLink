@@ -492,11 +492,11 @@ router.get('/trainer', async (req, res) => {
 // Search for trainers
 router.get('/trainers/search', async (req, res) => {
   try {
-    const { q, specialties, fitness_goals, client_age_ranges, special_needs } = req.query
+    const { q, specialties, fitness_goals, client_age_ranges, special_needs, location } = req.query
 
     let query = `
       SELECT DISTINCT t.*, u.name, u.email, u.profile_image,
-             t.fitness_goals, t.client_age_ranges
+             t.fitness_goals, t.client_age_ranges, t.location
       FROM trainers t
       JOIN users u ON t.user_id = u.id
       WHERE 1=1
@@ -504,16 +504,25 @@ router.get('/trainers/search', async (req, res) => {
     const params = []
     let paramCount = 1
 
-    // Text search (name, email, bio, specialties)
+    // Text search (name, email, bio, specialties, location)
     if (q && q.trim().length > 0) {
       const searchTerm = `%${q.trim()}%`
       query += ` AND (
         u.name ILIKE $${paramCount} OR
         u.email ILIKE $${paramCount} OR
         t.bio ILIKE $${paramCount} OR
-        t.specialties::text ILIKE $${paramCount}
+        t.specialties::text ILIKE $${paramCount} OR
+        t.location ILIKE $${paramCount}
       )`
       params.push(searchTerm)
+      paramCount++
+    }
+
+    // Filter by location
+    if (location && location.trim().length > 0) {
+      const locationTerm = `%${location.trim()}%`
+      query += ` AND t.location ILIKE $${paramCount}`
+      params.push(locationTerm)
       paramCount++
     }
 
@@ -610,7 +619,8 @@ router.get('/trainers/search', async (req, res) => {
         hourly_rate: trainer.hourly_rate,
         total_clients: trainer.total_clients,
         active_clients: trainer.active_clients,
-        profile_image: trainer.profile_image
+        profile_image: trainer.profile_image,
+        location: trainer.location
       }
     })
 
