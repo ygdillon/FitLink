@@ -139,10 +139,35 @@ router.get('/me', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
+    // Check if the new columns exist first
+    let hasFitnessGoals = false
+    let hasClientAgeRanges = false
+    let hasLocation = false
+    
+    try {
+      const columnCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'trainers' 
+        AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+      `)
+      const existingColumns = columnCheck.rows.map(r => r.column_name)
+      hasFitnessGoals = existingColumns.includes('fitness_goals')
+      hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+      hasLocation = existingColumns.includes('location')
+    } catch (error) {
+      // Default to false if check fails
+    }
+    
+    // Build SELECT query with only existing columns
+    let selectColumns = 'u.id, u.name, u.email, u.role, u.profile_image, t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number'
+    if (hasFitnessGoals) selectColumns += ', t.fitness_goals'
+    if (hasClientAgeRanges) selectColumns += ', t.client_age_ranges'
+    if (hasLocation) selectColumns += ', t.location'
+
     const result = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role, u.profile_image,
-              t.bio, t.certifications, t.specialties, t.hourly_rate, t.phone_number,
-              t.fitness_goals, t.client_age_ranges, t.location
+      `SELECT ${selectColumns}
        FROM users u
        LEFT JOIN trainers t ON u.id = t.user_id
        WHERE u.id = $1`,
