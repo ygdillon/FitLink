@@ -29,6 +29,7 @@ import TrainerRequests from './pages/TrainerRequests'
 import ClientOnboarding from './pages/ClientOnboarding'
 import Analytics from './pages/Analytics'
 import Alerts from './pages/Alerts'
+import TrainerProfile from './pages/TrainerProfile'
 
 // Components
 import Navbar from './components/Navbar'
@@ -75,6 +76,7 @@ function AppRoutes() {
         <Route path="/trainer/add-client" element={<AddClient />} />
         <Route path="/trainer/clients/:clientId/progress" element={<ClientProgress />} />
         <Route path="/check-in" element={<DailyCheckIn />} />
+        <Route path="/trainer/profile/:trainerId" element={<TrainerProfile />} />
         <Route path="/" element={<Navigate to={user?.role === 'trainer' ? '/trainer' : '/client'} />} />
       </Route>
     </Routes>

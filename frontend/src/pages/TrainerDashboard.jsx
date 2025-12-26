@@ -299,24 +299,24 @@ function TrainerDashboard() {
       return dateObj.getDate()
     }
 
-    const sessions = sessionsByDate.get(dateKey) || []
-    const hasSessions = sessions.length > 0
-
+      const sessions = sessionsByDate.get(dateKey) || []
+      const hasSessions = sessions.length > 0
+      
     // Format session times for display
-    const sessionTimes = sessions.map(session => {
-      if (session.session_time) {
-        const [hours, minutes] = session.session_time.split(':')
-        const hour = parseInt(hours)
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const displayHour = hour % 12 || 12
-        return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
-      }
-      return null
+      const sessionTimes = sessions.map(session => {
+        if (session.session_time) {
+          const [hours, minutes] = session.session_time.split(':')
+          const hour = parseInt(hours)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour % 12 || 12
+          return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+        }
+        return null
     }).filter(Boolean).slice(0, 2)
-
-    const sessionTimesStr = sessionTimes.join(', ')
-    const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
-
+      
+      const sessionTimesStr = sessionTimes.join(', ')
+      const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
+      
     return (
       <div 
         style={{ 
@@ -740,28 +740,28 @@ function TrainerDashboard() {
                       </Group>
 
                       {/* Workout Info */}
-                      {session.workout_name && (
+                        {session.workout_name && (
                         <Group gap="xs" align="center">
                           <Text size="xs" c="var(--mantine-color-gray-4)" fw={500} style={{ minWidth: '60px' }}>
                             Workout:
                           </Text>
                           <Text size="sm" fw={500} c="var(--mantine-color-gray-0)">
                             {session.workout_name}
-                          </Text>
+                            </Text>
                         </Group>
-                      )}
+                        )}
 
                       {/* Session Type */}
-                      {session.session_type && (
+                        {session.session_type && (
                         <Group gap="xs" align="center">
                           <Text size="xs" c="var(--mantine-color-gray-4)" fw={500} style={{ minWidth: '60px' }}>
                             Type:
-                          </Text>
+                            </Text>
                           <Badge variant="light" size="xs" tt="capitalize" color="green">
-                            {session.session_type.replace('_', ' ')}
+                              {session.session_type.replace('_', ' ')}
                           </Badge>
                         </Group>
-                      )}
+                        )}
 
                       {/* Location */}
                       {session.location && (

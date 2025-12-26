@@ -307,10 +307,10 @@ function Settings() {
               <Tabs.Tab value="current">Current Trainer</Tabs.Tab>
               {!currentTrainer && (
                 <>
-                  <Tabs.Tab value="requests">
-                    Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
-                  </Tabs.Tab>
-                  <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
+              <Tabs.Tab value="requests">
+                Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+              </Tabs.Tab>
+              <Tabs.Tab value="find">Find Trainer</Tabs.Tab>
                 </>
               )}
             </>
@@ -521,7 +521,7 @@ function Settings() {
               <>
                 <Title order={3} mb="md">Search Results ({searchResults.length})</Title>
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-                  {searchResults.map(trainer => (
+                {searchResults.map(trainer => (
                     <Card 
                       key={trainer.id} 
                       shadow="md" 
@@ -554,8 +554,8 @@ function Settings() {
                             size={80} 
                             radius="50%"
                           >
-                            {trainer.name.charAt(0).toUpperCase()}
-                          </Avatar>
+                          {trainer.name.charAt(0).toUpperCase()}
+                        </Avatar>
                           <Stack gap={4} style={{ flex: 1 }}>
                             <Title order={4} lineClamp={1}>{trainer.name}</Title>
                             {/* Rating placeholder - can be enhanced later */}
@@ -570,7 +570,7 @@ function Settings() {
                         </Group>
 
                         {/* Specialties */}
-                        {trainer.specialties && trainer.specialties.length > 0 && (
+                          {trainer.specialties && trainer.specialties.length > 0 && (
                           <div>
                             <Text size="xs" fw={600} c="dimmed" mb="xs" tt="uppercase">Specialties</Text>
                             <Group gap="xs">
@@ -596,8 +596,8 @@ function Settings() {
                         {trainer.bio && (
                           <Text size="sm" c="dimmed" lineClamp={2} style={{ flex: 1 }}>
                             {trainer.bio}
-                          </Text>
-                        )}
+                            </Text>
+                          )}
 
                         {/* Price and Action */}
                         <Group justify="space-between" align="flex-end" mt="auto">
@@ -613,26 +613,26 @@ function Settings() {
                               <Text size="sm" c="dimmed">Contact for price</Text>
                             )}
                           </div>
-                          {currentTrainer && currentTrainer.id === trainer.id ? (
+                      {currentTrainer && currentTrainer.id === trainer.id ? (
                             <Button disabled size="sm" variant="light">Current Trainer</Button>
-                          ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
+                      ) : pendingRequests.some(r => r.trainerId === trainer.id && r.status === 'pending') ? (
                             <Button disabled size="sm" variant="outline">Request Pending</Button>
-                          ) : (
+                      ) : (
                             <Button 
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleRequestTrainer(trainer.id)
+                                navigate(`/trainer/profile/${trainer.id}`)
                               }}
                               size="sm"
                               color="blue"
                             >
                               View Profile
-                            </Button>
-                          )}
-                        </Group>
+                        </Button>
+                      )}
+                    </Group>
                       </Stack>
-                    </Card>
-                  ))}
+                  </Card>
+                ))}
                 </SimpleGrid>
               </>
             )}
@@ -643,7 +643,7 @@ function Settings() {
                 <Stack gap="xs" align="center">
                   <Text c="dimmed">No trainers found matching your criteria.</Text>
                   <Text c="dimmed" size="sm">Try adjusting your search or filters.</Text>
-                </Stack>
+              </Stack>
               </Paper>
             )}
           </Tabs.Panel>

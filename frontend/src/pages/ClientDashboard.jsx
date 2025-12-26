@@ -69,7 +69,7 @@ function ClientDashboard() {
     if (!(date instanceof Date)) {
       // Try to convert if it's a string or number
       if (typeof date === 'string' || typeof date === 'number') {
-        dateObj = new Date(date)
+      dateObj = new Date(date)
       } else {
         return null
       }
@@ -80,9 +80,9 @@ function ClientDashboard() {
       return null
     }
     
-    const year = dateObj.getFullYear()
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
-    const day = String(dateObj.getDate()).padStart(2, '0')
+      const year = dateObj.getFullYear()
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+      const day = String(dateObj.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   }, [])
 
@@ -117,25 +117,25 @@ function ClientDashboard() {
       // Fallback: just return the day number
       return dateObj.getDate()
     }
-
-    const sessions = sessionsByDate.get(dateKey) || []
-    const hasSessions = sessions.length > 0
-
-    // Format session times for display
-    const sessionTimes = sessions.map(session => {
-      if (session.session_time) {
-        const [hours, minutes] = session.session_time.split(':')
-        const hour = parseInt(hours)
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const displayHour = hour % 12 || 12
-        return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
-      }
-      return null
-    }).filter(Boolean).slice(0, 2)
-
-    const sessionTimesStr = sessionTimes.join(', ')
-    const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
-
+      
+      const sessions = sessionsByDate.get(dateKey) || []
+      const hasSessions = sessions.length > 0
+      
+      // Format session times for display
+      const sessionTimes = sessions.map(session => {
+        if (session.session_time) {
+          const [hours, minutes] = session.session_time.split(':')
+          const hour = parseInt(hours)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour % 12 || 12
+          return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+        }
+        return null
+      }).filter(Boolean).slice(0, 2)
+      
+      const sessionTimesStr = sessionTimes.join(', ')
+      const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
+      
     return (
       <div style={{ 
         display: 'flex', 
@@ -201,15 +201,15 @@ function ClientDashboard() {
     const hasSessions = sessions.length > 0
 
     return {
-      style: {
-        cursor: 'pointer',
-        position: 'relative',
-        ...(hasSessions ? {
-          backgroundColor: 'rgba(34, 197, 94, 0.15)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-        } : {}),
-      },
-    }
+        style: {
+          cursor: 'pointer',
+          position: 'relative',
+          ...(hasSessions ? {
+            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+          } : {}),
+        },
+      }
   }, [sessionsByDate, getDateKey])
 
   if (loading) {

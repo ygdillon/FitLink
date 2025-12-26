@@ -560,9 +560,9 @@ router.get('/trainers/search', async (req, res) => {
       
       const allTrainersQuery = `
         SELECT DISTINCT ${selectColumns}
-        FROM trainers t
-        JOIN users u ON t.user_id = u.id
-        ORDER BY u.name ASC
+       FROM trainers t
+       JOIN users u ON t.user_id = u.id
+       ORDER BY u.name ASC
         LIMIT 50
       `
       console.log('[TRAINER SEARCH] Executing query:', allTrainersQuery)
@@ -587,21 +587,21 @@ router.get('/trainers/search', async (req, res) => {
         `)
         console.log('[TRAINER SEARCH] Debug query results:', debugQuery.rows)
       }
-      
-      const trainers = result.rows.map(trainer => {
-        // Parse JSONB fields
-        let specialties = trainer.specialties
-        if (specialties) {
-          specialties = typeof specialties === 'string' 
-            ? JSON.parse(specialties) 
-            : specialties
-        }
-        let certifications = trainer.certifications
-        if (certifications) {
-          certifications = typeof certifications === 'string'
-            ? JSON.parse(certifications)
-            : certifications
-        }
+
+    const trainers = result.rows.map(trainer => {
+      // Parse JSONB fields
+      let specialties = trainer.specialties
+      if (specialties) {
+        specialties = typeof specialties === 'string' 
+          ? JSON.parse(specialties) 
+          : specialties
+      }
+      let certifications = trainer.certifications
+      if (certifications) {
+        certifications = typeof certifications === 'string'
+          ? JSON.parse(certifications)
+          : certifications
+      }
         let fitnessGoals = trainer.fitness_goals
         if (fitnessGoals) {
           fitnessGoals = typeof fitnessGoals === 'string'
@@ -615,23 +615,23 @@ router.get('/trainers/search', async (req, res) => {
             : clientAgeRanges
         }
 
-        return {
-          id: trainer.user_id,
-          name: trainer.name,
-          email: trainer.email,
-          phoneNumber: trainer.phone_number,
-          bio: trainer.bio,
-          specialties: specialties,
-          certifications: certifications,
+      return {
+        id: trainer.user_id,
+        name: trainer.name,
+        email: trainer.email,
+        phoneNumber: trainer.phone_number,
+        bio: trainer.bio,
+        specialties: specialties,
+        certifications: certifications,
           fitness_goals: fitnessGoals,
           client_age_ranges: clientAgeRanges,
-          hourly_rate: trainer.hourly_rate,
-          total_clients: trainer.total_clients,
-          active_clients: trainer.active_clients,
+        hourly_rate: trainer.hourly_rate,
+        total_clients: trainer.total_clients,
+        active_clients: trainer.active_clients,
           profile_image: trainer.profile_image,
           location: trainer.location
-        }
-      })
+      }
+    })
 
       console.log('[TRAINER SEARCH] Returning', trainers.length, 'trainers')
       return res.json(trainers)

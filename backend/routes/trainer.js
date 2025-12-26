@@ -1195,18 +1195,18 @@ router.post('/requests/:requestId/approve', async (req, res) => {
         
         if (oldTrainerId !== req.user.id) {
           // Client already has a different trainer, disconnect them first
-          await client.query(
-            'UPDATE clients SET trainer_id = $1 WHERE user_id = $2',
-            [req.user.id, request.client_id]
-          )
+        await client.query(
+          'UPDATE clients SET trainer_id = $1 WHERE user_id = $2',
+          [req.user.id, request.client_id]
+        )
 
-          // Decrease old trainer's active client count
-          await client.query(
-            `UPDATE trainers 
-             SET active_clients = GREATEST(COALESCE(active_clients, 0) - 1, 0)
-             WHERE user_id = $1`,
-            [oldTrainerId]
-          )
+        // Decrease old trainer's active client count
+        await client.query(
+          `UPDATE trainers 
+           SET active_clients = GREATEST(COALESCE(active_clients, 0) - 1, 0)
+           WHERE user_id = $1`,
+          [oldTrainerId]
+        )
           shouldIncrementCount = true
         }
         // If oldTrainerId === req.user.id, client already has this trainer
@@ -1231,13 +1231,13 @@ router.post('/requests/:requestId/approve', async (req, res) => {
 
       // Update trainer's client count only if this is a new connection
       if (shouldIncrementCount) {
-        await client.query(
-          `UPDATE trainers 
-           SET total_clients = COALESCE(total_clients, 0) + 1,
-               active_clients = COALESCE(active_clients, 0) + 1
-           WHERE user_id = $1`,
-          [req.user.id]
-        )
+      await client.query(
+        `UPDATE trainers 
+         SET total_clients = COALESCE(total_clients, 0) + 1,
+             active_clients = COALESCE(active_clients, 0) + 1
+         WHERE user_id = $1`,
+        [req.user.id]
+      )
       }
 
       await client.query('COMMIT')

@@ -35,6 +35,10 @@ function Profile() {
 
   useEffect(() => {
     if (user) {
+      // Ensure fitness_goals and client_age_ranges are arrays
+      const fitnessGoals = Array.isArray(user.fitness_goals) ? user.fitness_goals : (user.fitness_goals ? [user.fitness_goals] : [])
+      const clientAgeRanges = Array.isArray(user.client_age_ranges) ? user.client_age_ranges : (user.client_age_ranges ? [user.client_age_ranges] : [])
+      
       form.setValues({
         name: user.name || '',
         email: user.email || '',
@@ -43,8 +47,8 @@ function Profile() {
         specialties: user.specialties?.join(', ') || '',
         hourly_rate: user.hourly_rate || '',
         phone_number: user.phone_number || '',
-        fitness_goals: user.fitness_goals || [],
-        client_age_ranges: user.client_age_ranges || [],
+        fitness_goals: fitnessGoals,
+        client_age_ranges: clientAgeRanges,
         location: user.location || ''
       })
       setImagePreview(user.profile_image || null)
@@ -240,20 +244,20 @@ function Profile() {
               {/* Right Side - Basic Information */}
               <Grid.Col span={{ base: 12, sm: 8 }}>
                 <Title order={3} mb="md">Basic Information</Title>
-                <Stack gap="md">
-                  <TextInput
+          <Stack gap="md">
+            <TextInput
                     label="Full Name"
                     placeholder="Enter your full name"
-                    {...form.getInputProps('name')}
-                    required
-                  />
-                  <TextInput
+              {...form.getInputProps('name')}
+              required
+            />
+            <TextInput
                     label="Email Address"
-                    type="email"
+              type="email"
                     placeholder="your.email@example.com"
-                    {...form.getInputProps('email')}
-                    required
-                  />
+              {...form.getInputProps('email')}
+              required
+            />
                   <TextInput
                     label="Phone Number"
                     placeholder="(555) 123-4567"
@@ -275,11 +279,11 @@ function Profile() {
                     This information will be visible to clients when they search for trainers. Make it descriptive and engaging!
                   </Text>
                   <Stack gap="md">
-                    <Textarea
+                <Textarea
                       label="Professional Bio"
                       placeholder="Tell clients about your experience, approach, and what makes you unique. This is your chance to make a great first impression!"
                       rows={6}
-                      {...form.getInputProps('bio')}
+                  {...form.getInputProps('bio')}
                       description="Write a compelling bio that highlights your expertise, training philosophy, and what clients can expect when working with you."
                     />
                     <NumberInput
@@ -291,17 +295,17 @@ function Profile() {
                       prefix="$"
                       {...form.getInputProps('hourly_rate')}
                       description="Your hourly training rate (optional)"
-                    />
-                    <TextInput
+                />
+                <TextInput
                       label="Location"
                       placeholder="e.g., New York, NY or Los Angeles, CA"
                       {...form.getInputProps('location')}
                       description="Your general location (city, state) to help clients find trainers nearby"
-                    />
-                    <TextInput
+                />
+                <TextInput
                       label="Specialties"
                       placeholder="Weight Loss, Strength Training, Athletic Performance, etc."
-                      {...form.getInputProps('specialties')}
+                  {...form.getInputProps('specialties')}
                       description="Comma-separated list of your training specialties (e.g., Weight Loss, Strength Training, Yoga)"
                     />
                     <TextInput

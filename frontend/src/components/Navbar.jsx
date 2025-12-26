@@ -134,20 +134,20 @@ function Navbar({ children }) {
         {/* Workouts - direct links */}
         <MantineNavLink
           component={NavLink}
-          to="/trainer/workouts?tab=create"
-          label="Create Workouts"
+                  to="/trainer/workouts?tab=create" 
+                  label="Create Workouts" 
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
         <MantineNavLink
           component={NavLink}
-          to="/trainer/workouts?tab=manage"
-          label="Manage Workouts"
+                  to="/trainer/workouts?tab=manage" 
+                  label="Manage Workouts" 
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
 
         {/* Requests - standalone with badge */}
         {user.role === 'trainer' ? (
@@ -176,28 +176,28 @@ function Navbar({ children }) {
         {/* Payments - direct links */}
         <MantineNavLink
           component={NavLink}
-          to="/payments?tab=history"
-          label="Payment History"
+                  to="/payments?tab=history" 
+                  label="Payment History" 
           leftSection={<DollarIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
         <MantineNavLink
           component={NavLink}
-          to="/payments?tab=setup"
+                  to="/payments?tab=setup" 
           label="Payment Setup"
           leftSection={<DollarIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
         <MantineNavLink
           component={NavLink}
-          to="/payments?tab=manage"
-          label="Manage Payments"
+                  to="/payments?tab=manage" 
+                  label="Manage Payments" 
           leftSection={<DollarIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
       </Stack>
     )
   }
@@ -218,39 +218,39 @@ function Navbar({ children }) {
         />
 
         {/* Training - direct links */}
-        <MantineNavLink
-          component={NavLink}
-          to="/client/workouts"
-          label="Workouts"
+                <MantineNavLink
+                  component={NavLink}
+                  to="/client/workouts"
+                  label="Workouts"
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
-        <MantineNavLink
-          component={NavLink}
-          to="/client/progress"
-          label="Progress"
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/client/progress"
+                  label="Progress"
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
-        <MantineNavLink
-          component={NavLink}
-          to="/check-in"
-          label="Check-in"
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/check-in"
+                  label="Check-in"
           leftSection={<WorkoutIcon />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
 
         {/* Nutrition - direct link */}
-        <MantineNavLink
-          component={NavLink}
-          to="/client/nutrition"
-          label="Nutrition Plan"
+                <MantineNavLink
+                  component={NavLink}
+                  to="/client/nutrition"
+                  label="Nutrition Plan"
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
-        />
+                />
       </Stack>
     )
   }

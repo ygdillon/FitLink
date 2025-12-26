@@ -356,7 +356,7 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
         const sessionDuration = duration || 60
         for (const existing of existingSessions.rows) {
           if (checkTimeOverlap(sessionTime, sessionDuration, existing.session_time, existing.duration)) {
-            await dbClient.query('ROLLBACK')
+          await dbClient.query('ROLLBACK')
             // Get client name for better error message
             const clientInfo = await dbClient.query(
               'SELECT name FROM users WHERE id = $1',
