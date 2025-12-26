@@ -60,9 +60,9 @@ function Settings() {
   }, [])
 
   useEffect(() => {
-    // Load all trainers when switching to find tab (only if no search has been performed yet)
+    // Load all trainers when switching to find tab
     if (user?.role === 'client' && activeTab === 'find' && !searching) {
-      // Only auto-load if no search has been performed (searchResults is empty and no query/filters set)
+      // Only auto-load if no search has been performed yet
       const hasNoSearch = searchResults.length === 0 && 
                          !searchQuery.trim() && 
                          selectedSpecialties.length === 0 &&
@@ -71,13 +71,24 @@ function Settings() {
                          selectedSpecialNeeds.length === 0 &&
                          !locationFilter.trim()
       
+      console.log('[Settings] Find Trainer tab active, hasNoSearch:', hasNoSearch, {
+        searchResultsLength: searchResults.length,
+        searchQuery: searchQuery,
+        selectedSpecialties: selectedSpecialties.length,
+        selectedFitnessGoals: selectedFitnessGoals.length,
+        selectedAgeRanges: selectedAgeRanges.length,
+        selectedSpecialNeeds: selectedSpecialNeeds.length,
+        locationFilter: locationFilter
+      })
+      
       if (hasNoSearch) {
         const loadAllTrainers = async () => {
+          console.log('[Settings] Loading all trainers...')
           setSearching(true)
           setMessage('')
           try {
             const response = await api.get('/client/trainers/search')
-            console.log('Trainers response:', response.data)
+            console.log('[Settings] Trainers response:', response.data)
             setSearchResults(response.data || [])
             if (!response.data || response.data.length === 0) {
               setMessage('No trainers available at the moment.')
@@ -85,7 +96,7 @@ function Settings() {
               setMessage('') // Clear message if trainers found
             }
           } catch (error) {
-            console.error('Error fetching trainers:', error)
+            console.error('[Settings] Error fetching trainers:', error)
             setMessage('Failed to load trainers')
           } finally {
             setSearching(false)
@@ -94,7 +105,7 @@ function Settings() {
         loadAllTrainers()
       }
     }
-  }, [activeTab, user?.role])
+  }, [activeTab, user?.role, searching, searchResults.length, searchQuery, selectedSpecialties.length, selectedFitnessGoals.length, selectedAgeRanges.length, selectedSpecialNeeds.length, locationFilter])
 
   const fetchCurrentTrainer = async () => {
     try {
