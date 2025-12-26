@@ -510,6 +510,7 @@ router.get('/trainers/search', async (req, res) => {
 
     if (!hasFilters) {
       // First, let's check if there are any trainers at all
+      console.log('[TRAINER SEARCH] Checking trainer counts...')
       const trainerCountCheck = await pool.query('SELECT COUNT(*) as count FROM trainers')
       const userTrainerCountCheck = await pool.query(
         `SELECT COUNT(*) as count FROM users u 
@@ -517,6 +518,16 @@ router.get('/trainers/search', async (req, res) => {
       )
       console.log('[TRAINER SEARCH] Total trainers in trainers table:', trainerCountCheck.rows[0].count)
       console.log('[TRAINER SEARCH] Total trainers with matching users:', userTrainerCountCheck.rows[0].count)
+      
+      // Also check all users with trainer role
+      const allTrainerUsers = await pool.query(
+        `SELECT u.id, u.name, u.email, u.role, t.user_id as trainer_user_id
+         FROM users u
+         LEFT JOIN trainers t ON u.id = t.user_id
+         WHERE u.role = 'trainer'
+         LIMIT 10`
+      )
+      console.log('[TRAINER SEARCH] All users with trainer role:', allTrainerUsers.rows)
       
       const allTrainersQuery = `
         SELECT DISTINCT t.*, u.name, u.email, u.profile_image,
@@ -526,9 +537,16 @@ router.get('/trainers/search', async (req, res) => {
         ORDER BY u.name ASC
         LIMIT 50
       `
-      console.log('[TRAINER SEARCH] Fetching all trainers (no filters)')
+      console.log('[TRAINER SEARCH] Executing query:', allTrainersQuery)
       const result = await pool.query(allTrainersQuery)
-      console.log('[TRAINER SEARCH] Found trainers:', result.rows.length)
+      console.log('[TRAINER SEARCH] Query result rows:', result.rows.length)
+      if (result.rows.length > 0) {
+        console.log('[TRAINER SEARCH] First trainer:', {
+          user_id: result.rows[0].user_id,
+          name: result.rows[0].name,
+          email: result.rows[0].email
+        })
+      }
       
       if (result.rows.length === 0 && parseInt(trainerCountCheck.rows[0].count) > 0) {
         console.log('[TRAINER SEARCH] WARNING: Trainers exist but JOIN returned no results. Checking data...')
