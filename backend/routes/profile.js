@@ -147,13 +147,14 @@ router.put('/', async (req, res) => {
         updateValues.push(location || null)
       }
       
-      updateFields.push(`user_id = $${paramCount++}`)
+      // Add user_id for WHERE clause
       updateValues.push(req.user.id)
+      const whereParam = paramCount
       
       const updateQuery = `
         UPDATE trainers 
         SET ${updateFields.join(', ')}
-        WHERE user_id = $${paramCount}
+        WHERE user_id = $${whereParam}
       `
       
       await pool.query(updateQuery, updateValues)
