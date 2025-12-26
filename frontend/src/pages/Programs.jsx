@@ -150,6 +150,13 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
     }
   })
 
+  const assignForm = useForm({
+    initialValues: {
+      client_id: '',
+      start_date: ''
+    }
+  })
+
   const handleCreateProgram = async (values) => {
     try {
       await api.post('/programs', values)
@@ -183,6 +190,7 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
         color: 'green',
       })
       closeAssign()
+      assignForm.reset()
       onRefresh()
     } catch (error) {
       console.error('Error assigning program:', error)
@@ -431,9 +439,9 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
     workoutsByDay[workout.day_number].push(workout)
   })
 
-  const handleDayClick = (dayNumber) => {
-    setSelectedDay(dayNumber)
-    const existingWorkout = workoutsByDay[dayNumber]?.[0]
+  const handleDayClick = (dayOfWeek) => {
+    setSelectedDay(dayOfWeek)
+    const existingWorkout = workoutsByDay[dayOfWeek]?.[0]
     if (existingWorkout) {
       setEditingWorkout(existingWorkout)
     } else {
@@ -457,7 +465,7 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       // Add new workout
       const newWorkout = {
         workout_name: values.workout_name,
-        day_number: dayNumber,
+        day_number: selectedDay, // This is the day of week (1-7)
         week_number: weekNumber,
         exercises: values.exercises.map((ex, idx) => ({
           ...ex,
