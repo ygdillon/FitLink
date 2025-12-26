@@ -60,28 +60,39 @@ function Settings() {
   }, [])
 
   useEffect(() => {
-    // Load all trainers when switching to find tab
-    if (user?.role === 'client' && activeTab === 'find' && searchResults.length === 0 && !searching) {
-      const loadAllTrainers = async () => {
-        setSearching(true)
-        setMessage('')
-        try {
-          const response = await api.get('/client/trainers/search')
-          console.log('Trainers response:', response.data)
-          setSearchResults(response.data || [])
-          if (!response.data || response.data.length === 0) {
-            setMessage('No trainers available at the moment.')
-          } else {
-            setMessage('') // Clear message if trainers found
+    // Load all trainers when switching to find tab (only if no search has been performed yet)
+    if (user?.role === 'client' && activeTab === 'find' && !searching) {
+      // Only auto-load if no search has been performed (searchResults is empty and no query/filters set)
+      const hasNoSearch = searchResults.length === 0 && 
+                         !searchQuery.trim() && 
+                         selectedSpecialties.length === 0 &&
+                         selectedFitnessGoals.length === 0 &&
+                         selectedAgeRanges.length === 0 &&
+                         selectedSpecialNeeds.length === 0 &&
+                         !locationFilter.trim()
+      
+      if (hasNoSearch) {
+        const loadAllTrainers = async () => {
+          setSearching(true)
+          setMessage('')
+          try {
+            const response = await api.get('/client/trainers/search')
+            console.log('Trainers response:', response.data)
+            setSearchResults(response.data || [])
+            if (!response.data || response.data.length === 0) {
+              setMessage('No trainers available at the moment.')
+            } else {
+              setMessage('') // Clear message if trainers found
+            }
+          } catch (error) {
+            console.error('Error fetching trainers:', error)
+            setMessage('Failed to load trainers')
+          } finally {
+            setSearching(false)
           }
-        } catch (error) {
-          console.error('Error fetching trainers:', error)
-          setMessage('Failed to load trainers')
-        } finally {
-          setSearching(false)
         }
+        loadAllTrainers()
       }
-      loadAllTrainers()
     }
   }, [activeTab, user?.role])
 
