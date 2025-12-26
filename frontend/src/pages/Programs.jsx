@@ -160,6 +160,7 @@ function Programs() {
               onViewProgram={handleViewProgram}
               onRefresh={fetchPrograms}
               selectedProgram={selectedProgram}
+              setSelectedProgram={setSelectedProgram}
               programViewOpened={programViewOpened}
               closeProgramView={closeProgramView}
             />
@@ -204,7 +205,7 @@ function Programs() {
 }
 
 // Trainer Programs View
-function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, selectedProgram, programViewOpened, closeProgramView }) {
+function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, selectedProgram, setSelectedProgram, programViewOpened, closeProgramView }) {
   const navigate = useNavigate()
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false)
   const [assignOpened, { open: openAssign, close: closeAssign }] = useDisclosure(false)
@@ -1024,6 +1025,8 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const [workoutModalOpened, { open: openWorkoutModal, close: closeWorkoutModal }] = useDisclosure(false)
   const [editingWorkout, setEditingWorkout] = useState(null)
   const [currentProgram, setCurrentProgram] = useState(program)
+  const [editingWeekName, setEditingWeekName] = useState(null)
+  const [weekNameValue, setWeekNameValue] = useState('')
 
   // Update current program when program prop changes
   useEffect(() => {
@@ -1049,6 +1052,57 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const handleClientWorkoutClick = (workout) => {
     setEditingWorkout(workout)
     openWorkoutModal()
+  }
+
+  const handleWeekNameEdit = (weekNum) => {
+    const currentName = currentProgram.week_names?.[weekNum] || ''
+    setEditingWeekName(weekNum)
+    setWeekNameValue(currentName)
+  }
+
+  const handleWeekNameSave = async (weekNum) => {
+    if (!isTrainer) return
+    
+    try {
+      await api.put(`/programs/${currentProgram.id}/week/${weekNum}/name`, {
+        week_name: weekNameValue.trim() || null
+      })
+      
+      // Update local state
+      setCurrentProgram(prev => ({
+        ...prev,
+        week_names: {
+          ...prev.week_names,
+          [weekNum]: weekNameValue.trim() || null
+        }
+      }))
+      
+      if (onProgramUpdate) {
+        const response = await api.get(`/programs/${currentProgram.id}`)
+        onProgramUpdate(response.data)
+      }
+      
+      setEditingWeekName(null)
+      setWeekNameValue('')
+      
+      notifications.show({
+        title: 'Success',
+        message: 'Week name updated',
+        color: 'green',
+      })
+    } catch (error) {
+      console.error('Error saving week name:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to save week name',
+        color: 'red',
+      })
+    }
+  }
+
+  const handleWeekNameCancel = () => {
+    setEditingWeekName(null)
+    setWeekNameValue('')
   }
 
   const handleSaveWorkout = async (values) => {
@@ -1201,11 +1255,70 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
               const weekNum = weekIdx + 1
               const weekWorkouts = workoutsByWeekAndDay[weekNum] || {}
               
+              const weekName = currentProgram.week_names?.[weekNum]
+              const displayWeekName = weekName || `WEEK ${weekNum}`
+              
               return (
                 <Stack key={weekNum} gap="sm">
                   <Group>
-                    <Text fw={700} size="lg" c="gray.2">WEEK {weekNum}</Text>
-                    <Divider style={{ flex: 1 }} color="dark.4" />
+                    {editingWeekName === weekNum && isTrainer ? (
+                      <Group gap="xs" style={{ flex: 1 }}>
+                        <TextInput
+                          value={weekNameValue}
+                          onChange={(e) => setWeekNameValue(e.target.value)}
+                          placeholder={`Week ${weekNum} name (e.g., Push Pull Legs)`}
+                          size="sm"
+                          style={{ flex: 1, maxWidth: '300px' }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleWeekNameSave(weekNum)
+                            } else if (e.key === 'Escape') {
+                              handleWeekNameCancel()
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <Button 
+                          size="xs" 
+                          color="green"
+                          onClick={() => handleWeekNameSave(weekNum)}
+                        >
+                          Save
+                        </Button>
+                        <Button 
+                          size="xs" 
+                          variant="subtle"
+                          onClick={handleWeekNameCancel}
+                        >
+                          Cancel
+                        </Button>
+                      </Group>
+                    ) : (
+                      <>
+                        <Group gap="xs">
+                          <Text 
+                            fw={700} 
+                            size="lg" 
+                            c="gray.2"
+                            style={{ cursor: isTrainer ? 'pointer' : 'default' }}
+                            onClick={() => isTrainer && handleWeekNameEdit(weekNum)}
+                          >
+                            {displayWeekName}
+                          </Text>
+                          {isTrainer && (
+                            <ActionIcon
+                              size="sm"
+                              variant="subtle"
+                              color="gray"
+                              onClick={() => handleWeekNameEdit(weekNum)}
+                            >
+                              <IconEdit size={16} />
+                            </ActionIcon>
+                          )}
+                        </Group>
+                        <Divider style={{ flex: 1 }} color="dark.4" />
+                      </>
+                    )}
                   </Group>
                   
                   <SimpleGrid cols={7} spacing="md">

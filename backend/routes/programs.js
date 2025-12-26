@@ -230,6 +230,21 @@ router.get('/:id', async (req, res) => {
 
     const program = programResult.rows[0]
 
+    // Get week names for this program
+    const weeksResult = await pool.query(
+      `SELECT week_number, week_name 
+       FROM program_weeks 
+       WHERE program_id = $1 
+       ORDER BY week_number`,
+      [id]
+    )
+    
+    const weekNames = {}
+    weeksResult.rows.forEach(row => {
+      weekNames[row.week_number] = row.week_name
+    })
+    program.week_names = weekNames
+
     // Get all workouts for this program, ordered by week and day
     const workoutsResult = await pool.query(
       `SELECT pw.*,
@@ -265,6 +280,43 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching program:', error)
     res.status(500).json({ message: 'Failed to fetch program' })
+  }
+})
+
+// Update week name for a program - MUST be before /:id route
+router.put('/:id/week/:weekNumber/name', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { id, weekNumber } = req.params
+    const { week_name } = req.body
+
+    // Verify program belongs to trainer
+    const programCheck = await pool.query(
+      'SELECT trainer_id FROM programs WHERE id = $1',
+      [id]
+    )
+
+    if (programCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Program not found' })
+    }
+
+    if (programCheck.rows[0].trainer_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to update this program' })
+    }
+
+    // Insert or update week name
+    const result = await pool.query(
+      `INSERT INTO program_weeks (program_id, week_number, week_name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (program_id, week_number)
+       DO UPDATE SET week_name = EXCLUDED.week_name, updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [id, weekNumber, week_name || null]
+    )
+
+    res.json({ message: 'Week name updated successfully', week: result.rows[0] })
+  } catch (error) {
+    console.error('Error updating week name:', error)
+    res.status(500).json({ message: 'Failed to update week name', error: error.message })
   }
 })
 
@@ -373,7 +425,7 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
     await client.query('COMMIT')
 
     // Fetch updated program
-    const updatedProgram = await pool.query(
+    const programData = await pool.query(
       `SELECT p.*,
               json_agg(
                 json_build_object(
@@ -410,7 +462,24 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
       [id]
     )
 
-    res.json(updatedProgram.rows[0])
+    const updatedProgram = programData.rows[0]
+    
+    // Get week names
+    const weeksResult = await pool.query(
+      `SELECT week_number, week_name 
+       FROM program_weeks 
+       WHERE program_id = $1 
+       ORDER BY week_number`,
+      [id]
+    )
+    
+    const weekNames = {}
+    weeksResult.rows.forEach(row => {
+      weekNames[row.week_number] = row.week_name
+    })
+    updatedProgram.week_names = weekNames
+
+    res.json(updatedProgram)
   } catch (error) {
     await client.query('ROLLBACK')
     console.error('Error updating program:', error)
