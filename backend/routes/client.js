@@ -530,16 +530,27 @@ router.get('/trainers/search', async (req, res) => {
       console.log('[TRAINER SEARCH] All users with trainer role:', allTrainerUsers.rows)
       
       // Check if the new columns exist first
-      const columnCheck = await pool.query(`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'trainers' 
-        AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
-      `)
-      const existingColumns = columnCheck.rows.map(r => r.column_name)
-      const hasFitnessGoals = existingColumns.includes('fitness_goals')
-      const hasClientAgeRanges = existingColumns.includes('client_age_ranges')
-      const hasLocation = existingColumns.includes('location')
+      let hasFitnessGoals = false
+      let hasClientAgeRanges = false
+      let hasLocation = false
+      
+      try {
+        const columnCheck = await pool.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' 
+          AND table_name = 'trainers' 
+          AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+        `)
+        const existingColumns = columnCheck.rows.map(r => r.column_name)
+        hasFitnessGoals = existingColumns.includes('fitness_goals')
+        hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+        hasLocation = existingColumns.includes('location')
+        console.log('[TRAINER SEARCH] Column check - fitness_goals:', hasFitnessGoals, 'client_age_ranges:', hasClientAgeRanges, 'location:', hasLocation)
+      } catch (error) {
+        console.log('[TRAINER SEARCH] Error checking columns, assuming they don\'t exist:', error.message)
+        // Default to false if check fails
+      }
       
       // Build query with only existing columns
       let selectColumns = 't.*, u.name, u.email, u.profile_image'
@@ -627,16 +638,27 @@ router.get('/trainers/search', async (req, res) => {
     }
 
     // Check if the new columns exist first
-    const columnCheck = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'trainers' 
-      AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
-    `)
-    const existingColumns = columnCheck.rows.map(r => r.column_name)
-    const hasFitnessGoals = existingColumns.includes('fitness_goals')
-    const hasClientAgeRanges = existingColumns.includes('client_age_ranges')
-    const hasLocation = existingColumns.includes('location')
+    let hasFitnessGoals = false
+    let hasClientAgeRanges = false
+    let hasLocation = false
+    
+    try {
+      const columnCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'trainers' 
+        AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+      `)
+      const existingColumns = columnCheck.rows.map(r => r.column_name)
+      hasFitnessGoals = existingColumns.includes('fitness_goals')
+      hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+      hasLocation = existingColumns.includes('location')
+      console.log('[TRAINER SEARCH] Column check - fitness_goals:', hasFitnessGoals, 'client_age_ranges:', hasClientAgeRanges, 'location:', hasLocation)
+    } catch (error) {
+      console.log('[TRAINER SEARCH] Error checking columns, assuming they don\'t exist:', error.message)
+      // Default to false if check fails
+    }
     
     // Build query with only existing columns
     let selectColumns = 't.*, u.name, u.email, u.profile_image'
@@ -750,13 +772,13 @@ router.get('/trainers/search', async (req, res) => {
           ? JSON.parse(certifications)
           : certifications
       }
-      let fitnessGoals = trainer.fitness_goals
+      let fitnessGoals = trainer.fitness_goals || null
       if (fitnessGoals) {
         fitnessGoals = typeof fitnessGoals === 'string'
           ? JSON.parse(fitnessGoals)
           : fitnessGoals
       }
-      let clientAgeRanges = trainer.client_age_ranges
+      let clientAgeRanges = trainer.client_age_ranges || null
       if (clientAgeRanges) {
         clientAgeRanges = typeof clientAgeRanges === 'string'
           ? JSON.parse(clientAgeRanges)
