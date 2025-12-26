@@ -653,22 +653,25 @@ router.get('/trainers/search', async (req, res) => {
     const params = []
     let paramCount = 1
 
-    // Text search (name, email, bio, specialties, location)
+    // Text search (name, email, bio, specialties, location if exists)
     if (q && q.trim().length > 0) {
       const searchTerm = `%${q.trim()}%`
-      query += ` AND (
-        u.name ILIKE $${paramCount} OR
-        u.email ILIKE $${paramCount} OR
-        t.bio ILIKE $${paramCount} OR
-        t.specialties::text ILIKE $${paramCount} OR
-        t.location ILIKE $${paramCount}
-      )`
+      let searchConditions = [
+        `u.name ILIKE $${paramCount}`,
+        `u.email ILIKE $${paramCount}`,
+        `t.bio ILIKE $${paramCount}`,
+        `t.specialties::text ILIKE $${paramCount}`
+      ]
+      if (hasLocation) {
+        searchConditions.push(`t.location ILIKE $${paramCount}`)
+      }
+      query += ` AND (${searchConditions.join(' OR ')})`
       params.push(searchTerm)
       paramCount++
     }
 
-    // Filter by location
-    if (location && location.trim().length > 0) {
+    // Filter by location (only if column exists)
+    if (location && location.trim().length > 0 && hasLocation) {
       const locationTerm = `%${location.trim()}%`
       query += ` AND t.location ILIKE $${paramCount}`
       params.push(locationTerm)
@@ -687,8 +690,8 @@ router.get('/trainers/search', async (req, res) => {
       paramCount += specialtyList.length
     }
 
-    // Filter by fitness goals
-    if (fitness_goals) {
+    // Filter by fitness goals (only if column exists)
+    if (fitness_goals && hasFitnessGoals) {
       const goalsList = Array.isArray(fitness_goals) ? fitness_goals : [fitness_goals]
       const goalParams = []
       goalsList.forEach((goal, i) => {
@@ -699,8 +702,8 @@ router.get('/trainers/search', async (req, res) => {
       paramCount += goalsList.length
     }
 
-    // Filter by client age ranges
-    if (client_age_ranges) {
+    // Filter by client age ranges (only if column exists)
+    if (client_age_ranges && hasClientAgeRanges) {
       const ageList = Array.isArray(client_age_ranges) ? client_age_ranges : [client_age_ranges]
       const ageParams = []
       ageList.forEach((age, i) => {
