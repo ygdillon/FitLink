@@ -82,6 +82,26 @@ router.put('/', async (req, res) => {
   try {
     const { name, email, bio, certifications, specialties, hourly_rate, phone_number, profile_image, fitness_goals, client_age_ranges, location } = req.body
 
+    // Check if profile_image column is TEXT type, if not, alter it
+    try {
+      const columnCheck = await pool.query(`
+        SELECT data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'profile_image'
+      `)
+      
+      if (columnCheck.rows.length > 0 && columnCheck.rows[0].data_type === 'character varying') {
+        // Column exists but is VARCHAR, need to change to TEXT
+        await pool.query('ALTER TABLE users ALTER COLUMN profile_image TYPE TEXT')
+        console.log('[PROFILE UPDATE] Changed profile_image column to TEXT type')
+      }
+    } catch (error) {
+      console.log('[PROFILE UPDATE] Error checking/updating profile_image column:', error.message)
+      // Continue anyway, might already be TEXT
+    }
+
     // Update user
     await pool.query(
       'UPDATE users SET name = $1, email = $2, profile_image = COALESCE($4, profile_image) WHERE id = $3',
