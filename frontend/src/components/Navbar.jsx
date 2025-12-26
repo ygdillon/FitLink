@@ -351,7 +351,12 @@ function Navbar({ children }) {
           }}
         >
           <Group gap="xs">
-            <Avatar color="robinhoodGreen" radius="xl" size="sm">
+            <Avatar 
+              src={user.profile_image} 
+              color="robinhoodGreen" 
+              radius="xl" 
+              size="sm"
+            >
               {user.name?.charAt(0).toUpperCase() || 'U'}
             </Avatar>
             <Stack gap={0} style={{ lineHeight: 1.2, flex: 1, minWidth: 0 }}>

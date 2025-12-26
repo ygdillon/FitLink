@@ -1,0 +1,40 @@
+.program-builder-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.template-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.template-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-card {
+  border-left: 4px solid;
+}
+
+.recommendation-card.match-high {
+  border-left-color: var(--mantine-color-green-6);
+}
+
+.recommendation-card.match-medium {
+  border-left-color: var(--mantine-color-blue-6);
+}
+
+.recommendation-card.match-low {
+  border-left-color: var(--mantine-color-gray-6);
+}
+
+.exercise-item {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: var(--mantine-color-gray-0);
+}
+
+.exercise-item:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+

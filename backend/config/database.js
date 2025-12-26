@@ -1,6 +1,14 @@
 import dotenv from 'dotenv'
-// Ensure dotenv is loaded before accessing process.env
-dotenv.config()
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+// Get the directory of this file (backend/config)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Load .env from backend directory (one level up from config)
+const envPath = path.join(__dirname, '..', '.env')
+dotenv.config({ path: envPath })
 
 import pg from 'pg'
 

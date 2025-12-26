@@ -163,18 +163,23 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to auto-update updated_at
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_trainers_updated_at ON trainers;
 CREATE TRIGGER update_trainers_updated_at BEFORE UPDATE ON trainers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_clients_updated_at ON clients;
 CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_workouts_updated_at ON workouts;
 CREATE TRIGGER update_workouts_updated_at BEFORE UPDATE ON workouts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_workout_assignments_updated_at ON workout_assignments;
 CREATE TRIGGER update_workout_assignments_updated_at BEFORE UPDATE ON workout_assignments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -243,12 +248,15 @@ CREATE INDEX IF NOT EXISTS idx_trainer_stripe_accounts_trainer_id ON trainer_str
 CREATE INDEX IF NOT EXISTS idx_trainer_stripe_accounts_stripe_account_id ON trainer_stripe_accounts(stripe_account_id);
 
 -- Triggers for payment tables
+DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_trainer_stripe_accounts_updated_at ON trainer_stripe_accounts;
 CREATE TRIGGER update_trainer_stripe_accounts_updated_at BEFORE UPDATE ON trainer_stripe_accounts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

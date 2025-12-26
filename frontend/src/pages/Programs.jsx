@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { 
   Container, 
   Paper, 
@@ -20,11 +20,14 @@ import {
   ActionIcon,
   Loader,
   Alert,
-  Tabs
+  Tabs,
+  ScrollArea,
+  Switch
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
+import { IconEdit, IconTrash } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './Programs.css'
@@ -33,9 +36,10 @@ function Programs() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const tab = searchParams.get('tab') || 'manage'
+  const activeTab = searchParams.get('tab') || 'workouts'
   
   const [programs, setPrograms] = useState([])
+  const [nutritionPlans, setNutritionPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [programViewOpened, { open: openProgramView, close: closeProgramView }] = useDisclosure(false)
@@ -45,8 +49,10 @@ function Programs() {
     if (user?.role === 'trainer') {
       fetchPrograms()
       fetchClients()
+      fetchNutritionPlans()
     } else if (user?.role === 'client') {
       fetchClientPrograms()
+      fetchClientNutritionPlans()
     }
   }, [user])
 
@@ -88,6 +94,30 @@ function Programs() {
     }
   }
 
+  const fetchNutritionPlans = async () => {
+    try {
+      // This will fetch all nutrition plans for trainer's clients
+      // For now, we'll fetch them per client when needed
+      setNutritionPlans([])
+    } catch (error) {
+      console.error('Error fetching nutrition plans:', error)
+    }
+  }
+
+  const fetchClientNutritionPlans = async () => {
+    try {
+      const response = await api.get('/nutrition/plans/active').catch(() => ({ data: null }))
+      if (response.data) {
+        setNutritionPlans([response.data])
+      } else {
+        setNutritionPlans([])
+      }
+    } catch (error) {
+      console.error('Error fetching client nutrition plans:', error)
+      setNutritionPlans([])
+    }
+  }
+
   const handleViewProgram = async (programId) => {
     try {
       const response = await api.get(`/programs/${programId}`)
@@ -114,31 +144,73 @@ function Programs() {
   }
 
   if (user?.role === 'trainer') {
-    return <TrainerProgramsView 
-      programs={programs}
-      clients={clients}
-      onViewProgram={handleViewProgram}
-      onRefresh={fetchPrograms}
-      selectedProgram={selectedProgram}
-      programViewOpened={programViewOpened}
-      closeProgramView={closeProgramView}
-    />
+    return (
+      <Container size="xl" py="xl">
+        <Title order={1} mb="xl">Programs</Title>
+        <Tabs value={activeTab} onChange={(value) => navigate(`/programs?tab=${value}`)}>
+          <Tabs.List>
+            <Tabs.Tab value="workouts">Workout Programs</Tabs.Tab>
+            <Tabs.Tab value="nutrition">Nutrition Programs</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="workouts" pt="xl">
+            <TrainerProgramsView 
+              programs={programs}
+              clients={clients}
+              onViewProgram={handleViewProgram}
+              onRefresh={fetchPrograms}
+              selectedProgram={selectedProgram}
+              programViewOpened={programViewOpened}
+              closeProgramView={closeProgramView}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="nutrition" pt="xl">
+            <TrainerNutritionView
+              clients={clients}
+              onRefresh={fetchNutritionPlans}
+            />
+          </Tabs.Panel>
+        </Tabs>
+      </Container>
+    )
   } else {
-    return <ClientProgramsView 
-      programs={programs}
-      onViewProgram={handleViewProgram}
-      selectedProgram={selectedProgram}
-      programViewOpened={programViewOpened}
-      closeProgramView={closeProgramView}
-    />
+    return (
+      <Container size="xl" py="xl">
+        <Title order={1} mb="xl">Programs</Title>
+        <Tabs value={activeTab} onChange={(value) => navigate(`/programs?tab=${value}`)}>
+          <Tabs.List>
+            <Tabs.Tab value="workouts">Workout Programs</Tabs.Tab>
+            <Tabs.Tab value="nutrition">Nutrition Programs</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="workouts" pt="xl">
+            <ClientProgramsView 
+              programs={programs}
+              onViewProgram={handleViewProgram}
+              selectedProgram={selectedProgram}
+              programViewOpened={programViewOpened}
+              closeProgramView={closeProgramView}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="nutrition" pt="xl">
+            <ClientNutritionView />
+          </Tabs.Panel>
+        </Tabs>
+      </Container>
+    )
   }
 }
 
 // Trainer Programs View
 function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, selectedProgram, programViewOpened, closeProgramView }) {
+  const navigate = useNavigate()
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false)
   const [assignOpened, { open: openAssign, close: closeAssign }] = useDisclosure(false)
   const [programToAssign, setProgramToAssign] = useState(null)
+
+  // Remove the Container and Title from here since they're now in the parent
 
   const form = useForm({
     initialValues: {
@@ -203,12 +275,21 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
   }
 
   return (
-    <Container size="xl" py="xl">
+    <>
       <Group justify="space-between" mb="xl">
-        <Title order={1}>Programs</Title>
-        <Button onClick={openCreate} color="robinhoodGreen">
-          Create New Program
-        </Button>
+        <Title order={2}>Workout Programs</Title>
+        <Group>
+          <Button 
+            onClick={() => navigate('/programs/builder')} 
+            variant="light"
+            color="robinhoodGreen"
+          >
+            Build from Template
+          </Button>
+          <Button onClick={openCreate} color="robinhoodGreen">
+            Create New Program
+          </Button>
+        </Group>
       </Group>
 
       {programs.length === 0 ? (
@@ -252,18 +333,17 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
                   >
                     View
                   </Button>
-                  {program.is_template && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setProgramToAssign(program)
-                        openAssign()
-                      }}
-                    >
-                      Assign
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    color="robinhoodGreen"
+                    onClick={() => {
+                      setProgramToAssign(program)
+                      openAssign()
+                    }}
+                  >
+                    Assign
+                  </Button>
                 </Group>
               </Stack>
             </Card>
@@ -350,15 +430,536 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
           }}
         />
       )}
-    </Container>
+    </>
+  )
+}
+
+// Trainer Nutrition View
+function TrainerNutritionView({ clients, onRefresh }) {
+  const navigate = useNavigate()
+  const [nutritionPlans, setNutritionPlans] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [planViewOpened, { open: openPlanView, close: closePlanView }] = useDisclosure(false)
+  const [planEditOpened, { open: openPlanEdit, close: closePlanEdit }] = useDisclosure(false)
+  const [deleteConfirmOpened, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false)
+  const [selectedPlan, setSelectedPlan] = useState(null)
+  const [planToDelete, setPlanToDelete] = useState(null)
+
+  const editForm = useForm({
+    initialValues: {
+      plan_name: '',
+      daily_calories: '',
+      daily_protein: '',
+      daily_carbs: '',
+      daily_fats: '',
+      nutrition_approach: '',
+      meal_frequency: '',
+      notes: '',
+      is_active: true
+    }
+  })
+
+  useEffect(() => {
+    fetchAllPlans()
+  }, [])
+
+  const fetchAllPlans = async () => {
+    try {
+      setLoading(true)
+      const response = await api.get('/nutrition/plans/trainer')
+      setNutritionPlans(response.data || [])
+    } catch (error) {
+      console.error('Error fetching nutrition plans:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to load nutrition plans',
+        color: 'red'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewPlan = async (planId) => {
+    try {
+      const response = await api.get(`/nutrition/plans/${planId}`)
+      setSelectedPlan(response.data)
+      openPlanView()
+    } catch (error) {
+      console.error('Error fetching plan:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to load plan details',
+        color: 'red'
+      })
+    }
+  }
+
+  const handleEditPlan = async (planId) => {
+    try {
+      const response = await api.get(`/nutrition/plans/${planId}`)
+      const plan = response.data
+      setSelectedPlan(plan)
+      editForm.setValues({
+        plan_name: plan.plan_name || '',
+        daily_calories: plan.daily_calories || '',
+        daily_protein: plan.daily_protein || '',
+        daily_carbs: plan.daily_carbs || '',
+        daily_fats: plan.daily_fats || '',
+        nutrition_approach: plan.nutrition_approach || '',
+        meal_frequency: plan.meal_frequency || '',
+        notes: plan.notes || '',
+        is_active: plan.is_active !== false
+      })
+      openPlanEdit()
+    } catch (error) {
+      console.error('Error fetching plan for edit:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to load plan for editing',
+        color: 'red'
+      })
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    try {
+      const values = editForm.values
+      await api.put(`/nutrition/plans/${selectedPlan.id}`, values)
+      notifications.show({
+        title: 'Success',
+        message: 'Nutrition plan updated successfully',
+        color: 'green'
+      })
+      closePlanEdit()
+      fetchAllPlans()
+      if (onRefresh) onRefresh()
+    } catch (error) {
+      console.error('Error updating plan:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to update nutrition plan',
+        color: 'red'
+      })
+    }
+  }
+
+  const handleDeleteClick = (plan) => {
+    setPlanToDelete(plan)
+    openDeleteConfirm()
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!planToDelete) return
+    
+    try {
+      await api.delete(`/nutrition/plans/${planToDelete.id}`)
+      notifications.show({
+        title: 'Success',
+        message: 'Nutrition plan deleted successfully',
+        color: 'green'
+      })
+      closeDeleteConfirm()
+      setPlanToDelete(null)
+      fetchAllPlans()
+      if (onRefresh) onRefresh()
+    } catch (error) {
+      console.error('Error deleting plan:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to delete nutrition plan',
+        color: 'red'
+      })
+    }
+  }
+
+  return (
+    <>
+      <Group justify="space-between" mb="xl">
+        <Title order={2}>Nutrition Programs</Title>
+        <Button 
+          onClick={() => navigate('/nutrition/builder')} 
+          color="robinhoodGreen"
+        >
+          Create Nutrition Plan
+        </Button>
+      </Group>
+
+      {loading ? (
+        <Group justify="center" py="xl">
+          <Loader size="lg" />
+        </Group>
+      ) : nutritionPlans.length === 0 ? (
+        <Paper p="xl" withBorder>
+          <Stack align="center" gap="md">
+            <Text c="dimmed">No nutrition plans created yet.</Text>
+            <Button 
+              onClick={() => navigate('/nutrition/builder')}
+              color="robinhoodGreen"
+            >
+              Create Nutrition Plan
+            </Button>
+          </Stack>
+        </Paper>
+      ) : (
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+          {nutritionPlans.map((plan) => (
+            <Card key={plan.id} shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <div style={{ flex: 1 }}>
+                    <Title order={4}>{plan.plan_name}</Title>
+                    <Text size="xs" c="dimmed" mt={4}>
+                      Client: {plan.client_name || 'Unknown'}
+                    </Text>
+                  </div>
+                  {plan.is_active && (
+                    <Badge color="green" variant="light">Active</Badge>
+                  )}
+                </Group>
+                <Group gap="xs">
+                  <Badge size="sm" variant="outline">
+                    {plan.nutrition_approach?.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                  <Text size="xs" c="dimmed">
+                    {plan.meal_frequency} meals/day
+                  </Text>
+                </Group>
+                <Divider />
+                <SimpleGrid cols={2} spacing="xs">
+                  <div>
+                    <Text size="xs" c="dimmed">Calories</Text>
+                    <Text size="sm" fw={600}>{plan.daily_calories} cal</Text>
+                  </div>
+                  <div>
+                    <Text size="xs" c="dimmed">Protein</Text>
+                    <Text size="sm" fw={600}>{plan.daily_protein}g</Text>
+                  </div>
+                  <div>
+                    <Text size="xs" c="dimmed">Carbs</Text>
+                    <Text size="sm" fw={600}>{plan.daily_carbs}g</Text>
+                  </div>
+                  <div>
+                    <Text size="xs" c="dimmed">Fats</Text>
+                    <Text size="sm" fw={600}>{plan.daily_fats}g</Text>
+                  </div>
+                </SimpleGrid>
+                <Group gap="xs" mt="auto">
+                  <Button 
+                    variant="light" 
+                    size="sm"
+                    onClick={() => handleViewPlan(plan.id)}
+                    style={{ flex: 1 }}
+                  >
+                    View
+                  </Button>
+                  <ActionIcon
+                    variant="light"
+                    color="blue"
+                    onClick={() => handleEditPlan(plan.id)}
+                  >
+                    <IconEdit size={16} />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="light"
+                    color="red"
+                    onClick={() => handleDeleteClick(plan)}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Group>
+              </Stack>
+            </Card>
+          ))}
+        </SimpleGrid>
+      )}
+
+      {/* Nutrition Plan View Modal */}
+      {selectedPlan && (
+        <Modal
+          opened={planViewOpened}
+          onClose={closePlanView}
+          title={selectedPlan.plan_name}
+          size="lg"
+        >
+          <Stack gap="md">
+            <SimpleGrid cols={4} spacing="md">
+              <Card withBorder p="sm">
+                <Text size="xs" c="dimmed">Calories</Text>
+                <Text size="lg" fw={700}>{selectedPlan.daily_calories} cal</Text>
+              </Card>
+              <Card withBorder p="sm">
+                <Text size="xs" c="dimmed">Protein</Text>
+                <Text size="lg" fw={700}>{selectedPlan.daily_protein}g</Text>
+              </Card>
+              <Card withBorder p="sm">
+                <Text size="xs" c="dimmed">Carbs</Text>
+                <Text size="lg" fw={700}>{selectedPlan.daily_carbs}g</Text>
+              </Card>
+              <Card withBorder p="sm">
+                <Text size="xs" c="dimmed">Fats</Text>
+                <Text size="lg" fw={700}>{selectedPlan.daily_fats}g</Text>
+              </Card>
+            </SimpleGrid>
+
+            <Divider />
+
+            <div>
+              <Text fw={500} mb="sm">Plan Details</Text>
+              <Group gap="md">
+                <Badge>Approach: {selectedPlan.nutrition_approach?.replace('_', ' ')}</Badge>
+                <Badge>Meals: {selectedPlan.meal_frequency}/day</Badge>
+                <Badge>Type: {selectedPlan.plan_type?.replace('_', ' ')}</Badge>
+              </Group>
+            </div>
+
+            {selectedPlan.notes && (
+              <div>
+                <Text fw={500} mb="xs">Notes</Text>
+                <Text size="sm" c="dimmed">{selectedPlan.notes}</Text>
+              </div>
+            )}
+
+            {selectedPlan.meals && selectedPlan.meals.length > 0 && (
+              <div>
+                <Text fw={500} mb="sm">Meal Plan Structure</Text>
+                <Stack gap="sm">
+                  {selectedPlan.meals.slice(0, 7).map((meal, idx) => (
+                    <Card key={idx} p="sm" withBorder>
+                      <Group justify="space-between">
+                        <Text size="sm" fw={500}>
+                          Day {meal.day_number} - {meal.meal_name}
+                        </Text>
+                        <Badge size="sm">
+                          {meal.target_calories} cal
+                        </Badge>
+                      </Group>
+                    </Card>
+                  ))}
+                </Stack>
+              </div>
+            )}
+          </Stack>
+        </Modal>
+      )}
+
+      {/* Nutrition Plan Edit Modal */}
+      <Modal
+        opened={planEditOpened}
+        onClose={closePlanEdit}
+        title="Edit Nutrition Plan"
+        size="lg"
+      >
+        <form onSubmit={editForm.onSubmit(handleSaveEdit)}>
+          <Stack gap="md">
+            <TextInput
+              label="Plan Name"
+              {...editForm.getInputProps('plan_name')}
+              required
+            />
+
+            <SimpleGrid cols={2} spacing="md">
+              <NumberInput
+                label="Daily Calories"
+                {...editForm.getInputProps('daily_calories')}
+                min={0}
+                required
+              />
+              <NumberInput
+                label="Daily Protein (g)"
+                {...editForm.getInputProps('daily_protein')}
+                min={0}
+                required
+              />
+              <NumberInput
+                label="Daily Carbs (g)"
+                {...editForm.getInputProps('daily_carbs')}
+                min={0}
+                required
+              />
+              <NumberInput
+                label="Daily Fats (g)"
+                {...editForm.getInputProps('daily_fats')}
+                min={0}
+                required
+              />
+            </SimpleGrid>
+
+            <Select
+              label="Nutrition Approach"
+              data={[
+                { value: 'macro_tracking', label: 'Macro Tracking' },
+                { value: 'meal_plan', label: 'Meal Plan' },
+                { value: 'portion_control', label: 'Portion Control' },
+                { value: 'hybrid', label: 'Hybrid' }
+              ]}
+              {...editForm.getInputProps('nutrition_approach')}
+              required
+            />
+
+            <NumberInput
+              label="Meal Frequency (per day)"
+              {...editForm.getInputProps('meal_frequency')}
+              min={1}
+              max={7}
+              required
+            />
+
+            <Textarea
+              label="Notes"
+              {...editForm.getInputProps('notes')}
+              rows={3}
+            />
+
+            <Switch
+              label="Active Plan"
+              description="Active plans are visible to clients"
+              {...editForm.getInputProps('is_active', { type: 'checkbox' })}
+            />
+
+            <Group justify="flex-end" mt="md">
+              <Button variant="light" onClick={closePlanEdit}>
+                Cancel
+              </Button>
+              <Button type="submit" color="robinhoodGreen">
+                Save Changes
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteConfirmOpened}
+        onClose={closeDeleteConfirm}
+        title="Delete Nutrition Plan"
+      >
+        <Stack gap="md">
+          <Text>
+            Are you sure you want to delete the nutrition plan "{planToDelete?.plan_name}"?
+          </Text>
+          <Text size="sm" c="dimmed">
+            This will permanently remove the plan and it will no longer be assigned to the client. This action cannot be undone.
+          </Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="light" onClick={closeDeleteConfirm}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleConfirmDelete}>
+              Delete Plan
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
+  )
+}
+
+// Client Nutrition View
+function ClientNutritionView() {
+  const [nutritionPlan, setNutritionPlan] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchNutritionPlan()
+  }, [])
+
+  const fetchNutritionPlan = async () => {
+    try {
+      const response = await api.get('/nutrition/plans/active').catch(() => ({ data: null }))
+      setNutritionPlan(response.data)
+    } catch (error) {
+      console.error('Error fetching nutrition plan:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <Group justify="center" py="xl">
+        <Loader size="lg" />
+      </Group>
+    )
+  }
+
+  if (!nutritionPlan) {
+    return (
+      <Paper p="xl" withBorder>
+        <Stack align="center" gap="md">
+          <Text c="dimmed">No active nutrition plan.</Text>
+          <Text size="sm" c="dimmed">Your trainer will create a nutrition plan for you.</Text>
+        </Stack>
+      </Paper>
+    )
+  }
+
+  return (
+    <>
+      <Title order={2} mb="xl">My Nutrition Plan</Title>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Stack gap="md">
+          <Group justify="space-between">
+            <Title order={3}>{nutritionPlan.plan_name}</Title>
+            <Badge color="green" variant="light">Active</Badge>
+          </Group>
+          
+          <SimpleGrid cols={4} spacing="md">
+            <Card withBorder p="sm">
+              <Text size="xs" c="dimmed">Calories</Text>
+              <Text size="xl" fw={700}>{nutritionPlan.daily_calories} kcal</Text>
+            </Card>
+            <Card withBorder p="sm">
+              <Text size="xs" c="dimmed">Protein</Text>
+              <Text size="xl" fw={700}>{nutritionPlan.daily_protein}g</Text>
+            </Card>
+            <Card withBorder p="sm">
+              <Text size="xs" c="dimmed">Carbs</Text>
+              <Text size="xl" fw={700}>{nutritionPlan.daily_carbs}g</Text>
+            </Card>
+            <Card withBorder p="sm">
+              <Text size="xs" c="dimmed">Fats</Text>
+              <Text size="xl" fw={700}>{nutritionPlan.daily_fats}g</Text>
+            </Card>
+          </SimpleGrid>
+
+          <Divider />
+
+          <Group>
+            <Badge>Approach: {nutritionPlan.nutrition_approach?.replace('_', ' ')}</Badge>
+            <Badge>Meals: {nutritionPlan.meal_frequency}/day</Badge>
+            <Badge>Type: {nutritionPlan.plan_type?.replace('_', ' ')}</Badge>
+          </Group>
+
+          {nutritionPlan.notes && (
+            <div>
+              <Text fw={500} mb="xs">Notes</Text>
+              <Text size="sm" c="dimmed">{nutritionPlan.notes}</Text>
+            </div>
+          )}
+
+          <Button 
+            component="a"
+            href="/client/nutrition"
+            variant="light"
+            color="robinhoodGreen"
+            fullWidth
+            mt="md"
+          >
+            View Full Nutrition Dashboard
+          </Button>
+        </Stack>
+      </Card>
+    </>
   )
 }
 
 // Client Programs View
 function ClientProgramsView({ programs, onViewProgram, selectedProgram, programViewOpened, closeProgramView }) {
   return (
-    <Container size="xl" py="xl">
-      <Title order={1} mb="xl">My Programs</Title>
+    <>
+      <Title order={2} mb="xl">My Workout Programs</Title>
 
       {programs.length === 0 ? (
         <Paper p="xl" withBorder>
@@ -406,15 +1007,15 @@ function ClientProgramsView({ programs, onViewProgram, selectedProgram, programV
           isTrainer={false}
         />
       )}
-    </Container>
+    </>
   )
 }
 
 // Program Calendar View Component (similar to the design shown)
 function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpdate }) {
   const [selectedDay, setSelectedDay] = useState(null)
+  const [selectedWeek, setSelectedWeek] = useState(1)
   const [workoutModalOpened, { open: openWorkoutModal, close: closeWorkoutModal }] = useDisclosure(false)
-  const [currentWeek, setCurrentWeek] = useState(1)
   const [editingWorkout, setEditingWorkout] = useState(null)
   const [currentProgram, setCurrentProgram] = useState(program)
 
@@ -427,50 +1028,90 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const totalDays = currentProgram.duration_weeks * 7
   const daysPerWeek = 7
 
-  // Get workouts for current week
-  const weekWorkouts = currentProgram.workouts?.filter(w => w.week_number === currentWeek) || []
-
-  // Group workouts by day
-  const workoutsByDay = {}
-  weekWorkouts.forEach(workout => {
-    if (!workoutsByDay[workout.day_number]) {
-      workoutsByDay[workout.day_number] = []
+  // Organize all workouts by week and day
+  const workoutsByWeekAndDay = {}
+  currentProgram.workouts?.forEach(workout => {
+    if (!workoutsByWeekAndDay[workout.week_number]) {
+      workoutsByWeekAndDay[workout.week_number] = {}
     }
-    workoutsByDay[workout.day_number].push(workout)
+    if (!workoutsByWeekAndDay[workout.week_number][workout.day_number]) {
+      workoutsByWeekAndDay[workout.week_number][workout.day_number] = []
+    }
+    workoutsByWeekAndDay[workout.week_number][workout.day_number].push(workout)
   })
 
-  const handleDayClick = (dayOfWeek) => {
-    setSelectedDay(dayOfWeek)
-    const existingWorkout = workoutsByDay[dayOfWeek]?.[0]
-    if (existingWorkout) {
-      setEditingWorkout(existingWorkout)
-    } else {
-      setEditingWorkout(null)
-    }
+  const handleClientWorkoutClick = (workout) => {
+    setEditingWorkout(workout)
     openWorkoutModal()
   }
 
   const handleSaveWorkout = async (values) => {
     try {
+      // Validate required fields
+      if (!values.workout_name || values.workout_name.trim() === '') {
+        notifications.show({
+          title: 'Validation Error',
+          message: 'Workout name is required',
+          color: 'red',
+        })
+        return
+      }
+
+      if (!values.exercises || values.exercises.length === 0) {
+        notifications.show({
+          title: 'Validation Error',
+          message: 'At least one exercise is required',
+          color: 'red',
+        })
+        return
+      }
+
       // Build workouts array with the new/updated workout
       const existingWorkouts = currentProgram.workouts || []
       const dayNumber = selectedDay
-      const weekNumber = currentWeek
+      const weekNumber = selectedWeek
 
       // Remove existing workout for this day/week if editing
       const filteredWorkouts = editingWorkout 
-        ? existingWorkouts.filter(w => !(w.day_number === dayNumber && w.week_number === weekNumber && w.id === editingWorkout.id))
+        ? existingWorkouts.filter(w => {
+            // If editingWorkout has an id, filter by id; otherwise filter by day/week
+            if (editingWorkout.id) {
+              return !(w.id === editingWorkout.id)
+            } else {
+              return !(w.day_number === dayNumber && w.week_number === weekNumber)
+            }
+          })
         : existingWorkouts
 
-      // Add new workout
+      // Add new workout with cleaned data
       const newWorkout = {
-        workout_name: values.workout_name,
+        workout_name: values.workout_name.trim(),
         day_number: selectedDay, // This is the day of week (1-7)
-        week_number: weekNumber,
-        exercises: values.exercises.map((ex, idx) => ({
-          ...ex,
-          order_index: idx
-        }))
+        week_number: selectedWeek, // Use selectedWeek from state
+        exercises: values.exercises
+          .filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '') // Filter out empty exercises
+          .map((ex, idx) => ({
+            exercise_name: ex.exercise_name.trim(),
+            exercise_type: ex.exercise_type || 'REGULAR',
+            sets: ex.sets || null,
+            reps: ex.reps || null,
+            weight: ex.weight || null,
+            duration: ex.duration || null,
+            rest: ex.rest || null,
+            tempo: ex.tempo || null,
+            notes: ex.notes || null,
+            order_index: idx
+          }))
+      }
+
+      // Ensure we have at least one exercise
+      if (newWorkout.exercises.length === 0) {
+        notifications.show({
+          title: 'Validation Error',
+          message: 'At least one exercise with a name is required',
+          color: 'red',
+        })
+        return
       }
 
       const updatedWorkouts = [...filteredWorkouts, newWorkout]
@@ -500,98 +1141,187 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       })
     } catch (error) {
       console.error('Error saving workout:', error)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save workout'
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to save workout',
+        message: errorMessage,
         color: 'red',
       })
     }
+  }
+
+  const handleDayClick = (weekNum, dayOfWeek) => {
+    setSelectedWeek(weekNum)
+    setSelectedDay(dayOfWeek)
+    const existingWorkout = workoutsByWeekAndDay[weekNum]?.[dayOfWeek]?.[0]
+    if (existingWorkout) {
+      setEditingWorkout(existingWorkout)
+    } else {
+      setEditingWorkout(null)
+    }
+    openWorkoutModal()
   }
 
   return (
     <Modal 
       opened={opened} 
       onClose={onClose} 
-      title={program.name}
-      size="xl"
-      fullScreen
-    >
-      <Stack gap="md">
-        {/* Week Selector */}
-        <Group justify="space-between">
-          <Group>
-            <Button 
-              variant="subtle" 
-              onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
-              disabled={currentWeek === 1}
-            >
-              ← Previous Week
-            </Button>
-            <Text fw={500}>Week {currentWeek}</Text>
-            <Button 
-              variant="subtle"
-              onClick={() => setCurrentWeek(Math.min(program.duration_weeks, currentWeek + 1))}
-              disabled={currentWeek >= program.duration_weeks}
-            >
-              Next Week →
-            </Button>
-          </Group>
+      title={
+        <Group justify="space-between" style={{ width: '100%' }}>
+          <Text fw={600} size="lg">{program.name}</Text>
           {program.split_type && (
             <Badge size="lg" variant="light">{program.split_type}</Badge>
           )}
         </Group>
-
-        <Divider />
-
-        {/* Calendar Grid */}
-        <SimpleGrid cols={7} spacing="xs">
-          {Array.from({ length: daysPerWeek }, (_, i) => {
-            const dayNumber = (currentWeek - 1) * 7 + i + 1
-            const dayWorkouts = workoutsByDay[i + 1] || []
-            
-            return (
-              <Paper
-                key={dayNumber}
-                p="sm"
-                withBorder
-                style={{
-                  minHeight: '150px',
-                  cursor: isTrainer ? 'pointer' : 'default',
-                  position: 'relative'
-                }}
-                onClick={() => isTrainer && handleDayClick(i + 1)}
-              >
-                <Stack gap="xs">
-                  <Text fw={600} size="sm">DAY {dayNumber}</Text>
-                  {dayWorkouts.map((workout, idx) => (
-                    <Card
-                      key={workout.id || idx}
-                      p="xs"
-                      style={{
-                        backgroundColor: 'var(--mantine-color-blue-0)',
-                        border: '1px solid var(--mantine-color-blue-3)'
-                      }}
-                    >
-                      <Text size="xs" fw={600} lineClamp={1}>
-                        {workout.workout_name}
-                      </Text>
-                      {workout.exercises && workout.exercises.length > 0 && (
-                        <Text size="xs" c="dimmed" lineClamp={1}>
-                          {workout.exercises.length} exercises
-                        </Text>
-                      )}
-                    </Card>
-                  ))}
-                  {dayWorkouts.length === 0 && isTrainer && (
-                    <Text size="xs" c="dimmed" ta="center" mt="md">
-                      Click to add workout
-                    </Text>
-                  )}
+      }
+      size="95%"
+      centered
+      styles={{
+        body: {
+          maxHeight: '85vh',
+          overflowY: 'auto',
+          padding: '1.5rem'
+        },
+        content: {
+          maxWidth: '98vw'
+        }
+      }}
+    >
+      <Stack gap="lg">
+        {/* All Weeks Grid - Show multiple weeks */}
+        <ScrollArea h="75vh">
+          <Stack gap="xl">
+            {Array.from({ length: currentProgram.duration_weeks || 1 }, (_, weekIdx) => {
+              const weekNum = weekIdx + 1
+              const weekWorkouts = workoutsByWeekAndDay[weekNum] || {}
+              
+              return (
+                <Stack key={weekNum} gap="sm">
+                  <Group>
+                    <Text fw={700} size="lg" c="gray.2">WEEK {weekNum}</Text>
+                    <Divider style={{ flex: 1 }} color="dark.4" />
+                  </Group>
+                  
+                  <SimpleGrid cols={7} spacing="md">
+                    {Array.from({ length: 7 }, (_, dayIdx) => {
+                      const dayNum = dayIdx + 1
+                      const dayNumber = (weekNum - 1) * 7 + dayNum
+                      const dayWorkouts = weekWorkouts[dayNum] || []
+                      
+                      return (
+                        <Paper
+                          key={`week-${weekNum}-day-${dayNum}`}
+                          p="md"
+                          withBorder
+                          style={{
+                            minHeight: '200px',
+                            cursor: isTrainer ? 'pointer' : 'default',
+                            position: 'relative',
+                            backgroundColor: dayWorkouts.length > 0 
+                              ? 'var(--mantine-color-dark-6)' 
+                              : 'var(--mantine-color-dark-7)',
+                            borderColor: 'var(--mantine-color-dark-4)',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onClick={() => isTrainer && handleDayClick(weekNum, dayNum)}
+                          onMouseEnter={(e) => {
+                            if (isTrainer) {
+                              e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-5)'
+                              e.currentTarget.style.borderColor = 'var(--mantine-color-blue-6)'
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (isTrainer) {
+                              e.currentTarget.style.backgroundColor = dayWorkouts.length > 0 
+                                ? 'var(--mantine-color-dark-6)' 
+                                : 'var(--mantine-color-dark-7)'
+                              e.currentTarget.style.borderColor = 'var(--mantine-color-dark-4)'
+                            }
+                          }}
+                        >
+                          <Stack gap="xs">
+                            <Group justify="space-between">
+                              <Text fw={700} size="sm" c="gray.3">DAY {dayNumber}</Text>
+                              {isTrainer && dayWorkouts.length === 0 && (
+                                <Text size="xs" c="gray.5">+</Text>
+                              )}
+                            </Group>
+                            
+                            {dayWorkouts.map((workout, idx) => (
+                              <Card
+                                key={workout.id || idx}
+                                p="sm"
+                                withBorder
+                                style={{
+                                  backgroundColor: 'var(--mantine-color-dark-5)',
+                                  border: '1px solid var(--mantine-color-blue-7)',
+                                  cursor: !isTrainer ? 'pointer' : 'default',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (!isTrainer) {
+                                    handleClientWorkoutClick(workout)
+                                  } else {
+                                    handleDayClick(weekNum, dayNum)
+                                    setEditingWorkout(workout)
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isTrainer) {
+                                    e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-4)'
+                                    e.currentTarget.style.borderColor = 'var(--mantine-color-blue-5)'
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isTrainer) {
+                                    e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-5)'
+                                    e.currentTarget.style.borderColor = 'var(--mantine-color-blue-7)'
+                                  }
+                                }}
+                              >
+                                <Stack gap="xs">
+                                  <Text size="sm" fw={600} lineClamp={1} c="gray.1">
+                                    {workout.workout_name}
+                                  </Text>
+                                  {workout.exercises && workout.exercises.length > 0 && (
+                                    <Stack gap={4}>
+                                      {workout.exercises.slice(0, 3).map((ex, exIdx) => (
+                                        <Group key={exIdx} gap={4} wrap="nowrap">
+                                          <Badge size="xs" variant="filled" color="blue">
+                                            {ex.exercise_type || 'REGULAR'}
+                                          </Badge>
+                                          <Text size="xs" c="gray.4" lineClamp={1} style={{ flex: 1 }}>
+                                            {ex.exercise_name}
+                                          </Text>
+                                        </Group>
+                                      ))}
+                                      {workout.exercises.length > 3 && (
+                                        <Text size="xs" c="gray.5">
+                                          +{workout.exercises.length - 3} more
+                                        </Text>
+                                      )}
+                                    </Stack>
+                                  )}
+                                </Stack>
+                              </Card>
+                            ))}
+                            
+                            {dayWorkouts.length === 0 && isTrainer && (
+                              <Text size="xs" c="gray.5" ta="center" mt="auto" pt="md">
+                                Click to add workout
+                              </Text>
+                            )}
+                          </Stack>
+                        </Paper>
+                      )
+                    })}
+                  </SimpleGrid>
                 </Stack>
-              </Paper>
-            )
-          })}
-        </SimpleGrid>
+              )
+            })}
+          </Stack>
+        </ScrollArea>
       </Stack>
 
       {/* Workout Editor Modal */}
@@ -600,9 +1330,19 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           opened={workoutModalOpened}
           onClose={closeWorkoutModal}
           dayNumber={selectedDay}
-          weekNumber={currentWeek}
+          weekNumber={selectedWeek}
           workout={editingWorkout}
           onSave={handleSaveWorkout}
+        />
+      )}
+
+      {/* Client Workout Logging Modal */}
+      {!isTrainer && (
+        <ClientWorkoutLogModal
+          opened={workoutModalOpened}
+          onClose={closeWorkoutModal}
+          workout={editingWorkout}
+          programId={currentProgram.id}
         />
       )}
     </Modal>
@@ -709,6 +1449,142 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
           <Group justify="flex-end" mt="md">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" color="robinhoodGreen">Save Workout</Button>
+          </Group>
+        </Stack>
+      </form>
+    </Modal>
+  )
+}
+
+// Client Workout Logging Modal
+function ClientWorkoutLogModal({ opened, onClose, workout, programId }) {
+  const [logging, setLogging] = useState(false)
+  const form = useForm({
+    initialValues: {
+      exercises_completed: {},
+      notes: '',
+      duration: null
+    }
+  })
+
+  useEffect(() => {
+    if (workout && workout.exercises) {
+      // Initialize exercise log with default values
+      const initialExercises = {}
+      workout.exercises.forEach((ex, idx) => {
+        initialExercises[ex.id || idx] = {
+          sets_completed: ex.sets || 0,
+          reps_completed: ex.reps || '',
+          weight_used: ex.weight || '',
+          completed: false
+        }
+      })
+      form.setFieldValue('exercises_completed', initialExercises)
+    }
+  }, [workout])
+
+  const handleSubmit = async (values) => {
+    try {
+      setLogging(true)
+      await api.post(`/programs/workout/${workout.id}/complete`, {
+        exercises_completed: values.exercises_completed,
+        notes: values.notes,
+        duration: values.duration
+      })
+      notifications.show({
+        title: 'Success',
+        message: 'Workout logged successfully!',
+        color: 'green'
+      })
+      onClose()
+      form.reset()
+    } catch (error) {
+      console.error('Error logging workout:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to log workout',
+        color: 'red'
+      })
+    } finally {
+      setLogging(false)
+    }
+  }
+
+  if (!workout) return null
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={workout.workout_name}
+      size="lg"
+      scrollAreaComponent={ScrollArea.Autosize}
+    >
+      <form onSubmit={form.onSubmit(handleSubmit)}>
+        <Stack gap="md">
+          <Text fw={500} size="lg">Exercises</Text>
+          
+          {workout.exercises?.map((exercise, idx) => {
+            const exerciseKey = exercise.id || idx
+            return (
+              <Card key={exerciseKey} p="md" withBorder>
+                <Stack gap="sm">
+                  <Group justify="space-between">
+                    <Text fw={600}>{exercise.exercise_name}</Text>
+                    <Badge variant="light">
+                      {exercise.sets} × {exercise.reps}
+                      {exercise.weight && ` @ ${exercise.weight}`}
+                    </Badge>
+                  </Group>
+                  
+                  {exercise.notes && (
+                    <Text size="sm" c="dimmed">{exercise.notes}</Text>
+                  )}
+
+                  <Group grow>
+                    <NumberInput
+                      label="Sets Completed"
+                      min={0}
+                      max={exercise.sets || 10}
+                      {...form.getInputProps(`exercises_completed.${exerciseKey}.sets_completed`)}
+                    />
+                    <TextInput
+                      label="Reps Completed"
+                      placeholder={exercise.reps}
+                      {...form.getInputProps(`exercises_completed.${exerciseKey}.reps_completed`)}
+                    />
+                    <TextInput
+                      label="Weight Used"
+                      placeholder={exercise.weight || 'N/A'}
+                      {...form.getInputProps(`exercises_completed.${exerciseKey}.weight_used`)}
+                    />
+                  </Group>
+                </Stack>
+              </Card>
+            )
+          })}
+
+          <Divider />
+
+          <NumberInput
+            label="Workout Duration (minutes)"
+            min={0}
+            {...form.getInputProps('duration')}
+          />
+
+          <Textarea
+            label="Notes (optional)"
+            placeholder="How did the workout feel? Any issues?"
+            {...form.getInputProps('notes')}
+          />
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="outline" onClick={onClose} disabled={logging}>
+              Cancel
+            </Button>
+            <Button type="submit" color="robinhoodGreen" loading={logging}>
+              Complete Workout
+            </Button>
           </Group>
         </Stack>
       </form>

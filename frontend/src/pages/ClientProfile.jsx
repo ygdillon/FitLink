@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Container, Title, Text, Tabs, Paper, Card, Badge, Button, Stack, Group, Grid, Loader, Alert, Box } from '@mantine/core'
 import { useMantineColorScheme } from '@mantine/core'
 import api from '../services/api'
-import ClientWorkouts from './ClientWorkouts'
+import ClientProgramsView from './ClientProgramsView'
 import ClientSchedule from './ClientSchedule'
 import ClientGoals from './ClientGoals'
 import ClientNutrition from './ClientNutrition'
@@ -125,7 +125,7 @@ function ClientProfile() {
                 Progress
               </Tabs.Tab>
               <Tabs.Tab value="workouts" className="clientProfileTab">
-                Workouts
+                Program
               </Tabs.Tab>
               <Tabs.Tab value="schedule" className="clientProfileTab">
                 Schedule
@@ -349,7 +349,7 @@ function ClientProfile() {
             </Tabs.Panel>
 
             <Tabs.Panel value="workouts">
-              <ClientWorkouts clientId={clientId} clientName={client.name} />
+              <ClientProgramsView clientId={clientId} clientName={client.name} />
             </Tabs.Panel>
 
             <Tabs.Panel value="schedule">

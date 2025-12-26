@@ -6,115 +6,7 @@ const router = express.Router()
 
 router.use(authenticate)
 
-// Get all programs for a trainer (templates and assigned)
-router.get('/trainer', requireRole(['trainer']), async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT p.*, 
-              COUNT(DISTINCT pw.id) as workout_count,
-              COUNT(DISTINCT pa.client_id) as assigned_clients_count
-       FROM programs p
-       LEFT JOIN program_workouts pw ON p.id = pw.program_id
-       LEFT JOIN program_assignments pa ON p.id = pa.program_id AND pa.status = 'active'
-       WHERE p.trainer_id = $1
-       GROUP BY p.id
-       ORDER BY p.created_at DESC`,
-      [req.user.id]
-    )
-
-    res.json(result.rows)
-  } catch (error) {
-    console.error('Error fetching trainer programs:', error)
-    res.status(500).json({ message: 'Failed to fetch programs' })
-  }
-})
-
-// Get a specific program with all workouts and exercises
-router.get('/:id', async (req, res) => {
-  try {
-    const { id } = req.params
-
-    // Get program
-    const programResult = await pool.query(
-      `SELECT p.*, 
-              u.name as trainer_name,
-              c.name as client_name
-       FROM programs p
-       LEFT JOIN users u ON p.trainer_id = u.id
-       LEFT JOIN users c ON p.client_id = c.id
-       WHERE p.id = $1`,
-      [id]
-    )
-
-    if (programResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Program not found' })
-    }
-
-    const program = programResult.rows[0]
-
-    // Get all workouts for this program, ordered by week and day
-    const workoutsResult = await pool.query(
-      `SELECT pw.*,
-              json_agg(
-                json_build_object(
-                  'id', pwe.id,
-                  'exercise_name', pwe.exercise_name,
-                  'exercise_type', pwe.exercise_type,
-                  'sets', pwe.sets,
-                  'reps', pwe.reps,
-                  'weight', pwe.weight,
-                  'duration', pwe.duration,
-                  'rest', pwe.rest,
-                  'tempo', pwe.tempo,
-                  'notes', pwe.notes,
-                  'order_index', pwe.order_index
-                ) ORDER BY pwe.order_index
-              ) as exercises
-       FROM program_workouts pw
-       LEFT JOIN program_workout_exercises pwe ON pw.id = pwe.program_workout_id
-       WHERE pw.program_id = $1
-       GROUP BY pw.id
-       ORDER BY pw.week_number, pw.day_number, pw.order_index`,
-      [id]
-    )
-
-    program.workouts = workoutsResult.rows.map(w => ({
-      ...w,
-      exercises: w.exercises[0] ? w.exercises : []
-    }))
-
-    res.json(program)
-  } catch (error) {
-    console.error('Error fetching program:', error)
-    res.status(500).json({ message: 'Failed to fetch program' })
-  }
-})
-
-// Get programs assigned to a client
-router.get('/client/assigned', requireRole(['client']), async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT p.*, 
-              u.name as trainer_name,
-              pa.assigned_date,
-              pa.start_date,
-              pa.status as assignment_status
-       FROM program_assignments pa
-       JOIN programs p ON pa.program_id = p.id
-       JOIN users u ON p.trainer_id = u.id
-       WHERE pa.client_id = $1 AND pa.status = 'active'
-       ORDER BY pa.assigned_date DESC`,
-      [req.user.id]
-    )
-
-    res.json(result.rows)
-  } catch (error) {
-    console.error('Error fetching client programs:', error)
-    res.status(500).json({ message: 'Failed to fetch programs' })
-  }
-})
-
-// Create a new program (trainer only)
+// Create a new program (trainer only) - MUST be before /:id route
 router.post('/', requireRole(['trainer']), async (req, res) => {
   const client = await pool.connect()
   try {
@@ -223,6 +115,159 @@ router.post('/', requireRole(['trainer']), async (req, res) => {
   }
 })
 
+// Get all programs for a trainer (templates and assigned) - MUST be before /:id
+router.get('/trainer', requireRole(['trainer']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.*, 
+              COUNT(DISTINCT pw.id) as workout_count,
+              COUNT(DISTINCT pa.client_id) as assigned_clients_count
+       FROM programs p
+       LEFT JOIN program_workouts pw ON p.id = pw.program_id
+       LEFT JOIN program_assignments pa ON p.id = pa.program_id AND pa.status = 'active'
+       WHERE p.trainer_id = $1
+       GROUP BY p.id
+       ORDER BY p.created_at DESC`,
+      [req.user.id]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching trainer programs:', error)
+    res.status(500).json({ message: 'Failed to fetch programs' })
+  }
+})
+
+// Get programs assigned to a client - MUST be before /:id
+router.get('/client/assigned', requireRole(['client']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.*, 
+              u.name as trainer_name,
+              pa.assigned_date,
+              pa.start_date,
+              pa.status as assignment_status
+       FROM program_assignments pa
+       JOIN programs p ON pa.program_id = p.id
+       JOIN users u ON p.trainer_id = u.id
+       WHERE pa.client_id = $1 AND pa.status = 'active'
+       ORDER BY pa.assigned_date DESC`,
+      [req.user.id]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching client programs:', error)
+    res.status(500).json({ message: 'Failed to fetch programs' })
+  }
+})
+
+// Get programs assigned to a specific client (for trainer view) - MUST be before /:id
+router.get('/client/:clientId/assigned', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { clientId } = req.params
+
+    console.log(`[DEBUG] Fetching programs for client table id: ${clientId}, trainer: ${req.user.id}`)
+
+    // Verify client belongs to trainer and get user_id
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      console.log(`[DEBUG] Client not found or doesn't belong to trainer`)
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const clientUserId = clientCheck.rows[0].user_id
+    console.log(`[DEBUG] Client user_id: ${clientUserId}`)
+
+    // Get programs assigned to this client
+    const result = await pool.query(
+      `SELECT p.*, 
+              COALESCE(COUNT(DISTINCT pw.id), 0) as workout_count,
+              pa.assigned_date,
+              pa.start_date,
+              pa.status as assignment_status
+       FROM program_assignments pa
+       JOIN programs p ON pa.program_id = p.id
+       LEFT JOIN program_workouts pw ON p.id = pw.program_id
+       WHERE pa.client_id = $1 AND pa.status = 'active'
+       GROUP BY p.id, pa.assigned_date, pa.start_date, pa.status
+       ORDER BY pa.assigned_date DESC`,
+      [clientUserId]
+    )
+
+    console.log(`[DEBUG] Found ${result.rows.length} assigned programs`)
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching client programs:', error)
+    res.status(500).json({ message: 'Failed to fetch programs', error: error.message })
+  }
+})
+
+// Get a specific program with all workouts and exercises
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Get program
+    const programResult = await pool.query(
+      `SELECT p.*, 
+              u.name as trainer_name,
+              c.name as client_name
+       FROM programs p
+       LEFT JOIN users u ON p.trainer_id = u.id
+       LEFT JOIN users c ON p.client_id = c.id
+       WHERE p.id = $1`,
+      [id]
+    )
+
+    if (programResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Program not found' })
+    }
+
+    const program = programResult.rows[0]
+
+    // Get all workouts for this program, ordered by week and day
+    const workoutsResult = await pool.query(
+      `SELECT pw.*,
+              json_agg(
+                json_build_object(
+                  'id', pwe.id,
+                  'exercise_name', pwe.exercise_name,
+                  'exercise_type', pwe.exercise_type,
+                  'sets', pwe.sets,
+                  'reps', pwe.reps,
+                  'weight', pwe.weight,
+                  'duration', pwe.duration,
+                  'rest', pwe.rest,
+                  'tempo', pwe.tempo,
+                  'notes', pwe.notes,
+                  'order_index', pwe.order_index
+                ) ORDER BY pwe.order_index
+              ) as exercises
+       FROM program_workouts pw
+       LEFT JOIN program_workout_exercises pwe ON pw.id = pwe.program_workout_id
+       WHERE pw.program_id = $1
+       GROUP BY pw.id
+       ORDER BY pw.week_number, pw.day_number, pw.order_index`,
+      [id]
+    )
+
+    program.workouts = workoutsResult.rows.map(w => ({
+      ...w,
+      exercises: w.exercises[0] ? w.exercises : []
+    }))
+
+    res.json(program)
+  } catch (error) {
+    console.error('Error fetching program:', error)
+    res.status(500).json({ message: 'Failed to fetch program' })
+  }
+})
+
 // Update a program
 router.put('/:id', requireRole(['trainer']), async (req, res) => {
   const client = await pool.connect()
@@ -260,6 +305,17 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
 
     // If workouts are provided, update them
     if (workouts && Array.isArray(workouts)) {
+      // Validate workouts before processing
+      for (const workout of workouts) {
+        if (!workout.workout_name || workout.workout_name.trim() === '') {
+          await client.query('ROLLBACK')
+          return res.status(400).json({ 
+            message: 'Workout name is required for all workouts',
+            error: 'Missing workout_name'
+          })
+        }
+      }
+
       // Delete existing workouts and exercises
       await client.query(
         `DELETE FROM program_workout_exercises 
@@ -278,7 +334,7 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
           `INSERT INTO program_workouts (program_id, workout_name, day_number, week_number, order_index)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING *`,
-          [id, workout_name, day_number || 1, week_number || 1, workout.order_index || 0]
+          [id, workout_name.trim(), day_number || 1, week_number || 1, workout.order_index || 0]
         )
 
         const programWorkout = workoutResult.rows[0]
@@ -287,13 +343,17 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
         if (exercises && Array.isArray(exercises)) {
           for (let i = 0; i < exercises.length; i++) {
             const exercise = exercises[i]
+            // Skip exercises without names
+            if (!exercise.exercise_name || exercise.exercise_name.trim() === '') {
+              continue
+            }
             await client.query(
               `INSERT INTO program_workout_exercises 
                (program_workout_id, exercise_name, exercise_type, sets, reps, weight, duration, rest, tempo, notes, order_index)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
               [
                 programWorkout.id,
-                exercise.exercise_name || '',
+                exercise.exercise_name.trim(),
                 exercise.exercise_type || null,
                 exercise.sets || null,
                 exercise.reps || null,
@@ -395,6 +455,8 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
     const { id } = req.params
     const { client_id, start_date } = req.body
 
+    console.log(`[DEBUG] Assigning program ${id} to client_id ${client_id} by trainer ${req.user.id}`)
+
     // Verify program belongs to trainer
     const programCheck = await pool.query(
       'SELECT trainer_id, is_template FROM programs WHERE id = $1',
@@ -409,19 +471,29 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to assign this program' })
     }
 
-    // Create a copy of the program for the client
-    const templateProgram = programCheck.rows[0]
+    // Verify client_id is a valid user_id
+    const clientCheck = await pool.query(
+      'SELECT id FROM users WHERE id = $1',
+      [client_id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid client_id' })
+    }
 
     // Insert or update assignment
-    await pool.query(
+    const assignmentResult = await pool.query(
       `INSERT INTO program_assignments (program_id, client_id, assigned_date, start_date, status)
        VALUES ($1, $2, CURRENT_DATE, $3, 'active')
        ON CONFLICT (program_id, client_id) 
        DO UPDATE SET start_date = COALESCE(EXCLUDED.start_date, program_assignments.start_date),
                      status = 'active',
-                     updated_at = CURRENT_TIMESTAMP`,
+                     updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
       [id, client_id, start_date || null]
     )
+
+    console.log(`[DEBUG] Assignment successful:`, assignmentResult.rows[0])
 
     res.json({ message: 'Program assigned successfully' })
   } catch (error) {
@@ -462,6 +534,435 @@ router.post('/workout/:workoutId/complete', requireRole(['client']), async (req,
   } catch (error) {
     console.error('Error completing workout:', error)
     res.status(500).json({ message: 'Failed to complete workout', error: error.message })
+  }
+})
+
+// Get all program templates
+router.get('/templates/all', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT pt.*,
+              COUNT(DISTINCT tw.id) as workout_count
+       FROM program_templates pt
+       LEFT JOIN template_workouts tw ON pt.id = tw.template_id
+       WHERE pt.is_system_template = true OR pt.created_by = $1
+       GROUP BY pt.id
+       ORDER BY pt.is_system_template DESC, pt.created_at DESC`,
+      [req.user.id]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching templates:', error)
+    res.status(500).json({ message: 'Failed to fetch templates' })
+  }
+})
+
+// Get a specific template with workouts
+router.get('/templates/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const templateResult = await pool.query(
+      `SELECT * FROM program_templates WHERE id = $1`,
+      [id]
+    )
+
+    if (templateResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Template not found' })
+    }
+
+    const template = templateResult.rows[0]
+
+    // Get workouts
+    const workoutsResult = await pool.query(
+      `SELECT tw.*,
+              json_agg(
+                json_build_object(
+                  'id', twe.id,
+                  'exercise_id', twe.exercise_id,
+                  'exercise_name', twe.exercise_name,
+                  'exercise_type', twe.exercise_type,
+                  'sets', twe.sets,
+                  'reps', twe.reps,
+                  'weight', twe.weight,
+                  'duration', twe.duration,
+                  'rest', twe.rest,
+                  'tempo', twe.tempo,
+                  'rpe', twe.rpe,
+                  'notes', twe.notes,
+                  'order_index', twe.order_index
+                ) ORDER BY twe.order_index
+              ) as exercises
+       FROM template_workouts tw
+       LEFT JOIN template_workout_exercises twe ON tw.id = twe.template_workout_id
+       WHERE tw.template_id = $1
+       GROUP BY tw.id
+       ORDER BY tw.week_number, tw.day_number, tw.order_index`,
+      [id]
+    )
+
+    template.workouts = workoutsResult.rows.map(w => ({
+      ...w,
+      exercises: w.exercises[0] ? w.exercises : []
+    }))
+
+    res.json(template)
+  } catch (error) {
+    console.error('Error fetching template:', error)
+    res.status(500).json({ message: 'Failed to fetch template' })
+  }
+})
+
+// Get exercises (searchable/filterable)
+router.get('/exercises/search', async (req, res) => {
+  try {
+    const { search, muscle_group, movement_pattern, equipment, difficulty } = req.query
+
+    let query = 'SELECT * FROM exercises WHERE 1=1'
+    const params = []
+    let paramCount = 1
+
+    if (search) {
+      query += ` AND name ILIKE $${paramCount++}`
+      params.push(`%${search}%`)
+    }
+
+    if (muscle_group) {
+      query += ` AND primary_muscle_group = $${paramCount++}`
+      params.push(muscle_group)
+    }
+
+    if (movement_pattern) {
+      query += ` AND movement_pattern = $${paramCount++}`
+      params.push(movement_pattern)
+    }
+
+    if (equipment) {
+      query += ` AND equipment_required = $${paramCount++}`
+      params.push(equipment)
+    }
+
+    if (difficulty) {
+      query += ` AND difficulty_level = $${paramCount++}`
+      params.push(difficulty)
+    }
+
+    query += ' ORDER BY name LIMIT 100'
+
+    const result = await pool.query(query, params)
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error searching exercises:', error)
+    res.status(500).json({ message: 'Failed to search exercises' })
+  }
+})
+
+// Get exercise alternatives/substitutions
+router.get('/exercises/:exerciseName/substitutions', async (req, res) => {
+  try {
+    const { exerciseName } = req.params
+    const { equipment, difficulty } = req.query
+
+    // First, get the exercise
+    const exerciseResult = await pool.query(
+      `SELECT * FROM exercises WHERE name = $1`,
+      [exerciseName]
+    )
+
+    if (exerciseResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Exercise not found' })
+    }
+
+    const exercise = exerciseResult.rows[0]
+
+    // Find alternatives with same movement pattern
+    let query = `
+      SELECT * FROM exercises 
+      WHERE movement_pattern = $1 
+        AND id != $2
+        AND difficulty_level <= $3
+    `
+    const params = [exercise.movement_pattern, exercise.id, exercise.difficulty_level === 'beginner' ? 'beginner' : exercise.difficulty_level === 'intermediate' ? 'intermediate' : 'advanced']
+    let paramCount = 4
+
+    if (equipment) {
+      query += ` AND equipment_required = $${paramCount++}`
+      params.push(equipment)
+    }
+
+    query += ' ORDER BY difficulty_level, name LIMIT 10'
+
+    const alternatives = await pool.query(query, params)
+
+    res.json({
+      original: exercise,
+      alternatives: alternatives.rows
+    })
+  } catch (error) {
+    console.error('Error finding substitutions:', error)
+    res.status(500).json({ message: 'Failed to find substitutions' })
+  }
+})
+
+// Recommend program template for a client
+router.post('/recommend', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { client_id } = req.body
+
+    // Get client profile
+    const clientResult = await pool.query(
+      `SELECT c.*, u.name, u.email
+       FROM clients c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = $1`,
+      [client_id]
+    )
+
+    if (clientResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    const client = clientResult.rows[0]
+
+    // Map client data to template criteria
+    const experienceLevel = client.training_experience || 'beginner'
+    const goal = client.primary_goal || 'general_fitness'
+    const daysPerWeek = client.training_days_per_week || 3
+    const equipment = client.equipment_access || 'full_gym'
+    const sessionDuration = client.session_duration_minutes || 60
+
+    // Score templates based on match
+    const templatesResult = await pool.query(
+      `SELECT pt.*,
+              COUNT(DISTINCT tw.id) as workout_count
+       FROM program_templates pt
+       LEFT JOIN template_workouts tw ON pt.id = tw.template_id
+       WHERE pt.is_system_template = true
+       GROUP BY pt.id`
+    )
+
+    const scoredTemplates = templatesResult.rows.map(template => {
+      let score = 0
+
+      // Experience level match (high weight)
+      if (template.target_experience_level === experienceLevel || template.target_experience_level === 'all') {
+        score += 10
+      } else if (
+        (experienceLevel === 'beginner' && template.target_experience_level === 'intermediate') ||
+        (experienceLevel === 'intermediate' && template.target_experience_level === 'advanced')
+      ) {
+        score += 5
+      }
+
+      // Goal match (high weight)
+      if (template.target_goal === goal) {
+        score += 10
+      }
+
+      // Days per week match
+      if (template.target_days_per_week === daysPerWeek) {
+        score += 8
+      } else if (Math.abs(template.target_days_per_week - daysPerWeek) <= 1) {
+        score += 4
+      }
+
+      // Equipment match
+      if (template.target_equipment === equipment) {
+        score += 8
+      } else if (
+        (equipment === 'full_gym' && template.target_equipment !== 'bodyweight_only') ||
+        (equipment === 'dumbbells_only' && ['dumbbells_only', 'home_gym', 'full_gym'].includes(template.target_equipment))
+      ) {
+        score += 4
+      }
+
+      // Session duration match
+      if (template.target_session_duration === sessionDuration) {
+        score += 5
+      } else if (Math.abs(template.target_session_duration - sessionDuration) <= 15) {
+        score += 2
+      }
+
+      return { ...template, match_score: score }
+    })
+
+    // Sort by score and return top 3
+    const recommendations = scoredTemplates
+      .sort((a, b) => b.match_score - a.match_score)
+      .slice(0, 3)
+
+    res.json({
+      client_profile: {
+        experience_level: experienceLevel,
+        goal: goal,
+        days_per_week: daysPerWeek,
+        equipment: equipment,
+        session_duration: sessionDuration
+      },
+      recommendations
+    })
+  } catch (error) {
+    console.error('Error recommending programs:', error)
+    res.status(500).json({ message: 'Failed to recommend programs', error: error.message })
+  }
+})
+
+// Create program from template
+router.post('/from-template/:templateId', requireRole(['trainer']), async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const { templateId } = req.params
+    const { client_id, name, description, customizations } = req.body
+
+    // Get template
+    const templateResult = await client.query(
+      `SELECT * FROM program_templates WHERE id = $1`,
+      [templateId]
+    )
+
+    if (templateResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Template not found' })
+    }
+
+    const template = templateResult.rows[0]
+
+    // Create program from template
+    const programResult = await client.query(
+      `INSERT INTO programs (trainer_id, client_id, name, description, split_type, duration_weeks, is_template)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        req.user.id,
+        client_id || null,
+        name || template.name,
+        description || template.description,
+        template.split_type,
+        template.duration_weeks,
+        false
+      ]
+    )
+
+    const program = programResult.rows[0]
+
+    // Get template workouts
+    const templateWorkoutsResult = await client.query(
+      `SELECT tw.*,
+              json_agg(
+                json_build_object(
+                  'exercise_id', twe.exercise_id,
+                  'exercise_name', twe.exercise_name,
+                  'exercise_type', twe.exercise_type,
+                  'sets', twe.sets,
+                  'reps', twe.reps,
+                  'weight', twe.weight,
+                  'duration', twe.duration,
+                  'rest', twe.rest,
+                  'tempo', twe.tempo,
+                  'rpe', twe.rpe,
+                  'notes', twe.notes,
+                  'order_index', twe.order_index
+                ) ORDER BY twe.order_index
+              ) as exercises
+       FROM template_workouts tw
+       LEFT JOIN template_workout_exercises twe ON tw.id = twe.template_workout_id
+       WHERE tw.template_id = $1
+       GROUP BY tw.id
+       ORDER BY tw.week_number, tw.day_number`,
+      [templateId]
+    )
+
+    // Create workouts from template
+    for (const templateWorkout of templateWorkoutsResult.rows) {
+      const workoutResult = await client.query(
+        `INSERT INTO program_workouts (program_id, workout_name, day_number, week_number, order_index)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [
+          program.id,
+          templateWorkout.workout_name,
+          templateWorkout.day_number,
+          templateWorkout.week_number,
+          templateWorkout.order_index
+        ]
+      )
+
+      const programWorkout = workoutResult.rows[0]
+
+      // Add exercises
+      const exercises = templateWorkout.exercises[0] ? templateWorkout.exercises : []
+      for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i]
+        await client.query(
+          `INSERT INTO program_workout_exercises 
+           (program_workout_id, exercise_name, exercise_type, sets, reps, weight, duration, rest, tempo, notes, order_index)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            programWorkout.id,
+            ex.exercise_name,
+            ex.exercise_type || 'REGULAR',
+            ex.sets,
+            ex.reps,
+            ex.weight,
+            ex.duration,
+            ex.rest,
+            ex.tempo,
+            ex.notes,
+            ex.order_index !== undefined ? ex.order_index : i
+          ]
+        )
+      }
+    }
+
+    await client.query('COMMIT')
+
+    // Fetch complete program
+    const completeProgram = await pool.query(
+      `SELECT p.*,
+              json_agg(
+                json_build_object(
+                  'id', pw.id,
+                  'workout_name', pw.workout_name,
+                  'day_number', pw.day_number,
+                  'week_number', pw.week_number,
+                  'order_index', pw.order_index,
+                  'exercises', (
+                    SELECT json_agg(
+                      json_build_object(
+                        'id', pwe.id,
+                        'exercise_name', pwe.exercise_name,
+                        'exercise_type', pwe.exercise_type,
+                        'sets', pwe.sets,
+                        'reps', pwe.reps,
+                        'weight', pwe.weight,
+                        'duration', pwe.duration,
+                        'rest', pwe.rest,
+                        'tempo', pwe.tempo,
+                        'notes', pwe.notes,
+                        'order_index', pwe.order_index
+                      ) ORDER BY pwe.order_index
+                    )
+                    FROM program_workout_exercises pwe
+                    WHERE pwe.program_workout_id = pw.id
+                  )
+                ) ORDER BY pw.week_number, pw.day_number, pw.order_index
+              ) as workouts
+       FROM programs p
+       LEFT JOIN program_workouts pw ON p.id = pw.program_id
+       WHERE p.id = $1
+       GROUP BY p.id`,
+      [program.id]
+    )
+
+    res.status(201).json(completeProgram.rows[0])
+  } catch (error) {
+    await client.query('ROLLBACK')
+    console.error('Error creating program from template:', error)
+    res.status(500).json({ message: 'Failed to create program from template', error: error.message })
+  } finally {
+    client.release()
   }
 })
 

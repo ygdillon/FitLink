@@ -16,6 +16,7 @@ import analyticsRoutes from './routes/analytics.js'
 import alertsRoutes from './routes/alerts.js'
 import aiWorkoutRoutes from './routes/aiWorkout.js'
 import programsRoutes from './routes/programs.js'
+import nutritionRoutes from './routes/nutrition.js'
 import { pool } from './config/database.js'
 
 const app = express()
@@ -44,6 +45,7 @@ app.use('/api/trainer/analytics', analyticsRoutes)
 app.use('/api/trainer/alerts', alertsRoutes)
 app.use('/api/trainer/workouts/ai', aiWorkoutRoutes)
 app.use('/api/programs', programsRoutes)
+app.use('/api/nutrition', nutritionRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

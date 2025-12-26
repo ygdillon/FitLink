@@ -31,6 +31,8 @@ import Analytics from './pages/Analytics'
 import Alerts from './pages/Alerts'
 import TrainerProfile from './pages/TrainerProfile'
 import Programs from './pages/Programs'
+import ProgramBuilder from './pages/ProgramBuilder'
+import NutritionBuilder from './pages/NutritionBuilder'
 
 // Components
 import Navbar from './components/Navbar'
@@ -79,6 +81,8 @@ function AppRoutes() {
         <Route path="/check-in" element={<DailyCheckIn />} />
         <Route path="/trainer/profile/:trainerId" element={<TrainerProfile />} />
         <Route path="/programs" element={<Programs />} />
+        <Route path="/programs/builder" element={<ProgramBuilder />} />
+        <Route path="/nutrition/builder" element={<NutritionBuilder />} />
         <Route path="/" element={<Navigate to={user?.role === 'trainer' ? '/trainer' : '/client'} />} />
       </Route>
     </Routes>
