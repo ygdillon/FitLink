@@ -144,10 +144,16 @@ function Profile() {
         hourly_rate: values.hourly_rate ? parseFloat(values.hourly_rate) : null,
         phone_number: values.phone_number || null,
         profile_image: profileImage || null,
-        fitness_goals: values.fitness_goals || [],
-        client_age_ranges: values.client_age_ranges || [],
+        fitness_goals: Array.isArray(values.fitness_goals) ? values.fitness_goals : [],
+        client_age_ranges: Array.isArray(values.client_age_ranges) ? values.client_age_ranges : [],
         location: values.location || null
       }
+      
+      console.log('[PROFILE] Sending update data:', {
+        ...updateData,
+        fitness_goals: updateData.fitness_goals,
+        client_age_ranges: updateData.client_age_ranges
+      })
       await api.put('/profile', updateData)
       await fetchUser()
       setProfileImage(null) // Reset after successful update

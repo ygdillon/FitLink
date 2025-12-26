@@ -132,14 +132,45 @@ router.put('/', async (req, res) => {
       updateFields.push(`phone_number = $${paramCount++}`)
       updateValues.push(phone_number || null)
       
+      // Add columns if they don't exist and we have data to save
+      if (!hasFitnessGoals && fitness_goals && Array.isArray(fitness_goals) && fitness_goals.length > 0) {
+        try {
+          await pool.query('ALTER TABLE trainers ADD COLUMN IF NOT EXISTS fitness_goals JSONB')
+          hasFitnessGoals = true
+          console.log('[PROFILE UPDATE] Added fitness_goals column')
+        } catch (error) {
+          console.log('[PROFILE UPDATE] Error adding fitness_goals column:', error.message)
+        }
+      }
+      
+      if (!hasClientAgeRanges && client_age_ranges && Array.isArray(client_age_ranges) && client_age_ranges.length > 0) {
+        try {
+          await pool.query('ALTER TABLE trainers ADD COLUMN IF NOT EXISTS client_age_ranges JSONB')
+          hasClientAgeRanges = true
+          console.log('[PROFILE UPDATE] Added client_age_ranges column')
+        } catch (error) {
+          console.log('[PROFILE UPDATE] Error adding client_age_ranges column:', error.message)
+        }
+      }
+      
+      if (!hasLocation && location && location.trim().length > 0) {
+        try {
+          await pool.query('ALTER TABLE trainers ADD COLUMN IF NOT EXISTS location VARCHAR(255)')
+          hasLocation = true
+          console.log('[PROFILE UPDATE] Added location column')
+        } catch (error) {
+          console.log('[PROFILE UPDATE] Error adding location column:', error.message)
+        }
+      }
+      
       if (hasFitnessGoals) {
         updateFields.push(`fitness_goals = $${paramCount++}`)
-        updateValues.push(fitness_goals ? JSON.stringify(fitness_goals) : null)
+        updateValues.push(fitness_goals && Array.isArray(fitness_goals) && fitness_goals.length > 0 ? JSON.stringify(fitness_goals) : null)
       }
       
       if (hasClientAgeRanges) {
         updateFields.push(`client_age_ranges = $${paramCount++}`)
-        updateValues.push(client_age_ranges ? JSON.stringify(client_age_ranges) : null)
+        updateValues.push(client_age_ranges && Array.isArray(client_age_ranges) && client_age_ranges.length > 0 ? JSON.stringify(client_age_ranges) : null)
       }
       
       if (hasLocation) {
