@@ -529,9 +529,26 @@ router.get('/trainers/search', async (req, res) => {
       )
       console.log('[TRAINER SEARCH] All users with trainer role:', allTrainerUsers.rows)
       
+      // Check if the new columns exist first
+      const columnCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'trainers' 
+        AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+      `)
+      const existingColumns = columnCheck.rows.map(r => r.column_name)
+      const hasFitnessGoals = existingColumns.includes('fitness_goals')
+      const hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+      const hasLocation = existingColumns.includes('location')
+      
+      // Build query with only existing columns
+      let selectColumns = 't.*, u.name, u.email, u.profile_image'
+      if (hasFitnessGoals) selectColumns += ', t.fitness_goals'
+      if (hasClientAgeRanges) selectColumns += ', t.client_age_ranges'
+      if (hasLocation) selectColumns += ', t.location'
+      
       const allTrainersQuery = `
-        SELECT DISTINCT t.*, u.name, u.email, u.profile_image,
-               t.fitness_goals, t.client_age_ranges, t.location
+        SELECT DISTINCT ${selectColumns}
         FROM trainers t
         JOIN users u ON t.user_id = u.id
         ORDER BY u.name ASC
@@ -609,9 +626,26 @@ router.get('/trainers/search', async (req, res) => {
       return res.json(trainers)
     }
 
+    // Check if the new columns exist first
+    const columnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'trainers' 
+      AND column_name IN ('fitness_goals', 'client_age_ranges', 'location')
+    `)
+    const existingColumns = columnCheck.rows.map(r => r.column_name)
+    const hasFitnessGoals = existingColumns.includes('fitness_goals')
+    const hasClientAgeRanges = existingColumns.includes('client_age_ranges')
+    const hasLocation = existingColumns.includes('location')
+    
+    // Build query with only existing columns
+    let selectColumns = 't.*, u.name, u.email, u.profile_image'
+    if (hasFitnessGoals) selectColumns += ', t.fitness_goals'
+    if (hasClientAgeRanges) selectColumns += ', t.client_age_ranges'
+    if (hasLocation) selectColumns += ', t.location'
+    
     let query = `
-      SELECT DISTINCT t.*, u.name, u.email, u.profile_image,
-             t.fitness_goals, t.client_age_ranges, t.location
+      SELECT DISTINCT ${selectColumns}
       FROM trainers t
       JOIN users u ON t.user_id = u.id
       WHERE 1=1
