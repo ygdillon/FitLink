@@ -67,9 +67,12 @@ function Settings() {
         setMessage('')
         try {
           const response = await api.get('/client/trainers/search')
+          console.log('Trainers response:', response.data)
           setSearchResults(response.data || [])
-          if (response.data.length === 0) {
+          if (!response.data || response.data.length === 0) {
             setMessage('No trainers available at the moment.')
+          } else {
+            setMessage('') // Clear message if trainers found
           }
         } catch (error) {
           console.error('Error fetching trainers:', error)
@@ -484,7 +487,7 @@ function Settings() {
             </Collapse>
 
             {message && (
-              <Alert color={message.includes('No trainers') ? 'yellow' : 'red'} mb="md">
+              <Alert color={message.includes('No trainers') ? 'yellow' : 'red'} mb="md" onClose={() => setMessage('')} withCloseButton>
                 {message}
               </Alert>
             )}

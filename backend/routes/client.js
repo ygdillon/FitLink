@@ -577,7 +577,12 @@ router.get('/trainers/search', async (req, res) => {
 
     query += ` ORDER BY u.name ASC LIMIT 50`
 
+    console.log('[TRAINER SEARCH] Query:', query)
+    console.log('[TRAINER SEARCH] Params:', params)
+    
     const result = await pool.query(query, params)
+    
+    console.log('[TRAINER SEARCH] Found trainers:', result.rows.length)
 
     const trainers = result.rows.map(trainer => {
       // Parse JSONB fields
