@@ -491,6 +491,10 @@ router.get('/trainer', async (req, res) => {
 
 // Search for trainers
 router.get('/trainers/search', async (req, res) => {
+  console.log('[TRAINER SEARCH] ===== ENDPOINT HIT =====')
+  console.log('[TRAINER SEARCH] Request received at:', new Date().toISOString())
+  console.log('[TRAINER SEARCH] User ID:', req.user?.id)
+  console.log('[TRAINER SEARCH] User role:', req.user?.role)
   try {
     const { q, specialties, fitness_goals, client_age_ranges, special_needs, location } = req.query
 
