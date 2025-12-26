@@ -254,6 +254,12 @@ function Profile() {
                     {...form.getInputProps('email')}
                     required
                   />
+                  <TextInput
+                    label="Phone Number"
+                    placeholder="(555) 123-4567"
+                    {...form.getInputProps('phone_number')}
+                    description="Contact number (optional)"
+                  />
                 </Stack>
               </Grid.Col>
             </Grid>
@@ -276,24 +282,16 @@ function Profile() {
                       {...form.getInputProps('bio')}
                       description="Write a compelling bio that highlights your expertise, training philosophy, and what clients can expect when working with you."
                     />
-                    <Group grow>
-                      <NumberInput
-                        label="Hourly Rate"
-                        placeholder="75.00"
-                        min={0}
-                        step={5}
-                        decimalScale={2}
-                        prefix="$"
-                        {...form.getInputProps('hourly_rate')}
-                        description="Your hourly training rate (optional)"
-                      />
-                      <TextInput
-                        label="Phone Number"
-                        placeholder="(555) 123-4567"
-                        {...form.getInputProps('phone_number')}
-                        description="Contact number for clients (optional)"
-                      />
-                    </Group>
+                    <NumberInput
+                      label="Hourly Rate"
+                      placeholder="75.00"
+                      min={0}
+                      step={5}
+                      decimalScale={2}
+                      prefix="$"
+                      {...form.getInputProps('hourly_rate')}
+                      description="Your hourly training rate (optional)"
+                    />
                     <TextInput
                       label="Location"
                       placeholder="e.g., New York, NY or Los Angeles, CA"
