@@ -1538,8 +1538,14 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       
       // If trainer and workout was saved, show workout actions modal
       if (isTrainer) {
-        // Set saved workout data
-        setSavedWorkout(savedWorkout || newWorkout)
+        // Set saved workout data - ensure we have the full workout object
+        const workoutToSave = savedWorkout || {
+          ...newWorkout,
+          id: savedWorkout?.id,
+          workout_name: newWorkout.workout_name,
+          exercises: newWorkout.exercises
+        }
+        setSavedWorkout(workoutToSave)
         setSavedWorkoutId(savedWorkout?.id || null)
         
         // Fetch assigned clients for this program
@@ -1554,8 +1560,9 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         // Show workout actions modal for trainers
         // Small delay to ensure workout modal closes first
         setTimeout(() => {
+          console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave)
           openWorkoutActions()
-        }, 200)
+        }, 300)
       } else {
         notifications.show({
           title: 'Success',
@@ -2393,6 +2400,26 @@ function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumbe
     )
   }
 
+  // Check if there are assigned clients
+  const hasAssignedClients = assignedClients && assignedClients.length > 0
+
+  if (!hasAssignedClients) {
+    return (
+      <Modal opened={opened} onClose={onClose} title="Schedule Session" size="md">
+        <Stack gap="md">
+          <Alert color="yellow">
+            <Text size="sm">
+              This program is not assigned to any clients yet. Please assign the program to clients first before scheduling sessions.
+            </Text>
+          </Alert>
+          <Group justify="flex-end">
+            <Button onClick={onClose}>Close</Button>
+          </Group>
+        </Stack>
+      </Modal>
+    )
+  }
+
   return (
     <Modal opened={opened} onClose={onClose} title="Schedule Session" size="lg">
       <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -2567,12 +2594,17 @@ function WorkoutActionsModal({ opened, onClose, program, workout, workoutId, wee
             color="robinhoodGreen"
             fullWidth
             onClick={onSchedule}
+            disabled={!hasAssignedClients}
             leftSection={<Text size="lg">📅</Text>}
             style={{ justifyContent: 'flex-start', height: 'auto', padding: '1rem' }}
           >
             <Stack gap={2} align="flex-start" style={{ width: '100%' }}>
               <Text fw={500}>Schedule as Session</Text>
-              <Text size="xs" c="dimmed">Create training sessions for clients</Text>
+              <Text size="xs" c="dimmed">
+                {hasAssignedClients 
+                  ? `Create training sessions for ${assignedClients.length} client(s)`
+                  : 'Assign program to clients first'}
+              </Text>
             </Stack>
           </Button>
           
