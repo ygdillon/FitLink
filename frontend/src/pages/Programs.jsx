@@ -1302,7 +1302,15 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const [savedWorkout, setSavedWorkout] = useState(null)
   const savedWorkoutRef = useRef(null) // Use ref to store workout for immediate access
   const [assignedClients, setAssignedClients] = useState([])
-  const [workoutActionsOpened, { open: openWorkoutActions, close: closeWorkoutActions }] = useDisclosure(false)
+  const [workoutActionsOpened, setWorkoutActionsOpened] = useState(false)
+  const openWorkoutActions = () => {
+    console.log('[DEBUG] openWorkoutActions called, setting state to true')
+    setWorkoutActionsOpened(true)
+  }
+  const closeWorkoutActions = () => {
+    console.log('[DEBUG] closeWorkoutActions called, setting state to false')
+    setWorkoutActionsOpened(false)
+  }
   const [copyWorkoutOpened, { open: openCopyWorkout, close: closeCopyWorkout }] = useDisclosure(false)
   const [repeatWorkoutOpened, { open: openRepeatWorkout, close: closeRepeatWorkout }] = useDisclosure(false)
 
