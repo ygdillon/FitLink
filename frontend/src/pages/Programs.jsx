@@ -26,7 +26,7 @@ import {
   Checkbox,
   MultiSelect
 } from '@mantine/core'
-import { TimeInput, DatePickerInput } from '@mantine/dates'
+import { TimeInput, DatePickerInput, DateInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -222,9 +222,21 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
       description: '',
       split_type: '',
       duration_weeks: 4,
+      start_date: null,
+      end_date: null,
       is_template: false
     }
   })
+
+  // Auto-calculate end_date when start_date or duration_weeks changes
+  useEffect(() => {
+    if (form.values.start_date && form.values.duration_weeks && !form.values.end_date) {
+      const start = new Date(form.values.start_date)
+      const end = new Date(start)
+      end.setDate(start.getDate() + (form.values.duration_weeks * 7) - 1) // -1 because start date is day 1
+      form.setFieldValue('end_date', end)
+    }
+  }, [form.values.start_date, form.values.duration_weeks])
 
   const assignForm = useForm({
     initialValues: {
@@ -235,7 +247,22 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
 
   const handleCreateProgram = async (values) => {
     try {
-      await api.post('/programs', values)
+      // Calculate end_date if not provided
+      let endDate = values.end_date
+      if (!endDate && values.start_date && values.duration_weeks) {
+        const start = new Date(values.start_date)
+        const end = new Date(start)
+        end.setDate(start.getDate() + (values.duration_weeks * 7) - 1) // -1 because start date is day 1
+        endDate = end.toISOString().split('T')[0]
+      }
+
+      const programData = {
+        ...values,
+        start_date: values.start_date ? new Date(values.start_date).toISOString().split('T')[0] : null,
+        end_date: endDate || null
+      }
+
+      await api.post('/programs', programData)
       notifications.show({
         title: 'Success',
         message: 'Program created successfully',
@@ -392,6 +419,18 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
               min={1}
               max={52}
               {...form.getInputProps('duration_weeks')}
+            />
+            <DateInput
+              label="Start Date"
+              placeholder="Select program start date"
+              required
+              {...form.getInputProps('start_date')}
+            />
+            <DateInput
+              label="End Date (optional)"
+              placeholder="Auto-calculated from start date + duration"
+              minDate={form.values.start_date ? new Date(form.values.start_date) : undefined}
+              {...form.getInputProps('end_date')}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="outline" onClick={closeCreate}>Cancel</Button>
@@ -1040,6 +1079,27 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
     setCurrentProgram(program)
   }, [program])
 
+  // Helper function to calculate actual date from program start date, week, and day
+  const calculateDateForDay = (startDate, weekNumber, dayNumber) => {
+    if (!startDate) return null
+    const start = new Date(startDate)
+    const startDayOfWeek = start.getDay()
+    const startDay = startDayOfWeek === 0 ? 7 : startDayOfWeek // Convert to Monday=1, Sunday=7
+    const daysToAdd = (weekNumber - 1) * 7 + (dayNumber - startDay)
+    const date = new Date(start)
+    date.setDate(start.getDate() + daysToAdd)
+    return date
+  }
+
+  // Format date for display
+  const formatDateDisplay = (date) => {
+    if (!date) return null
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric'
+    })
+  }
+
   // Calculate total days in program
   const totalDays = currentProgram.duration_weeks * 7
   const daysPerWeek = 7
@@ -1387,6 +1447,13 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                       const dayNumber = (weekNum - 1) * 7 + dayNum
                       const dayWorkouts = weekWorkouts[dayNum] || []
                       
+                      // Calculate actual date for this day
+                      const dayDate = currentProgram.start_date 
+                        ? calculateDateForDay(currentProgram.start_date, weekNum, dayNum)
+                        : null
+                      const dateDisplay = dayDate ? formatDateDisplay(dayDate) : null
+                      const dayName = dayDate ? dayDate.toLocaleDateString('en-US', { weekday: 'short' }) : null
+                      
                       return (
                         <Paper
                           key={`week-${weekNum}-day-${dayNum}`}
@@ -1420,7 +1487,14 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                         >
                           <Stack gap="xs">
                             <Group justify="space-between">
-                              <Text fw={700} size="sm" c="gray.3">DAY {dayNumber}</Text>
+                              {dateDisplay ? (
+                                <Stack gap={0}>
+                                  <Text fw={700} size="sm" c="gray.3">{dayName?.toUpperCase()}</Text>
+                                  <Text fw={500} size="xs" c="gray.5">{dateDisplay}</Text>
+                                </Stack>
+                              ) : (
+                                <Text fw={700} size="sm" c="gray.3">DAY {dayNumber}</Text>
+                              )}
                               {isTrainer && dayWorkouts.length === 0 && (
                                 <Text size="xs" c="gray.5">+</Text>
                               )}
