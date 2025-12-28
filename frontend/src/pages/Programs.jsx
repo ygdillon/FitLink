@@ -2593,14 +2593,27 @@ function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumbe
 
 // Workout Actions Modal Component
 function WorkoutActionsModal({ opened, onClose, program, workout, workoutId, weekNumber, dayNumber, assignedClients, onEdit, onCopy, onRepeat, onSchedule }) {
+  // Store workout in local state to handle async state updates
+  const [localWorkout, setLocalWorkout] = useState(workout)
+  
   useEffect(() => {
-    console.log('[DEBUG] WorkoutActionsModal state changed - opened:', opened, 'workout:', workout, 'assignedClients:', assignedClients)
-  }, [opened, workout, assignedClients])
+    // Update local workout when prop changes
+    if (workout) {
+      console.log('[DEBUG] WorkoutActionsModal received workout prop:', workout)
+      setLocalWorkout(workout)
+    }
+  }, [workout])
+  
+  useEffect(() => {
+    console.log('[DEBUG] WorkoutActionsModal state changed - opened:', opened, 'workout:', workout, 'localWorkout:', localWorkout, 'assignedClients:', assignedClients)
+  }, [opened, workout, localWorkout, assignedClients])
 
-  const workoutName = workout?.workout_name || workout?.workoutName || 'Untitled'
+  // Use local workout if available, otherwise fall back to prop
+  const displayWorkout = localWorkout || workout
+  const workoutName = displayWorkout?.workout_name || displayWorkout?.workoutName || 'Untitled'
   const hasAssignedClients = assignedClients && assignedClients.length > 0
   
-  console.log('[DEBUG] WorkoutActionsModal render - opened:', opened, 'workoutName:', workoutName)
+  console.log('[DEBUG] WorkoutActionsModal render - opened:', opened, 'workoutName:', workoutName, 'displayWorkout:', displayWorkout)
   
   return (
     <Modal opened={opened} onClose={onClose} title="What would you like to do?" size="md" centered>
