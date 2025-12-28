@@ -377,9 +377,9 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
     }
 
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`)
-    updateValues.push(id)
 
     if (updateFields.length > 1) { // More than just updated_at
+      updateValues.push(id)
       await client.query(
         `UPDATE programs 
          SET ${updateFields.join(', ')}
