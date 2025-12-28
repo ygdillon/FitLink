@@ -1590,13 +1590,19 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
               setSavedWorkout(workoutToSave)
               savedWorkoutRef.current = workoutToSave
               
-              // Force state update by using a callback
-              console.log('[DEBUG] About to call openWorkoutActions, current state:', workoutActionsOpened)
-              openWorkoutActions()
+              // Force state update - use functional update to ensure we get latest state
+              console.log('[DEBUG] About to set workoutActionsOpened to true')
+              setWorkoutActionsOpened(prev => {
+                console.log('[DEBUG] setWorkoutActionsOpened functional update, prev:', prev, 'returning true')
+                return true
+              })
+              
+              // Also set workout state one more time
+              setSavedWorkout(workoutToSave)
               
               // Double-check state after opening
               setTimeout(() => {
-                console.log('[DEBUG] After openWorkoutActions, checking if modal should be open')
+                console.log('[DEBUG] After state update, workoutActionsOpened should be true')
               }, 50)
             }, 300)
           })
