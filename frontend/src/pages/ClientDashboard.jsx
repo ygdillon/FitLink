@@ -1,11 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Modal } from '@mantine/core'
+import { useState, useEffect, useMemo } from 'react'
+import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal } from '@mantine/core'
+import { useNavigate } from 'react-router-dom'
 import { Calendar } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
 import './ClientDashboard.css'
 
 function ClientDashboard() {
+  const navigate = useNavigate()
+  const [programs, setPrograms] = useState([])
   const [upcomingSessions, setUpcomingSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
@@ -18,13 +21,82 @@ function ClientDashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true)
+      // Fetch assigned programs
+      const programsRes = await api.get('/programs/client/assigned').catch(() => ({ data: [] }))
+      const assignedPrograms = programsRes.data || []
+      
+      // Fetch full program details with workouts for each program
+      const programsWithDetails = await Promise.all(
+        assignedPrograms.map(async (program) => {
+          try {
+            const fullProgramRes = await api.get(`/programs/${program.id}`)
+            return fullProgramRes.data || program
+          } catch (error) {
+            console.error(`Error fetching program ${program.id}:`, error)
+            return program
+          }
+        })
+      )
+      
+      setPrograms(programsWithDetails)
+      
+      // Fetch upcoming sessions
       const sessionsRes = await api.get('/schedule/client/upcoming').catch(() => ({ data: [] }))
-      const sessions = sessionsRes.data || []
-      setUpcomingSessions(sessions)
+      setUpcomingSessions(sessionsRes.data || [])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Get today's workout from assigned programs
+  const getTodaysWorkout = useMemo(() => {
+    if (!programs.length) return null
+    
+    const today = new Date()
+    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const dayNumber = dayOfWeek === 0 ? 7 : dayOfWeek // Convert to 1-7 (Monday-Sunday)
+    
+    // Find the current week in each program
+    for (const program of programs) {
+      if (!program.workouts || !program.workouts.length) continue
+      
+      // Calculate which week we're in (simplified - assumes program started at assignment)
+      // For MVP, we'll just check if there's a workout for today's day of week in week 1
+      // In production, this would calculate based on program start date
+      const todaysWorkouts = program.workouts.filter(w => 
+        w.week_number === 1 && w.day_number === dayNumber
+      )
+      
+      if (todaysWorkouts.length > 0) {
+        return {
+          program: program,
+          workout: todaysWorkouts[0],
+          programId: program.id
+        }
+      }
+    }
+    
+    return null
+  }, [programs])
+
+  // Calculate program progress
+  const getProgramStats = (program) => {
+    if (!program.workouts || !program.workouts.length) {
+      return { completed: 0, total: 0, percentage: 0 }
+    }
+    
+    // For MVP, we'll just show total workouts
+    // In production, this would check completion status
+    const total = program.workouts.length
+    const completed = 0 // TODO: Get from workout completions
+    
+    return {
+      completed,
+      total,
+      percentage: total > 0 ? Math.round((completed / total) * 100) : 0
     }
   }
 
@@ -33,7 +105,6 @@ function ClientDashboard() {
     const grouped = new Map()
     upcomingSessions.forEach(session => {
       if (session.session_date) {
-        // Extract date part directly from ISO string (YYYY-MM-DD)
         const dateStr = session.session_date.trim()
         const dateKey = dateStr.split('T')[0].split(' ')[0]
         
@@ -46,8 +117,7 @@ function ClientDashboard() {
     return grouped
   }, [upcomingSessions])
 
-  // Get sessions for a specific date
-  const getSessionsForDate = useCallback((date) => {
+  const getSessionsForDate = (date) => {
     if (!date) return []
     try {
       const year = date.getFullYear()
@@ -58,35 +128,8 @@ function ClientDashboard() {
     } catch (error) {
       return []
     }
-  }, [sessionsByDate])
+  }
 
-  // Format date key from Date object
-  const getDateKey = useCallback((date) => {
-    if (!date) return null
-    
-    // Ensure date is a Date object
-    let dateObj = date
-    if (!(date instanceof Date)) {
-      // Try to convert if it's a string or number
-      if (typeof date === 'string' || typeof date === 'number') {
-      dateObj = new Date(date)
-      } else {
-        return null
-      }
-    }
-    
-    // Validate the date
-    if (isNaN(dateObj.getTime())) {
-      return null
-    }
-    
-      const year = dateObj.getFullYear()
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0')
-      const day = String(dateObj.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }, [])
-
-  // Handle date click
   const handleDateClick = (date) => {
     if (!date) return
     const sessions = getSessionsForDate(date)
@@ -96,121 +139,18 @@ function ClientDashboard() {
     }
   }
 
-  // Render custom day content using Mantine's renderDay prop
-  const renderDay = useCallback((date) => {
-    // Ensure date is a Date object
-    let dateObj = date
-    if (!(date instanceof Date)) {
-      if (typeof date === 'string' || typeof date === 'number') {
-        dateObj = new Date(date)
-      } else {
-        return null
-      }
+  const handleStartWorkout = () => {
+    if (getTodaysWorkout && getTodaysWorkout.workout.id) {
+      navigate(`/client/workout/${getTodaysWorkout.workout.id}`)
+    } else if (getTodaysWorkout) {
+      // If workout doesn't have an ID yet, navigate to program view first
+      handleViewProgram(getTodaysWorkout.programId)
     }
-    
-    if (isNaN(dateObj.getTime())) {
-      return null
-    }
-    
-    const dateKey = getDateKey(dateObj)
-    if (!dateKey) {
-      // Fallback: just return the day number
-      return dateObj.getDate()
-    }
-      
-      const sessions = sessionsByDate.get(dateKey) || []
-      const hasSessions = sessions.length > 0
-      
-      // Format session times for display
-      const sessionTimes = sessions.map(session => {
-        if (session.session_time) {
-          const [hours, minutes] = session.session_time.split(':')
-          const hour = parseInt(hours)
-          const ampm = hour >= 12 ? 'PM' : 'AM'
-          const displayHour = hour % 12 || 12
-          return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
-        }
-        return null
-      }).filter(Boolean).slice(0, 2)
-      
-      const sessionTimesStr = sessionTimes.join(', ')
-      const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
-      
-    return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'flex-start', 
-        justifyContent: 'flex-start',
-        width: '100%',
-        height: '100%',
-        padding: '0.25rem'
-      }}>
-        <div 
-          className="calendar-day-number"
-          style={{ 
-            fontWeight: 600, 
-            fontSize: '0.85rem', 
-            marginBottom: '0.1rem', 
-            lineHeight: 1.2,
-            position: 'relative',
-          }}
-        >
-          {dateObj.getDate()}
-        </div>
-        {hasSessions && (
-          <div className="session-times" style={{
-            fontSize: '0.6rem',
-            lineHeight: 1.1,
-            color: 'rgba(34, 197, 94, 0.95)',
-            fontWeight: 500,
-            marginTop: '0.1rem',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            width: '100%'
-          }}>
-            {sessionTimesStr}
-            {extraCount > 0 && ` +${extraCount}`}
-          </div>
-        )}
-      </div>
-    )
-  }, [sessionsByDate, getDateKey])
+  }
 
-  // Get day props for styling
-  const getDayProps = useCallback((date) => {
-    // Ensure date is a Date object
-    let dateObj = date
-    if (!(date instanceof Date)) {
-      if (typeof date === 'string' || typeof date === 'number') {
-        dateObj = new Date(date)
-      } else {
-        return { style: { cursor: 'pointer' } }
-      }
-    }
-    
-    if (isNaN(dateObj.getTime())) {
-      return { style: { cursor: 'pointer' } }
-    }
-    
-    const dateKey = getDateKey(dateObj)
-    if (!dateKey) return { style: { cursor: 'pointer' } }
-
-    const sessions = sessionsByDate.get(dateKey) || []
-    const hasSessions = sessions.length > 0
-
-    return {
-        style: {
-          cursor: 'pointer',
-          position: 'relative',
-          ...(hasSessions ? {
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-          } : {}),
-        },
-      }
-  }, [sessionsByDate, getDateKey])
+  const handleViewProgram = (programId) => {
+    navigate(`/programs?id=${programId}`)
+  }
 
   if (loading) {
     return (
@@ -226,68 +166,184 @@ function ClientDashboard() {
 
   return (
     <Container size="xl" py="md">
-      <Title order={1} mb="md">My Space</Title>
+      <Title order={1} mb="xl">My Dashboard</Title>
 
-      <Paper p="md" shadow="sm" withBorder>
-        <Title order={3} mb="md">Upcoming Sessions</Title>
-        {upcomingSessions.length === 0 ? (
-          <Stack gap="xs" align="center" justify="center" style={{ minHeight: '400px' }}>
-            <Text c="dimmed" size="lg">No upcoming sessions scheduled</Text>
-            <Text size="sm" c="dimmed">Your trainer will schedule sessions for you</Text>
-          </Stack>
+      <Stack gap="xl">
+        {/* Today's Workout - Prominent Card */}
+        {getTodaysWorkout ? (
+          <Card shadow="lg" padding="xl" radius="md" withBorder style={{ 
+            background: 'linear-gradient(135deg, var(--mantine-color-green-6) 0%, var(--mantine-color-green-7) 100%)',
+            border: 'none'
+          }}>
+            <Stack gap="md">
+              <Group justify="space-between" align="flex-start">
+                <Stack gap="xs">
+                  <Badge size="lg" variant="light" color="white">
+                    Today's Workout
+                  </Badge>
+                  <Title order={2} c="white" fw={700}>
+                    {getTodaysWorkout.workout.workout_name}
+                  </Title>
+                  <Text c="white" opacity={0.9}>
+                    {getTodaysWorkout.program.name}
+                  </Text>
+                </Stack>
+                <Group>
+                  {getTodaysWorkout.workout.exercises && (
+                    <Badge size="lg" variant="filled" color="white" c="green">
+                      {getTodaysWorkout.workout.exercises.length} exercises
+                    </Badge>
+                  )}
+                </Group>
+              </Group>
+              
+              <Divider color="white" opacity={0.3} />
+              
+              <Group>
+                <Button 
+                  size="lg" 
+                  variant="white" 
+                  color="green"
+                  onClick={handleStartWorkout}
+                  style={{ flex: 1 }}
+                >
+                  Start Workout
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  color="white"
+                  onClick={() => handleViewProgram(getTodaysWorkout.programId)}
+                >
+                  View Program
+                </Button>
+              </Group>
+            </Stack>
+          </Card>
         ) : (
-          <div className="client-calendar-wrapper">
-            <Calendar
-              value={null}
-              month={displayedMonth}
-              onMonthChange={setDisplayedMonth}
-              onChange={handleDateClick}
-              renderDay={renderDay}
-              getDayProps={getDayProps}
-              styles={{
-                calendar: {
-                  width: '100%',
-                },
-                month: {
-                  width: '100%',
-                },
-                weekday: {
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  paddingBottom: '0.5rem',
-                  paddingTop: '0.25rem',
-                  textAlign: 'center',
-                  color: 'var(--mantine-color-gray-6)',
-                },
-                day: {
-                  fontSize: '0.85rem',
-                  height: '4rem',
-                  minHeight: '4rem',
-                  width: '100%',
-                  borderRadius: 0,
-                  border: 'none',
-                  margin: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  padding: 0,
-                  transition: 'background-color 0.15s ease',
-                  position: 'relative',
-                },
-                cell: {
-                  border: 'none',
-                  margin: 0,
-                  padding: 0,
-                  width: 'calc(100% / 7)',
-                },
-              }}
-              size="md"
-              fullWidth
-            />
-          </div>
+          <Card shadow="sm" padding="xl" radius="md" withBorder>
+            <Stack gap="md" align="center">
+              <Text size="lg" fw={500} c="dimmed">No workout scheduled for today</Text>
+              <Text size="sm" c="dimmed">Check your program schedule or wait for your trainer to assign workouts</Text>
+              {programs.length > 0 && (
+                <Button onClick={() => navigate('/programs')} color="green">
+                  View My Programs
+                </Button>
+              )}
+            </Stack>
+          </Card>
         )}
-      </Paper>
+
+        {/* Assigned Programs */}
+        {programs.length > 0 && (
+          <Paper p="md" shadow="sm" withBorder>
+            <Group justify="space-between" mb="md">
+              <Title order={3}>My Programs</Title>
+              <Button variant="light" size="sm" onClick={() => navigate('/programs')}>
+                View All
+              </Button>
+            </Group>
+            
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+              {programs.slice(0, 3).map(program => {
+                const stats = getProgramStats(program)
+                return (
+                  <Card key={program.id} shadow="sm" padding="md" radius="md" withBorder>
+                    <Stack gap="sm">
+                      <Group justify="space-between">
+                        <Title order={4} lineClamp={1}>{program.name}</Title>
+                        {program.split_type && (
+                          <Badge size="sm" variant="outline">{program.split_type}</Badge>
+                        )}
+                      </Group>
+                      
+                      {program.description && (
+                        <Text size="sm" c="dimmed" lineClamp={2}>
+                          {program.description}
+                        </Text>
+                      )}
+                      
+                      <Stack gap="xs">
+                        <Group justify="space-between">
+                          <Text size="xs" c="dimmed">Progress</Text>
+                          <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
+                        </Group>
+                        <Progress value={stats.percentage} size="sm" color="green" />
+                      </Stack>
+                      
+                      <Group gap="xs">
+                        <Text size="xs" c="dimmed">
+                          {program.duration_weeks} weeks
+                        </Text>
+                        {program.workout_count && (
+                          <>
+                            <Text size="xs" c="dimmed">•</Text>
+                            <Text size="xs" c="dimmed">
+                              {program.workout_count} workouts
+                            </Text>
+                          </>
+                        )}
+                      </Group>
+                      
+                      <Button 
+                        variant="light" 
+                        size="sm"
+                        fullWidth
+                        onClick={() => handleViewProgram(program.id)}
+                      >
+                        View Program
+                      </Button>
+                    </Stack>
+                  </Card>
+                )
+              })}
+            </SimpleGrid>
+            
+            {programs.length > 3 && (
+              <Group justify="center" mt="md">
+                <Button variant="subtle" onClick={() => navigate('/programs')}>
+                  View {programs.length - 3} more program{programs.length - 3 > 1 ? 's' : ''}
+                </Button>
+              </Group>
+            )}
+          </Paper>
+        )}
+
+
+        {/* Upcoming Sessions Calendar */}
+        <Paper p="md" shadow="sm" withBorder>
+          <Title order={3} mb="md">Upcoming Sessions</Title>
+          {upcomingSessions.length === 0 ? (
+            <Stack gap="xs" align="center" justify="center" style={{ minHeight: '300px' }}>
+              <Text c="dimmed" size="lg">No upcoming sessions scheduled</Text>
+              <Text size="sm" c="dimmed">Your trainer will schedule sessions for you</Text>
+            </Stack>
+          ) : (
+            <div className="client-calendar-wrapper">
+              <Calendar
+                value={null}
+                month={displayedMonth}
+                onMonthChange={setDisplayedMonth}
+                onChange={handleDateClick}
+                styles={{
+                  calendar: { width: '100%' },
+                  month: { width: '100%' },
+                  weekday: {
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    paddingBottom: '0.5rem',
+                    paddingTop: '0.25rem',
+                    textAlign: 'center',
+                    color: 'var(--mantine-color-gray-6)',
+                  },
+                }}
+                size="md"
+                fullWidth
+              />
+            </div>
+          )}
+        </Paper>
+      </Stack>
 
       {/* Session Details Modal */}
       <Modal

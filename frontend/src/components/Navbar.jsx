@@ -11,6 +11,7 @@ import {
   Avatar,
   useMantineTheme
 } from '@mantine/core'
+import { IconBook, IconBarbell, IconTrendingUp, IconClipboardCheck } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import api from '../services/api'
@@ -214,7 +215,15 @@ function Navbar({ children }) {
                   component={NavLink}
                   to="/programs"
                   label="Programs"
-          leftSection={<WorkoutIcon />}
+          leftSection={<IconBook size={18} />}
+          className="nav-link"
+          style={{ padding: '0.5rem 0.75rem' }}
+                />
+                <MantineNavLink
+                  component={NavLink}
+                  to="/client/workouts"
+                  label="Workouts"
+          leftSection={<IconBarbell size={18} />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
                 />
@@ -222,7 +231,7 @@ function Navbar({ children }) {
                   component={NavLink}
                   to="/client/progress"
                   label="Progress"
-          leftSection={<WorkoutIcon />}
+          leftSection={<IconTrendingUp size={18} />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
                 />
@@ -230,7 +239,7 @@ function Navbar({ children }) {
                   component={NavLink}
                   to="/check-in"
                   label="Check-in"
-          leftSection={<WorkoutIcon />}
+          leftSection={<IconClipboardCheck size={18} />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
                 />

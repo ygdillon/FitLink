@@ -33,6 +33,7 @@ import TrainerProfile from './pages/TrainerProfile'
 import Programs from './pages/Programs'
 import ProgramBuilder from './pages/ProgramBuilder'
 import NutritionBuilder from './pages/NutritionBuilder'
+import ActiveWorkout from './pages/ActiveWorkout'
 
 // Components
 import Navbar from './components/Navbar'
@@ -64,6 +65,7 @@ function AppRoutes() {
           <Route path="/client/onboarding" element={<ClientOnboarding />} />
           <Route path="/client" element={<ClientDashboard />} />
           <Route path="/client/workouts" element={<ClientWorkouts />} />
+          <Route path="/client/workout/:workoutId" element={<ActiveWorkout />} />
           <Route path="/client/progress" element={<ProgressTracking />} />
           <Route path="/client/nutrition" element={<ClientNutrition />} />
         </Route>

@@ -1020,6 +1020,7 @@ function ClientProgramsView({ programs, onViewProgram, selectedProgram, programV
 
 // Program Calendar View Component (similar to the design shown)
 function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpdate }) {
+  const navigate = useNavigate()
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedWeek, setSelectedWeek] = useState(1)
   const [workoutModalOpened, { open: openWorkoutModal, close: closeWorkoutModal }] = useDisclosure(false)
@@ -1050,8 +1051,14 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   })
 
   const handleClientWorkoutClick = (workout) => {
-    setEditingWorkout(workout)
-    openWorkoutModal()
+    // Navigate to active workout page for better UX
+    if (workout.id) {
+      navigate(`/client/workout/${workout.id}`)
+    } else {
+      // Fallback to log modal if workout doesn't have ID
+      setEditingWorkout(workout)
+      openWorkoutModal()
+    }
   }
 
   const handleWeekNameEdit = (weekNum) => {
