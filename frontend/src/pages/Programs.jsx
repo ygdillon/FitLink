@@ -1300,6 +1300,7 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const [sessionSchedulingOpened, { open: openSessionScheduling, close: closeSessionScheduling }] = useDisclosure(false)
   const [savedWorkoutId, setSavedWorkoutId] = useState(null)
   const [savedWorkout, setSavedWorkout] = useState(null)
+  const savedWorkoutRef = useRef(null) // Use ref to store workout for immediate access
   const [assignedClients, setAssignedClients] = useState([])
   const [workoutActionsOpened, { open: openWorkoutActions, close: closeWorkoutActions }] = useDisclosure(false)
   const [copyWorkoutOpened, { open: openCopyWorkout, close: closeCopyWorkout }] = useDisclosure(false)
@@ -1878,7 +1879,7 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           opened={workoutActionsOpened}
           onClose={closeWorkoutActions}
           program={currentProgram}
-          workout={savedWorkout}
+          workout={savedWorkout || savedWorkoutRef.current}
           workoutId={savedWorkoutId}
           weekNumber={selectedWeek}
           dayNumber={selectedDay}
