@@ -62,6 +62,16 @@ function ClientNutrition({ clientId, clientName }) {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [logModalTab, setLogModalTab] = useState('search')
   const [recentFoods, setRecentFoods] = useState([])
+  const [weeklyMealData, setWeeklyMealData] = useState(null)
+  const [recommendedMeals, setRecommendedMeals] = useState({ assigned: [], flexible: {} })
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const monday = new Date(today.setDate(diff))
+    monday.setHours(0, 0, 0, 0)
+    return monday
+  })
   
   // Determine if this is trainer view (has clientId prop) or client view
   const isTrainerView = !!clientId
@@ -92,7 +102,11 @@ function ClientNutrition({ clientId, clientName }) {
     if (targetUserId && activeTab === 'history') {
       fetchHistoryData()
     }
-  }, [targetUserId, activeTab])
+    if (targetUserId && activeTab === 'meals') {
+      fetchWeeklyMealData()
+      fetchRecommendedMeals()
+    }
+  }, [targetUserId, activeTab, currentWeekStart])
 
   const fetchNutritionData = async () => {
     try {
@@ -188,6 +202,58 @@ function ClientNutrition({ clientId, clientName }) {
       setHistoryData(totalsRes.data || [])
     } catch (error) {
       console.error('Error fetching history data:', error)
+    }
+  }
+
+  const fetchWeeklyMealData = async () => {
+    try {
+      const weekStartStr = currentWeekStart.toISOString().split('T')[0]
+      const result = await api.get('/nutrition/meals/weekly', {
+        params: { week_start: weekStartStr }
+      }).catch(() => ({ data: null }))
+      
+      setWeeklyMealData(result.data)
+    } catch (error) {
+      console.error('Error fetching weekly meal data:', error)
+    }
+  }
+
+  const fetchRecommendedMeals = async () => {
+    try {
+      const result = await api.get('/nutrition/meals/recommended').catch(() => ({ data: { assigned: [], flexible: {} } }))
+      setRecommendedMeals(result.data)
+    } catch (error) {
+      console.error('Error fetching recommended meals:', error)
+    }
+  }
+
+  const handleSelectMeal = async (meal, mealSlot) => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      await api.post('/nutrition/meals/select', {
+        recommendation_id: meal.id,
+        recipe_id: meal.recipe_id,
+        selected_date: today,
+        meal_category: meal.meal_category,
+        meal_slot: mealSlot,
+        servings: 1.0
+      })
+      
+      notifications.show({
+        title: 'Success',
+        message: 'Meal added to your plan',
+        color: 'green'
+      })
+      
+      fetchWeeklyMealData()
+      fetchRecommendedMeals()
+    } catch (error) {
+      console.error('Error selecting meal:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to add meal',
+        color: 'red'
+      })
     }
   }
 
@@ -574,72 +640,241 @@ function ClientNutrition({ clientId, clientName }) {
           {/* Meals Tab */}
           <Tabs.Panel value="meals" pt="xl">
             <Stack gap="xl">
-              {/* Active Plan Info */}
-              <Card withBorder p="md">
-                <Group justify="space-between">
-                  <Box>
-                    <Text fw={600} size="lg" mb="xs">{nutritionPlan.plan_name}</Text>
-                    <Badge variant="light" mb="xs">
-                      {nutritionPlan.nutrition_approach?.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                    <Text size="sm" c="dimmed">
-                      Started: {new Date(nutritionPlan.start_date || nutritionPlan.created_at).toLocaleDateString()}
-                    </Text>
-                  </Box>
+              {/* Header with Week Selector */}
+              <Group justify="space-between" align="center">
+                <Group gap="md">
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={() => {
+                      const newDate = new Date(currentWeekStart)
+                      newDate.setDate(newDate.getDate() - 7)
+                      setCurrentWeekStart(newDate)
+                    }}
+                  >
+                    &lt;
+                  </Button>
+                  <Text fw={600}>
+                    {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {
+                      new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    }
+                  </Text>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={() => {
+                      const newDate = new Date(currentWeekStart)
+                      newDate.setDate(newDate.getDate() + 7)
+                      setCurrentWeekStart(newDate)
+                    }}
+                  >
+                    &gt;
+                  </Button>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date()
+                      const dayOfWeek = today.getDay()
+                      const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+                      const monday = new Date(today.setDate(diff))
+                      monday.setHours(0, 0, 0, 0)
+                      setCurrentWeekStart(monday)
+                    }}
+                  >
+                    This Week
+                  </Button>
                 </Group>
-              </Card>
+                {!isTrainerView && (
+                  <Button leftSection={<IconPlus size={16} />} variant="light">
+                    Shopping List
+                  </Button>
+                )}
+              </Group>
 
-              {/* Weekly Meal Plan */}
-              {nutritionPlan?.meals && nutritionPlan.meals.length > 0 ? (
-                <Paper p="md" withBorder>
-                  <Title order={3} mb="md">Weekly Meal Plan</Title>
-                  <Stack gap="lg">
-                    {[1, 2, 3, 4, 5, 6, 7].map(dayNum => {
-                      const dayMeals = nutritionPlan.meals.filter(m => m.day_number === dayNum)
-                      if (dayMeals.length === 0) return null
-
-                      return (
-                        <Card key={dayNum} withBorder p="md">
-                          <Text fw={600} mb="sm">
-                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayNum - 1]}
-                          </Text>
-                          <Stack gap="sm">
-                            {dayMeals.map(meal => (
-                              <Card key={meal.id} withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
-                                <Group justify="space-between" mb="xs">
-                                  <Text fw={500}>
-                                    {meal.meal_name} {meal.meal_time && `(${meal.meal_time})`}
-                                  </Text>
-                                  <Badge size="sm">
-                                    {meal.target_calories} cal
-                                  </Badge>
-                                </Group>
-                                {meal.foods && meal.foods.length > 0 && (
-                                  <Text size="sm" c="dimmed">
-                                    {meal.foods.map(f => `${f.food_name} (${f.quantity}${f.unit})`).join(', ')}
-                                  </Text>
-                                )}
-                                <Text size="xs" c="dimmed" mt="xs">
-                                  P:{meal.target_protein}g C:{meal.target_carbs}g F:{meal.target_fats}g
-                                </Text>
-                              </Card>
-                            ))}
-                          </Stack>
-                        </Card>
-                      )
-                    })}
-                  </Stack>
-                </Paper>
-              ) : (
-                <Paper p="xl" withBorder>
-                  <Stack gap="xs" align="center">
-                    <Text c="dimmed">No meal plan structure available</Text>
-                    <Text size="sm" c="dimmed">
-                      Your plan uses {nutritionPlan.nutrition_approach?.replace('_', ' ')} approach
-                    </Text>
-                  </Stack>
-                </Paper>
+              {/* Weekly Nutrition Averages */}
+              {weeklyMealData?.weekly_averages && (
+                <Card withBorder p="md">
+                  <Text fw={600} mb="md">Weekly Nutrition Averages</Text>
+                  <SimpleGrid cols={4} spacing="md">
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Calories</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.calories} cal</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Protein</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.protein} g</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Carbs</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.carbs} g</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Fats</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.fats} g</Text>
+                    </Box>
+                  </SimpleGrid>
+                  <Text size="sm" c="dimmed" mt="sm">
+                    {weeklyMealData.weekly_averages.days_logged} of 7 days logged
+                  </Text>
+                </Card>
               )}
+
+              {/* Today's Meals Section */}
+              <Paper p="md" withBorder>
+                <Title order={3} mb="md">Today</Title>
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+                  {['breakfast', 'lunch', 'dinner', 'snack'].map(mealSlot => {
+                    // Get assigned meal for today
+                    const todayDayNum = new Date().getDay() || 7
+                    const assignedMeal = nutritionPlan?.meals?.find(m => 
+                      m.day_number === todayDayNum && 
+                      m.meal_name?.toLowerCase().includes(mealSlot)
+                    )
+                    
+                    // Get client selection for today
+                    const todayStr = new Date().toISOString().split('T')[0]
+                    const selectedMeal = weeklyMealData?.client_selections?.find(s => 
+                      s.selected_date === todayStr && 
+                      s.meal_slot === mealSlot
+                    )
+
+                    // Get flexible recommendations for this category
+                    const flexibleMeals = recommendedMeals.flexible[mealSlot] || []
+
+                    return (
+                      <Card key={mealSlot} withBorder p="md">
+                        <Text fw={600} mb="sm" tt="capitalize">{mealSlot}</Text>
+                        
+                        {/* Show assigned or selected meal */}
+                        {(assignedMeal || selectedMeal) ? (
+                          <Box>
+                            {selectedMeal?.recipe_name && (
+                              <>
+                                <Text size="sm" fw={500} mb="xs">{selectedMeal.recipe_name}</Text>
+                                <Group gap="xs" mb="xs">
+                                  <Badge size="sm" variant="light">
+                                    {Math.round(selectedMeal.actual_calories || 0)} cal
+                                  </Badge>
+                                  <Text size="xs" c="dimmed">
+                                    P:{Math.round(selectedMeal.actual_protein || 0)}g C:{Math.round(selectedMeal.actual_carbs || 0)}g F:{Math.round(selectedMeal.actual_fats || 0)}g
+                                  </Text>
+                                </Group>
+                              </>
+                            )}
+                            {assignedMeal && !selectedMeal && (
+                              <>
+                                <Text size="sm" fw={500} mb="xs">{assignedMeal.meal_name}</Text>
+                                <Group gap="xs">
+                                  <Badge size="sm" variant="light">
+                                    {Math.round(assignedMeal.target_calories || 0)} cal
+                                  </Badge>
+                                  <Text size="xs" c="dimmed">
+                                    P:{Math.round(assignedMeal.target_protein || 0)}g C:{Math.round(assignedMeal.target_carbs || 0)}g F:{Math.round(assignedMeal.target_fats || 0)}g
+                                  </Text>
+                                </Group>
+                              </>
+                            )}
+                            {!isTrainerView && (
+                              <Button size="xs" variant="light" mt="xs" fullWidth>
+                                Swap Meal
+                              </Button>
+                            )}
+                          </Box>
+                        ) : (
+                          <Box>
+                            <Text size="sm" c="dimmed" mb="sm">No meal assigned</Text>
+                            {flexibleMeals.length > 0 && !isTrainerView && (
+                              <Stack gap="xs">
+                                <Text size="xs" fw={500}>Recommended:</Text>
+                                {flexibleMeals.slice(0, 2).map(meal => (
+                                  <Card key={meal.id} p="xs" withBorder style={{ cursor: 'pointer' }} onClick={() => handleSelectMeal(meal, mealSlot)}>
+                                    <Text size="xs" fw={500}>{meal.recipe_name || meal.meal_name}</Text>
+                                    <Text size="xs" c="dimmed">
+                                      {Math.round(meal.calories_per_serving || 0)} cal
+                                    </Text>
+                                  </Card>
+                                ))}
+                                {flexibleMeals.length > 2 && (
+                                  <Text size="xs" c="dimmed" ta="center">+{flexibleMeals.length - 2} more</Text>
+                                )}
+                              </Stack>
+                            )}
+                          </Box>
+                        )}
+                      </Card>
+                    )
+                  })}
+                </SimpleGrid>
+              </Paper>
+
+              {/* Weekly View */}
+              <Paper p="md" withBorder>
+                <Title order={3} mb="md">This Week</Title>
+                <Stack gap="lg">
+                  {[1, 2, 3, 4, 5, 6, 7].map(dayNum => {
+                    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayNum - 1]
+                    const dayMeals = nutritionPlan?.meals?.filter(m => m.day_number === dayNum) || []
+                    const daySelections = weeklyMealData?.client_selections?.filter(s => {
+                      const date = new Date(s.selected_date)
+                      return date.getDay() === (dayNum % 7)
+                    }) || []
+
+                    if (dayMeals.length === 0 && daySelections.length === 0) return null
+
+                    return (
+                      <Card key={dayNum} withBorder p="md">
+                        <Text fw={600} mb="sm">{dayName} (Day {dayNum})</Text>
+                        {dayMeals.length > 0 && (
+                          <Group gap="xs" mb="sm">
+                            <Text size="sm" c="dimmed">
+                              {Math.round(dayMeals.reduce((sum, m) => sum + (parseFloat(m.target_calories) || 0), 0))} cal | 
+                              P: {Math.round(dayMeals.reduce((sum, m) => sum + (parseFloat(m.target_protein) || 0), 0))}g | 
+                              C: {Math.round(dayMeals.reduce((sum, m) => sum + (parseFloat(m.target_carbs) || 0), 0))}g | 
+                              F: {Math.round(dayMeals.reduce((sum, m) => sum + (parseFloat(m.target_fats) || 0), 0))}g
+                            </Text>
+                          </Group>
+                        )}
+                        <Stack gap="sm">
+                          {dayMeals.map(meal => (
+                            <Card key={meal.id} withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+                              <Group justify="space-between" mb="xs">
+                                <Text fw={500} size="sm">
+                                  {meal.meal_name} {meal.meal_time && `(${meal.meal_time})`}
+                                </Text>
+                                <Badge size="sm" variant="light">
+                                  {Math.round(meal.target_calories || 0)} cal
+                                </Badge>
+                              </Group>
+                              {meal.foods && meal.foods.length > 0 && (
+                                <Text size="xs" c="dimmed">
+                                  {meal.foods.map(f => `${f.food_name} (${f.quantity}${f.unit})`).join(', ')}
+                                </Text>
+                              )}
+                              <Text size="xs" c="dimmed" mt="xs">
+                                P:{Math.round(meal.target_protein || 0)}g C:{Math.round(meal.target_carbs || 0)}g F:{Math.round(meal.target_fats || 0)}g
+                              </Text>
+                            </Card>
+                          ))}
+                          {daySelections.map(selection => (
+                            <Card key={selection.id} withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-dark-6)' }}>
+                              <Group justify="space-between">
+                                <Text fw={500} size="sm">{selection.recipe_name || 'Selected Meal'}</Text>
+                                <Badge size="sm" variant="light">
+                                  {Math.round(selection.actual_calories || 0)} cal
+                                </Badge>
+                              </Group>
+                              <Text size="xs" c="dimmed" mt="xs">
+                                P:{Math.round(selection.actual_protein || 0)}g C:{Math.round(selection.actual_carbs || 0)}g F:{Math.round(selection.actual_fats || 0)}g
+                              </Text>
+                            </Card>
+                          ))}
+                        </Stack>
+                      </Card>
+                    )
+                  })}
+                </Stack>
+              </Paper>
             </Stack>
           </Tabs.Panel>
 
