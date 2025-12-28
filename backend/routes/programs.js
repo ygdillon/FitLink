@@ -353,8 +353,8 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
            start_date = COALESCE($5, start_date),
            end_date = COALESCE($6, end_date),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5`,
-      [name, description, split_type, duration_weeks, id]
+       WHERE id = $7`,
+      [name, description, split_type, duration_weeks, start_date || null, end_date || null, id]
     )
 
     // If workouts are provided, update them
