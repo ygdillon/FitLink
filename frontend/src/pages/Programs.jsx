@@ -1297,7 +1297,11 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const [weekNameValue, setWeekNameValue] = useState('')
   const [sessionSchedulingOpened, { open: openSessionScheduling, close: closeSessionScheduling }] = useDisclosure(false)
   const [savedWorkoutId, setSavedWorkoutId] = useState(null)
+  const [savedWorkout, setSavedWorkout] = useState(null)
   const [assignedClients, setAssignedClients] = useState([])
+  const [workoutActionsOpened, { open: openWorkoutActions, close: closeWorkoutActions }] = useDisclosure(false)
+  const [copyWorkoutOpened, { open: openCopyWorkout, close: closeCopyWorkout }] = useDisclosure(false)
+  const [repeatWorkoutOpened, { open: openRepeatWorkout, close: closeRepeatWorkout }] = useDisclosure(false)
 
   // Update current program when program prop changes
   useEffect(() => {
@@ -1530,9 +1534,10 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       
       closeWorkoutModal()
       
-      // If trainer and workout was saved, show session scheduling modal
+      // If trainer and workout was saved, show workout actions modal
       if (isTrainer) {
-        // Set workout ID if found, otherwise we'll find it in the modal
+        // Set saved workout data
+        setSavedWorkout(savedWorkout || newWorkout)
         setSavedWorkoutId(savedWorkout?.id || null)
         
         // Fetch assigned clients for this program
@@ -1544,10 +1549,10 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           setAssignedClients([])
         }
         
-        // Always show session scheduling modal for trainers
+        // Show workout actions modal for trainers
         // Small delay to ensure workout modal closes first
         setTimeout(() => {
-          openSessionScheduling()
+          openWorkoutActions()
         }, 200)
       } else {
         notifications.show({
@@ -1841,6 +1846,63 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           onClose={closeWorkoutModal}
           workout={editingWorkout}
           programId={currentProgram.id}
+        />
+      )}
+
+      {/* Workout Actions Modal */}
+      {isTrainer && (
+        <WorkoutActionsModal
+          opened={workoutActionsOpened}
+          onClose={closeWorkoutActions}
+          program={currentProgram}
+          workout={savedWorkout}
+          workoutId={savedWorkoutId}
+          weekNumber={selectedWeek}
+          dayNumber={selectedDay}
+          assignedClients={assignedClients}
+          onEdit={() => {
+            closeWorkoutActions()
+            setEditingWorkout(savedWorkout)
+            openWorkoutModal()
+          }}
+          onCopy={() => {
+            closeWorkoutActions()
+            openCopyWorkout()
+          }}
+          onRepeat={() => {
+            closeWorkoutActions()
+            openRepeatWorkout()
+          }}
+          onSchedule={() => {
+            closeWorkoutActions()
+            openSessionScheduling()
+          }}
+          onProgramUpdate={onProgramUpdate}
+          setCurrentProgram={setCurrentProgram}
+        />
+      )}
+
+      {/* Copy Workout Modal */}
+      {isTrainer && (
+        <CopyWorkoutModal
+          opened={copyWorkoutOpened}
+          onClose={closeCopyWorkout}
+          program={currentProgram}
+          workout={savedWorkout}
+          onProgramUpdate={onProgramUpdate}
+          setCurrentProgram={setCurrentProgram}
+        />
+      )}
+
+      {/* Repeat Workout Modal */}
+      {isTrainer && (
+        <RepeatWorkoutModal
+          opened={repeatWorkoutOpened}
+          onClose={closeRepeatWorkout}
+          program={currentProgram}
+          workout={savedWorkout}
+          onProgramUpdate={onProgramUpdate}
+          setCurrentProgram={setCurrentProgram}
         />
       )}
 
@@ -2479,6 +2541,374 @@ function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumbe
                 Done
               </Button>
             )}
+          </Group>
+        </Stack>
+      </form>
+    </Modal>
+  )
+}
+
+// Workout Actions Modal Component
+function WorkoutActionsModal({ opened, onClose, program, workout, workoutId, weekNumber, dayNumber, assignedClients, onEdit, onCopy, onRepeat, onSchedule }) {
+  return (
+    <Modal opened={opened} onClose={onClose} title="What would you like to do?" size="md">
+      <Stack gap="md">
+        <Text size="sm" c="dimmed">
+          Workout "{workout?.workout_name || 'Untitled'}" has been saved successfully.
+        </Text>
+        
+        <Divider />
+        
+        <Stack gap="xs">
+          <Button
+            variant="light"
+            color="robinhoodGreen"
+            fullWidth
+            onClick={onSchedule}
+            leftSection={<Text size="lg">📅</Text>}
+            style={{ justifyContent: 'flex-start', height: 'auto', padding: '1rem' }}
+          >
+            <Stack gap={2} align="flex-start" style={{ width: '100%' }}>
+              <Text fw={500}>Schedule as Session</Text>
+              <Text size="xs" c="dimmed">Create training sessions for clients</Text>
+            </Stack>
+          </Button>
+          
+          <Button
+            variant="light"
+            color="blue"
+            fullWidth
+            onClick={onCopy}
+            leftSection={<Text size="lg">📋</Text>}
+            style={{ justifyContent: 'flex-start', height: 'auto', padding: '1rem' }}
+          >
+            <Stack gap={2} align="flex-start" style={{ width: '100%' }}>
+              <Text fw={500}>Copy to Another Day</Text>
+              <Text size="xs" c="dimmed">Duplicate this workout to a different day/week</Text>
+            </Stack>
+          </Button>
+          
+          <Button
+            variant="light"
+            color="violet"
+            fullWidth
+            onClick={onRepeat}
+            leftSection={<Text size="lg">🔄</Text>}
+            style={{ justifyContent: 'flex-start', height: 'auto', padding: '1rem' }}
+          >
+            <Stack gap={2} align="flex-start" style={{ width: '100%' }}>
+              <Text fw={500}>Repeat Workout</Text>
+              <Text size="xs" c="dimmed">Repeat this workout across multiple days</Text>
+            </Stack>
+          </Button>
+          
+          <Button
+            variant="light"
+            color="orange"
+            fullWidth
+            onClick={onEdit}
+            leftSection={<Text size="lg">✏️</Text>}
+            style={{ justifyContent: 'flex-start', height: 'auto', padding: '1rem' }}
+          >
+            <Stack gap={2} align="flex-start" style={{ width: '100%' }}>
+              <Text fw={500}>Edit Workout</Text>
+              <Text size="xs" c="dimmed">Make changes to this workout</Text>
+            </Stack>
+          </Button>
+        </Stack>
+        
+        <Divider />
+        
+        <Group justify="flex-end">
+          <Button variant="outline" onClick={onClose}>
+            Skip
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  )
+}
+
+// Copy Workout Modal Component
+function CopyWorkoutModal({ opened, onClose, program, workout, onProgramUpdate, setCurrentProgram }) {
+  const [loading, setLoading] = useState(false)
+  const form = useForm({
+    initialValues: {
+      targetWeek: 1,
+      targetDay: 1
+    }
+  })
+
+  const handleCopy = async (values) => {
+    if (!workout || !program) return
+
+    try {
+      setLoading(true)
+
+      // Get existing workouts
+      const existingWorkouts = program.workouts || []
+
+      // Create new workout based on the saved one
+      const newWorkout = {
+        workout_name: workout.workout_name || workout.workoutName || 'Copy of Workout',
+        day_number: values.targetDay,
+        week_number: values.targetWeek,
+        exercises: (workout.exercises || []).map((ex, idx) => ({
+          exercise_name: ex.exercise_name || ex.exerciseName || '',
+          exercise_type: ex.exercise_type || ex.exerciseType || 'REGULAR',
+          sets: ex.sets || null,
+          reps: ex.reps || null,
+          weight: ex.weight || null,
+          duration: ex.duration || null,
+          rest: ex.rest || null,
+          tempo: ex.tempo || null,
+          notes: ex.notes || null,
+          order_index: idx
+        }))
+      }
+
+      const updatedWorkouts = [...existingWorkouts, newWorkout]
+
+      // Update program via API
+      await api.put(`/programs/${program.id}`, {
+        name: program.name,
+        description: program.description,
+        split_type: program.split_type,
+        duration_weeks: program.duration_weeks,
+        workouts: updatedWorkouts
+      })
+
+      // Refresh program data
+      const response = await api.get(`/programs/${program.id}`)
+      setCurrentProgram(response.data)
+      
+      if (onProgramUpdate) {
+        onProgramUpdate(response.data)
+      }
+
+      notifications.show({
+        title: 'Success',
+        message: `Workout copied to Week ${values.targetWeek}, Day ${values.targetDay}`,
+        color: 'green',
+      })
+
+      onClose()
+    } catch (error) {
+      console.error('Error copying workout:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to copy workout',
+        color: 'red',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal opened={opened} onClose={onClose} title="Copy Workout to Another Day" size="md">
+      <form onSubmit={form.onSubmit(handleCopy)}>
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Select the week and day where you want to copy this workout.
+          </Text>
+
+          <NumberInput
+            label="Target Week"
+            description="Which week should this workout be copied to?"
+            min={1}
+            max={program?.duration_weeks || 12}
+            required
+            {...form.getInputProps('targetWeek')}
+          />
+
+          <Select
+            label="Target Day"
+            description="Which day of the week?"
+            data={[
+              { value: '1', label: 'Monday' },
+              { value: '2', label: 'Tuesday' },
+              { value: '3', label: 'Wednesday' },
+              { value: '4', label: 'Thursday' },
+              { value: '5', label: 'Friday' },
+              { value: '6', label: 'Saturday' },
+              { value: '7', label: 'Sunday' }
+            ]}
+            required
+            {...form.getInputProps('targetDay')}
+          />
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" color="robinhoodGreen" loading={loading}>
+              Copy Workout
+            </Button>
+          </Group>
+        </Stack>
+      </form>
+    </Modal>
+  )
+}
+
+// Repeat Workout Modal Component
+function RepeatWorkoutModal({ opened, onClose, program, workout, onProgramUpdate, setCurrentProgram }) {
+  const [loading, setLoading] = useState(false)
+  const form = useForm({
+    initialValues: {
+      repeatPattern: 'weekly', // weekly, same_day_each_week
+      startWeek: 1,
+      endWeek: program?.duration_weeks || 4,
+      dayOfWeek: workout?.day_number || 1
+    }
+  })
+
+  const handleRepeat = async (values) => {
+    if (!workout || !program) return
+
+    try {
+      setLoading(true)
+
+      const existingWorkouts = program.workouts || []
+      const newWorkouts = []
+
+      if (values.repeatPattern === 'weekly') {
+        // Repeat on the same day each week
+        for (let week = values.startWeek; week <= values.endWeek; week++) {
+          // Skip if workout already exists for this week/day
+          const exists = existingWorkouts.some(w => 
+            w.week_number === week && w.day_number === values.dayOfWeek
+          )
+          
+          if (!exists) {
+            newWorkouts.push({
+              workout_name: workout.workout_name || workout.workoutName || 'Workout',
+              day_number: values.dayOfWeek,
+              week_number: week,
+              exercises: (workout.exercises || []).map((ex, idx) => ({
+                exercise_name: ex.exercise_name || ex.exerciseName || '',
+                exercise_type: ex.exercise_type || ex.exerciseType || 'REGULAR',
+                sets: ex.sets || null,
+                reps: ex.reps || null,
+                weight: ex.weight || null,
+                duration: ex.duration || null,
+                rest: ex.rest || null,
+                tempo: ex.tempo || null,
+                notes: ex.notes || null,
+                order_index: idx
+              }))
+            })
+          }
+        }
+      }
+
+      if (newWorkouts.length === 0) {
+        notifications.show({
+          title: 'Info',
+          message: 'No new workouts created. All selected days already have workouts.',
+          color: 'blue',
+        })
+        onClose()
+        return
+      }
+
+      const updatedWorkouts = [...existingWorkouts, ...newWorkouts]
+
+      // Update program via API
+      await api.put(`/programs/${program.id}`, {
+        name: program.name,
+        description: program.description,
+        split_type: program.split_type,
+        duration_weeks: program.duration_weeks,
+        workouts: updatedWorkouts
+      })
+
+      // Refresh program data
+      const response = await api.get(`/programs/${program.id}`)
+      setCurrentProgram(response.data)
+      
+      if (onProgramUpdate) {
+        onProgramUpdate(response.data)
+      }
+
+      notifications.show({
+        title: 'Success',
+        message: `Workout repeated ${newWorkouts.length} time(s)`,
+        color: 'green',
+      })
+
+      onClose()
+    } catch (error) {
+      console.error('Error repeating workout:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to repeat workout',
+        color: 'red',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal opened={opened} onClose={onClose} title="Repeat Workout" size="md">
+      <form onSubmit={form.onSubmit(handleRepeat)}>
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Repeat this workout across multiple weeks or days.
+          </Text>
+
+          <Select
+            label="Repeat Pattern"
+            description="How should this workout be repeated?"
+            data={[
+              { value: 'weekly', label: 'Same day each week (e.g., Every Monday)' }
+            ]}
+            required
+            {...form.getInputProps('repeatPattern')}
+          />
+
+          <Select
+            label="Day of Week"
+            description="Which day should the workout repeat on?"
+            data={[
+              { value: '1', label: 'Monday' },
+              { value: '2', label: 'Tuesday' },
+              { value: '3', label: 'Wednesday' },
+              { value: '4', label: 'Thursday' },
+              { value: '5', label: 'Friday' },
+              { value: '6', label: 'Saturday' },
+              { value: '7', label: 'Sunday' }
+            ]}
+            required
+            {...form.getInputProps('dayOfWeek')}
+          />
+
+          <Group grow>
+            <NumberInput
+              label="Start Week"
+              min={1}
+              max={program?.duration_weeks || 12}
+              required
+              {...form.getInputProps('startWeek')}
+            />
+            <NumberInput
+              label="End Week"
+              min={1}
+              max={program?.duration_weeks || 12}
+              required
+              {...form.getInputProps('endWeek')}
+            />
+          </Group>
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" color="robinhoodGreen" loading={loading}>
+              Repeat Workout
+            </Button>
           </Group>
         </Stack>
       </form>
