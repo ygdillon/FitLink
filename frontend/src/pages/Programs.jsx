@@ -2589,12 +2589,29 @@ function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumbe
 
 // Workout Actions Modal Component
 function WorkoutActionsModal({ opened, onClose, program, workout, workoutId, weekNumber, dayNumber, assignedClients, onEdit, onCopy, onRepeat, onSchedule }) {
+  useEffect(() => {
+    if (opened) {
+      console.log('[DEBUG] WorkoutActionsModal opened, workout:', workout, 'assignedClients:', assignedClients)
+    }
+  }, [opened, workout, assignedClients])
+
+  const workoutName = workout?.workout_name || workout?.workoutName || 'Untitled'
+  const hasAssignedClients = assignedClients && assignedClients.length > 0
+  
   return (
     <Modal opened={opened} onClose={onClose} title="What would you like to do?" size="md">
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Workout "{workout?.workout_name || 'Untitled'}" has been saved successfully.
+          Workout "{workoutName}" has been saved successfully.
         </Text>
+        
+        {!hasAssignedClients && (
+          <Alert color="yellow">
+            <Text size="sm">
+              This program is not assigned to any clients yet. Assign the program to clients to schedule sessions.
+            </Text>
+          </Alert>
+        )}
         
         <Divider />
         
