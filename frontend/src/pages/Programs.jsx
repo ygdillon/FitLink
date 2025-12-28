@@ -1534,8 +1534,6 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         }
       }
       
-      closeWorkoutModal()
-      
       // If trainer and workout was saved, show workout actions modal
       if (isTrainer) {
         // Set saved workout data - ensure we have the full workout object
@@ -1553,8 +1551,8 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         setSavedWorkout(workoutToSave)
         setSavedWorkoutId(savedWorkout?.id || null)
         
-        // Fetch assigned clients for this program
-        const fetchClients = async () => {
+        // Fetch assigned clients for this program and then open modal
+        const fetchClientsAndOpenModal = async () => {
           try {
             const clientsRes = await api.get(`/programs/${currentProgram.id}/assigned-clients`)
             console.log('[DEBUG] Assigned clients:', clientsRes.data)
@@ -1563,16 +1561,18 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
             console.error('Error fetching assigned clients:', error)
             setAssignedClients([])
           }
+          
+          // Close workout modal first
+          closeWorkoutModal()
+          
+          // Small delay to ensure workout modal closes, then open actions modal
+          setTimeout(() => {
+            console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave)
+            openWorkoutActions()
+          }, 200)
         }
         
-        fetchClients()
-        
-        // Show workout actions modal for trainers
-        // Small delay to ensure workout modal closes first
-        setTimeout(() => {
-          console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave, 'opened state:', workoutActionsOpened)
-          openWorkoutActions()
-        }, 300)
+        fetchClientsAndOpenModal()
       } else {
         notifications.show({
           title: 'Success',
