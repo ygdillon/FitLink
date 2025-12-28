@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal, Grid } from '@mantine/core'
 import { useNavigate } from 'react-router-dom'
 import { Calendar } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -234,115 +234,121 @@ function ClientDashboard() {
           </Card>
         )}
 
-        {/* Assigned Programs */}
-        {programs.length > 0 && (
-          <Paper p="md" shadow="sm" withBorder>
-            <Group justify="space-between" mb="md">
-              <Title order={3}>My Programs</Title>
-              <Button variant="light" size="sm" onClick={() => navigate('/programs')}>
-                View All
-              </Button>
-            </Group>
-            
-            <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-              {programs.slice(0, 3).map(program => {
-                const stats = getProgramStats(program)
-                return (
-                  <Card key={program.id} shadow="sm" padding="md" radius="md" withBorder>
-                    <Stack gap="sm">
-                      <Group justify="space-between">
-                        <Title order={4} lineClamp={1}>{program.name}</Title>
-                        {program.split_type && (
-                          <Badge size="sm" variant="outline">{program.split_type}</Badge>
-                        )}
-                      </Group>
-                      
-                      {program.description && (
-                        <Text size="sm" c="dimmed" lineClamp={2}>
-                          {program.description}
-                        </Text>
-                      )}
-                      
-                      <Stack gap="xs">
-                        <Group justify="space-between">
-                          <Text size="xs" c="dimmed">Progress</Text>
-                          <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
-                        </Group>
-                        <Progress value={stats.percentage} size="sm" color="green" />
-                      </Stack>
-                      
-                      <Group gap="xs">
-                        <Text size="xs" c="dimmed">
-                          {program.duration_weeks} weeks
-                        </Text>
-                        {program.workout_count && (
-                          <>
-                            <Text size="xs" c="dimmed">•</Text>
-                            <Text size="xs" c="dimmed">
-                              {program.workout_count} workouts
+        {/* Calendar and Programs Side by Side */}
+        <Grid>
+          {/* Upcoming Sessions Calendar - Left Side */}
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Paper p="md" shadow="sm" withBorder style={{ height: '100%' }}>
+              <Title order={3} mb="md">Upcoming Sessions</Title>
+              {upcomingSessions.length === 0 ? (
+                <Stack gap="xs" align="center" justify="center" style={{ minHeight: '300px' }}>
+                  <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
+                  <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
+                </Stack>
+              ) : (
+                <div className="client-calendar-wrapper">
+                  <Calendar
+                    value={null}
+                    month={displayedMonth}
+                    onMonthChange={setDisplayedMonth}
+                    onChange={handleDateClick}
+                    styles={{
+                      calendar: { width: '100%' },
+                      month: { width: '100%' },
+                      weekday: {
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        paddingBottom: '0.4rem',
+                        paddingTop: '0.2rem',
+                        textAlign: 'center',
+                        color: 'var(--mantine-color-gray-6)',
+                      },
+                    }}
+                    size="sm"
+                    fullWidth
+                  />
+                </div>
+              )}
+            </Paper>
+          </Grid.Col>
+
+          {/* Assigned Programs - Right Side */}
+          <Grid.Col span={{ base: 12, md: 8 }}>
+            {programs.length > 0 && (
+              <Paper p="md" shadow="sm" withBorder style={{ height: '100%' }}>
+                <Group justify="space-between" mb="md">
+                  <Title order={3}>My Programs</Title>
+                  <Button variant="light" size="sm" onClick={() => navigate('/programs')}>
+                    View All
+                  </Button>
+                </Group>
+                
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                  {programs.slice(0, 4).map(program => {
+                    const stats = getProgramStats(program)
+                    return (
+                      <Card key={program.id} shadow="sm" padding="md" radius="md" withBorder>
+                        <Stack gap="sm">
+                          <Group justify="space-between">
+                            <Title order={4} lineClamp={1}>{program.name}</Title>
+                            {program.split_type && (
+                              <Badge size="sm" variant="outline">{program.split_type}</Badge>
+                            )}
+                          </Group>
+                          
+                          {program.description && (
+                            <Text size="sm" c="dimmed" lineClamp={2}>
+                              {program.description}
                             </Text>
-                          </>
-                        )}
-                      </Group>
-                      
-                      <Button 
-                        variant="light" 
-                        size="sm"
-                        fullWidth
-                        onClick={() => handleViewProgram(program.id)}
-                      >
-                        View Program
-                      </Button>
-                    </Stack>
-                  </Card>
-                )
-              })}
-            </SimpleGrid>
-            
-            {programs.length > 3 && (
-              <Group justify="center" mt="md">
-                <Button variant="subtle" onClick={() => navigate('/programs')}>
-                  View {programs.length - 3} more program{programs.length - 3 > 1 ? 's' : ''}
-                </Button>
-              </Group>
+                          )}
+                          
+                          <Stack gap="xs">
+                            <Group justify="space-between">
+                              <Text size="xs" c="dimmed">Progress</Text>
+                              <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
+                            </Group>
+                            <Progress value={stats.percentage} size="sm" color="green" />
+                          </Stack>
+                          
+                          <Group gap="xs">
+                            <Text size="xs" c="dimmed">
+                              {program.duration_weeks} weeks
+                            </Text>
+                            {program.workout_count && (
+                              <>
+                                <Text size="xs" c="dimmed">•</Text>
+                                <Text size="xs" c="dimmed">
+                                  {program.workout_count} workouts
+                                </Text>
+                              </>
+                            )}
+                          </Group>
+                          
+                          <Button 
+                            variant="light" 
+                            size="sm"
+                            fullWidth
+                            onClick={() => handleViewProgram(program.id)}
+                          >
+                            View Program
+                          </Button>
+                        </Stack>
+                      </Card>
+                    )
+                  })}
+                </SimpleGrid>
+                
+                {programs.length > 4 && (
+                  <Group justify="center" mt="md">
+                    <Button variant="subtle" onClick={() => navigate('/programs')}>
+                      View {programs.length - 4} more program{programs.length - 4 > 1 ? 's' : ''}
+                    </Button>
+                  </Group>
+                )}
+              </Paper>
             )}
-          </Paper>
-        )}
-
-
-        {/* Upcoming Sessions Calendar */}
-        <Paper p="md" shadow="sm" withBorder>
-          <Title order={3} mb="md">Upcoming Sessions</Title>
-          {upcomingSessions.length === 0 ? (
-            <Stack gap="xs" align="center" justify="center" style={{ minHeight: '300px' }}>
-              <Text c="dimmed" size="lg">No upcoming sessions scheduled</Text>
-              <Text size="sm" c="dimmed">Your trainer will schedule sessions for you</Text>
-            </Stack>
-          ) : (
-            <div className="client-calendar-wrapper">
-              <Calendar
-                value={null}
-                month={displayedMonth}
-                onMonthChange={setDisplayedMonth}
-                onChange={handleDateClick}
-                styles={{
-                  calendar: { width: '100%' },
-                  month: { width: '100%' },
-                  weekday: {
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    paddingBottom: '0.5rem',
-                    paddingTop: '0.25rem',
-                    textAlign: 'center',
-                    color: 'var(--mantine-color-gray-6)',
-                  },
-                }}
-                size="md"
-                fullWidth
-              />
-            </div>
-          )}
-        </Paper>
+          </Grid.Col>
+        </Grid>
       </Stack>
 
       {/* Session Details Modal */}
