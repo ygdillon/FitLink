@@ -3,7 +3,8 @@
   width: 100%;
   display: flex;
   justify-content: center;
-  max-height: calc(100vh - 350px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -20,9 +21,9 @@
 
 /* Calendar day cells */
 .client-calendar-wrapper [data-mantine-calendar-day] {
-  font-size: 0.85rem;
-  height: 4rem;
-  min-height: 4rem;
+  font-size: 0.75rem;
+  height: 3rem;
+  min-height: 3rem;
   width: 100%;
   border-radius: 0;
   border: none;
@@ -31,7 +32,7 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 0.25rem;
+  padding: 0.2rem;
   transition: background-color 0.15s ease;
   position: relative;
   overflow: hidden;

@@ -165,15 +165,16 @@ function ClientDashboard() {
   const selectedSessions = selectedDate ? getSessionsForDate(selectedDate) : []
 
   return (
-    <Container size="xl" py="md">
-      <Title order={1} mb="xl">My Dashboard</Title>
+    <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Title order={1} mb="md" style={{ flexShrink: 0 }}>My Dashboard</Title>
 
-      <Stack gap="xl">
+      <Stack gap="md" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
         {/* Today's Workout - Prominent Card */}
         {getTodaysWorkout ? (
-          <Card shadow="lg" padding="xl" radius="md" withBorder style={{ 
+          <Card shadow="lg" padding="md" radius="md" withBorder style={{ 
             background: 'linear-gradient(135deg, var(--mantine-color-green-6) 0%, var(--mantine-color-green-7) 100%)',
-            border: 'none'
+            border: 'none',
+            flexShrink: 0
           }}>
             <Stack gap="md">
               <Group justify="space-between" align="flex-start">
@@ -221,12 +222,12 @@ function ClientDashboard() {
             </Stack>
           </Card>
         ) : (
-          <Card shadow="sm" padding="xl" radius="md" withBorder>
-            <Stack gap="md" align="center">
-              <Text size="lg" fw={500} c="dimmed">No workout scheduled for today</Text>
-              <Text size="sm" c="dimmed">Check your program schedule or wait for your trainer to assign workouts</Text>
+          <Card shadow="sm" padding="md" radius="md" withBorder style={{ flexShrink: 0 }}>
+            <Stack gap="sm" align="center">
+              <Text size="md" fw={500} c="dimmed">No workout scheduled for today</Text>
+              <Text size="xs" c="dimmed">Check your program schedule or wait for your trainer to assign workouts</Text>
               {programs.length > 0 && (
-                <Button onClick={() => navigate('/programs')} color="green">
+                <Button onClick={() => navigate('/programs')} color="green" size="sm">
                   View My Programs
                 </Button>
               )}
@@ -235,18 +236,18 @@ function ClientDashboard() {
         )}
 
         {/* Calendar and Programs Side by Side */}
-        <Grid>
+        <Grid gutter="md" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
           {/* Upcoming Sessions Calendar - Left Side */}
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Paper p="md" shadow="sm" withBorder style={{ height: '100%' }}>
-              <Title order={3} mb="md">Upcoming Sessions</Title>
+          <Grid.Col span={{ base: 12, md: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Title order={3} mb="sm" style={{ flexShrink: 0, fontSize: '1.1rem' }}>Upcoming Sessions</Title>
               {upcomingSessions.length === 0 ? (
-                <Stack gap="xs" align="center" justify="center" style={{ minHeight: '300px' }}>
+                <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
                   <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
                   <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                 </Stack>
               ) : (
-                <div className="client-calendar-wrapper">
+                <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
                   <Calendar
                     value={null}
                     month={displayedMonth}
@@ -273,21 +274,21 @@ function ClientDashboard() {
           </Grid.Col>
 
           {/* Assigned Programs - Right Side */}
-          <Grid.Col span={{ base: 12, md: 8 }}>
+          <Grid.Col span={{ base: 12, md: 8 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {programs.length > 0 && (
-              <Paper p="md" shadow="sm" withBorder style={{ height: '100%' }}>
-                <Group justify="space-between" mb="md">
-                  <Title order={3}>My Programs</Title>
-                  <Button variant="light" size="sm" onClick={() => navigate('/programs')}>
+              <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
+                  <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
                     View All
                   </Button>
                 </Group>
                 
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                   {programs.slice(0, 4).map(program => {
                     const stats = getProgramStats(program)
                     return (
-                      <Card key={program.id} shadow="sm" padding="md" radius="md" withBorder>
+                      <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
                         <Stack gap="sm">
                           <Group justify="space-between">
                             <Title order={4} lineClamp={1}>{program.name}</Title>
@@ -339,8 +340,8 @@ function ClientDashboard() {
                 </SimpleGrid>
                 
                 {programs.length > 4 && (
-                  <Group justify="center" mt="md">
-                    <Button variant="subtle" onClick={() => navigate('/programs')}>
+                  <Group justify="center" mt="sm" style={{ flexShrink: 0 }}>
+                    <Button variant="subtle" size="xs" onClick={() => navigate('/programs')}>
                       View {programs.length - 4} more program{programs.length - 4 > 1 ? 's' : ''}
                     </Button>
                   </Group>
