@@ -362,15 +362,15 @@ function ClientNutrition({ clientId, clientName }) {
               {label}
             </Text>
             <Text size="xl" fw={700} mb={4}>
-              {consumed.toFixed(consumed % 1 === 0 ? 0 : 1)} / {target} {unit}
+              {Math.round(consumed).toFixed(0)} / {target} {unit}
             </Text>
             {isOver ? (
               <Text size="xs" c="red">
-                {over.toFixed(over % 1 === 0 ? 0 : 1)} {unit} over
+                {Math.round(over).toFixed(0)} {unit} over
               </Text>
             ) : (
               <Text size="xs" c="dimmed">
-                {remaining.toFixed(remaining % 1 === 0 ? 0 : 1)} {unit} remaining
+                {Math.round(remaining).toFixed(0)} {unit} remaining
               </Text>
             )}
             {trend && (
@@ -484,10 +484,10 @@ function ClientNutrition({ clientId, clientName }) {
                           </Group>
                           {mealLogs.length > 0 && (
                             <Text size="sm" c="dimmed">
-                              {mealTotals.calories.toFixed(0)} cal | 
-                              P: {mealTotals.protein.toFixed(1)}g | 
-                              C: {mealTotals.carbs.toFixed(1)}g | 
-                              F: {mealTotals.fats.toFixed(1)}g
+                              {Math.round(mealTotals.calories).toFixed(0)} cal | 
+                              P: {Math.round(mealTotals.protein).toFixed(0)}g | 
+                              C: {Math.round(mealTotals.carbs).toFixed(0)}g | 
+                              F: {Math.round(mealTotals.fats).toFixed(0)}g
                             </Text>
                           )}
                         </Group>
@@ -687,19 +687,19 @@ function ClientNutrition({ clientId, clientName }) {
                   <Box>
                     <Text size="xs" c="dimmed">Protein</Text>
                     <Text size="lg" fw={700}>
-                      {selectedDateTotals.protein.toFixed(1)} / {targets.protein}g
+                      {Math.round(selectedDateTotals.protein).toFixed(0)} / {targets.protein}g
                     </Text>
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Carbs</Text>
                     <Text size="lg" fw={700}>
-                      {selectedDateTotals.carbs.toFixed(1)} / {targets.carbs}g
+                      {Math.round(selectedDateTotals.carbs).toFixed(0)} / {targets.carbs}g
                     </Text>
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Fats</Text>
                     <Text size="lg" fw={700}>
-                      {selectedDateTotals.fats.toFixed(1)} / {targets.fats}g
+                      {Math.round(selectedDateTotals.fats).toFixed(0)} / {targets.fats}g
                     </Text>
                   </Box>
                 </SimpleGrid>
@@ -816,7 +816,7 @@ function ClientNutrition({ clientId, clientName }) {
                         <Text size="xs" c="dimmed" mb="xs">Avg Daily Protein</Text>
                         <Text size="xl" fw={700}>
                           {historyData.length > 0
-                            ? (historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length).toFixed(1)
+                            ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length).toFixed(0)
                             : 0}g
                         </Text>
                       </Card>
