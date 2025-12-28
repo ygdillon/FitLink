@@ -11,7 +11,7 @@ import {
   Avatar,
   useMantineTheme
 } from '@mantine/core'
-import { IconBook, IconBarbell, IconTrendingUp, IconClipboardCheck } from '@tabler/icons-react'
+import { IconBook, IconBarbell, IconTrendingUp, IconClipboardCheck, IconMeat } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import api from '../services/api'
@@ -249,6 +249,7 @@ function Navbar({ children }) {
                   component={NavLink}
                   to="/client/nutrition"
                   label="Nutrition Plan"
+          leftSection={<IconMeat size={18} />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
                 />
