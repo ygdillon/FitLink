@@ -350,6 +350,8 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
            description = COALESCE($2, description),
            split_type = COALESCE($3, split_type),
            duration_weeks = COALESCE($4, duration_weeks),
+           start_date = COALESCE($5, start_date),
+           end_date = COALESCE($6, end_date),
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $5`,
       [name, description, split_type, duration_weeks, id]

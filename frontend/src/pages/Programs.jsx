@@ -1082,12 +1082,24 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   }, [program])
 
   // Helper function to calculate actual date from program start date, week, and day
+  // dayNumber: 1=Monday, 2=Tuesday, ..., 7=Sunday
+  // The start_date is always Week 1, Day 1 (regardless of what day of week it actually is)
   const calculateDateForDay = (startDate, weekNumber, dayNumber) => {
     if (!startDate) return null
     const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0) // Normalize to start of day
+    
+    // Get the day of week for start date (0=Sunday, 1=Monday, ..., 6=Saturday)
     const startDayOfWeek = start.getDay()
-    const startDay = startDayOfWeek === 0 ? 7 : startDayOfWeek // Convert to Monday=1, Sunday=7
-    const daysToAdd = (weekNumber - 1) * 7 + (dayNumber - startDay)
+    // Convert to Monday=1, Sunday=7 format
+    const startDay = startDayOfWeek === 0 ? 7 : startDayOfWeek
+    
+    // Calculate days to add:
+    // Start date is Week 1, Day 1 (regardless of actual day of week)
+    // So Day 1 = start date, Day 2 = start date + 1, etc.
+    // For Week 2, Day 1 = start date + 7, etc.
+    const daysToAdd = (weekNumber - 1) * 7 + (dayNumber - 1)
+    
     const date = new Date(start)
     date.setDate(start.getDate() + daysToAdd)
     return date
