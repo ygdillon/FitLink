@@ -9,9 +9,10 @@ import {
   Button,
   Burger,
   Avatar,
-  useMantineTheme
+  useMantineTheme,
+  Collapse
 } from '@mantine/core'
-import { IconBook, IconBarbell, IconTrendingUp, IconClipboardCheck, IconMeat } from '@tabler/icons-react'
+import { IconBook, IconBarbell, IconTrendingUp, IconClipboardCheck, IconMeat, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import api from '../services/api'
@@ -27,6 +28,7 @@ function Navbar({ children }) {
   const [mobileOpened, setMobileOpened] = useState(false)
   const [desktopOpened, setDesktopOpened] = useState(true)
   const [hasTrainer, setHasTrainer] = useState(false)
+  const [paymentsOpened, setPaymentsOpened] = useState(false)
 
   // Check if client has a trainer
   useEffect(() => {
@@ -166,31 +168,62 @@ function Navbar({ children }) {
           style={{ padding: '0.5rem 0.75rem' }}
         />
 
-        {/* Payments - direct links */}
-        <MantineNavLink
-          component={NavLink}
-                  to="/payments?tab=history" 
-                  label="Payment History" 
-          leftSection={<DollarIcon />}
-          className="nav-link"
-          style={{ padding: '0.5rem 0.75rem' }}
-                />
-        <MantineNavLink
-          component={NavLink}
-                  to="/payments?tab=setup" 
-          label="Payment Setup"
-          leftSection={<DollarIcon />}
-          className="nav-link"
-          style={{ padding: '0.5rem 0.75rem' }}
-                />
-        <MantineNavLink
-          component={NavLink}
-                  to="/payments?tab=manage" 
-                  label="Manage Payments" 
-          leftSection={<DollarIcon />}
-          className="nav-link"
-          style={{ padding: '0.5rem 0.75rem' }}
-                />
+        {/* Payments - collapsible section */}
+        <Stack gap={0}>
+          <UnstyledButton
+            onClick={() => setPaymentsOpened((o) => !o)}
+            className="nav-link"
+            style={{ 
+              padding: '0.5rem 0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              borderRadius: 'var(--mantine-radius-sm)',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colorScheme === 'dark' 
+                ? 'var(--mantine-color-dark-5)' 
+                : 'rgba(255, 255, 255, 0.08)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <DollarIcon />
+            <Text size="sm" style={{ flex: 1, textAlign: 'left' }}>Payments</Text>
+            {paymentsOpened ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+          </UnstyledButton>
+          <Collapse in={paymentsOpened}>
+            <Stack gap={0} style={{ paddingLeft: '1.5rem' }}>
+              <MantineNavLink
+                component={NavLink}
+                to="/payments?tab=history" 
+                label="Payment History" 
+                leftSection={<DollarIcon />}
+                className="nav-link"
+                style={{ padding: '0.5rem 0.75rem' }}
+              />
+              <MantineNavLink
+                component={NavLink}
+                to="/payments?tab=setup" 
+                label="Payment Setup"
+                leftSection={<DollarIcon />}
+                className="nav-link"
+                style={{ padding: '0.5rem 0.75rem' }}
+              />
+              <MantineNavLink
+                component={NavLink}
+                to="/payments?tab=manage" 
+                label="Manage Payments" 
+                leftSection={<DollarIcon />}
+                className="nav-link"
+                style={{ padding: '0.5rem 0.75rem' }}
+              />
+            </Stack>
+          </Collapse>
+        </Stack>
       </Stack>
     )
   }
