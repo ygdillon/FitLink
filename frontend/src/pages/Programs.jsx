@@ -22,8 +22,11 @@ import {
   Alert,
   Tabs,
   ScrollArea,
-  Switch
+  Switch,
+  Checkbox,
+  MultiSelect
 } from '@mantine/core'
+import { TimeInput, DatePickerInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -1028,6 +1031,9 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const [currentProgram, setCurrentProgram] = useState(program)
   const [editingWeekName, setEditingWeekName] = useState(null)
   const [weekNameValue, setWeekNameValue] = useState('')
+  const [sessionSchedulingOpened, { open: openSessionScheduling, close: closeSessionScheduling }] = useDisclosure(false)
+  const [savedWorkoutId, setSavedWorkoutId] = useState(null)
+  const [assignedClients, setAssignedClients] = useState([])
 
   // Update current program when program prop changes
   useEffect(() => {
@@ -1200,12 +1206,34 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         onProgramUpdate(response.data)
       }
 
+      // Find the saved workout ID (it should be in the response)
+      const savedWorkout = response.data.workouts?.find(w => 
+        w.week_number === weekNumber && 
+        w.day_number === dayNumber && 
+        w.workout_name === newWorkout.workout_name
+      )
+      
       closeWorkoutModal()
-      notifications.show({
-        title: 'Success',
-        message: 'Workout saved successfully',
-        color: 'green',
-      })
+      
+      // If trainer and workout was saved, show session scheduling modal
+      if (isTrainer && savedWorkout?.id) {
+        setSavedWorkoutId(savedWorkout.id)
+        // Fetch assigned clients for this program
+        try {
+          const clientsRes = await api.get(`/programs/${currentProgram.id}/assigned-clients`)
+          setAssignedClients(clientsRes.data || [])
+        } catch (error) {
+          console.error('Error fetching assigned clients:', error)
+          setAssignedClients([])
+        }
+        openSessionScheduling()
+      } else {
+        notifications.show({
+          title: 'Success',
+          message: 'Workout saved successfully',
+          color: 'green',
+        })
+      }
     } catch (error) {
       console.error('Error saving workout:', error)
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save workout'
@@ -1471,6 +1499,19 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           programId={currentProgram.id}
         />
       )}
+
+      {/* Session Scheduling Modal */}
+      {isTrainer && (
+        <SessionSchedulingModal
+          opened={sessionSchedulingOpened}
+          onClose={closeSessionScheduling}
+          program={currentProgram}
+          workoutId={savedWorkoutId}
+          weekNumber={selectedWeek}
+          dayNumber={selectedDay}
+          assignedClients={assignedClients}
+        />
+      )}
     </Modal>
   )
 }
@@ -1710,6 +1751,285 @@ function ClientWorkoutLogModal({ opened, onClose, workout, programId }) {
             </Button>
             <Button type="submit" color="robinhoodGreen" loading={logging}>
               Complete Workout
+            </Button>
+          </Group>
+        </Stack>
+      </form>
+    </Modal>
+  )
+}
+
+// Session Scheduling Modal Component
+function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumber, dayNumber, assignedClients }) {
+  const [loading, setLoading] = useState(false)
+  
+  // Calculate actual session date from program start date
+  const calculateSessionDate = (startDate, weekNum, dayNum) => {
+    if (!startDate) return null
+    const start = new Date(startDate)
+    const startDayOfWeek = start.getDay()
+    const startDay = startDayOfWeek === 0 ? 7 : startDayOfWeek
+    const daysToAdd = (weekNum - 1) * 7 + (dayNum - startDay)
+    const sessionDate = new Date(start)
+    sessionDate.setDate(start.getDate() + daysToAdd)
+    return sessionDate.toISOString().split('T')[0]
+  }
+
+  // Get start date from program or fetch from API if not available
+  const [programStartDate, setProgramStartDate] = useState(program?.start_date || null)
+  
+  useEffect(() => {
+    if (opened && program?.id && !programStartDate) {
+      // Fetch program to get start_date if not in prop
+      api.get(`/programs/${program.id}`)
+        .then(res => {
+          if (res.data?.start_date) {
+            setProgramStartDate(res.data.start_date)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [opened, program?.id])
+
+  const sessionDate = programStartDate ? calculateSessionDate(programStartDate, weekNumber, dayNumber) : null
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const dayName = dayNumber ? dayNames[(dayNumber - 1) % 7] : ''
+
+  const form = useForm({
+    initialValues: {
+      scheduleAsSession: false,
+      sessionTime: '18:00',
+      duration: 60,
+      sessionType: 'in_person',
+      location: '',
+      meetingLink: '',
+      repeat: false,
+      repeatPattern: 'weekly',
+      repeatEndDate: null,
+      clientIds: assignedClients.map(c => c.client_id?.toString() || c.id?.toString()).filter(Boolean)
+    }
+  })
+
+  useEffect(() => {
+    if (opened && assignedClients.length > 0) {
+      form.setFieldValue('clientIds', assignedClients.map(c => c.client_id?.toString() || c.id?.toString()).filter(Boolean))
+    }
+  }, [opened, assignedClients])
+
+  const handleSubmit = async (values) => {
+    if (!values.scheduleAsSession) {
+      onClose()
+      notifications.show({
+        title: 'Success',
+        message: 'Workout saved successfully',
+        color: 'green',
+      })
+      return
+    }
+
+    if (!workoutId) {
+      notifications.show({
+        title: 'Error',
+        message: 'Workout ID not found',
+        color: 'red',
+      })
+      return
+    }
+
+    if (values.repeat && !values.repeatEndDate) {
+      notifications.show({
+        title: 'Validation Error',
+        message: 'Please select an end date for repeating sessions',
+        color: 'red',
+      })
+      return
+    }
+
+    if (values.clientIds.length === 0 && assignedClients.length > 0) {
+      notifications.show({
+        title: 'Validation Error',
+        message: 'Please select at least one client',
+        color: 'red',
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+      
+      const sessionData = {
+        workoutId,
+        sessionDate,
+        sessionTime: values.sessionTime,
+        duration: values.duration,
+        sessionType: values.sessionType,
+        location: values.location || null,
+        meetingLink: values.meetingLink || null,
+        repeat: values.repeat,
+        repeatPattern: values.repeatPattern,
+        repeatEndDate: values.repeatEndDate,
+        clientIds: values.clientIds.length > 0 ? values.clientIds : assignedClients.map(c => c.client_id || c.id).filter(Boolean)
+      }
+
+      await api.post(`/programs/${program.id}/workout/${workoutId}/create-sessions`, sessionData)
+      
+      notifications.show({
+        title: 'Success',
+        message: values.repeat 
+          ? `Sessions created and scheduled to repeat ${values.repeatPattern}` 
+          : 'Session created successfully',
+        color: 'green',
+      })
+      
+      onClose()
+    } catch (error) {
+      console.error('Error creating sessions:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to create sessions',
+        color: 'red',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!sessionDate) {
+    return (
+      <Modal opened={opened} onClose={onClose} title="Schedule Session" size="md">
+        <Stack gap="md">
+          <Alert color="yellow">
+            <Text size="sm">Program start date is required to schedule sessions. Please set a start date for this program first.</Text>
+          </Alert>
+          <Group justify="flex-end">
+            <Button onClick={onClose}>Close</Button>
+          </Group>
+        </Stack>
+      </Modal>
+    )
+  }
+
+  return (
+    <Modal opened={opened} onClose={onClose} title="Schedule Session" size="lg">
+      <form onSubmit={form.onSubmit(handleSubmit)}>
+        <Stack gap="md">
+          <Alert color="blue">
+            <Text size="sm">
+              <strong>Workout Date:</strong> {new Date(sessionDate).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })} ({dayName})
+            </Text>
+          </Alert>
+
+          <Checkbox
+            label="Schedule this workout as a training session"
+            description="Create a scheduled session for this workout"
+            {...form.getInputProps('scheduleAsSession', { type: 'checkbox' })}
+          />
+
+          {form.values.scheduleAsSession && (
+            <>
+              <Divider />
+              
+              <Group grow>
+                <TimeInput
+                  label="Session Time"
+                  required
+                  {...form.getInputProps('sessionTime')}
+                />
+                <NumberInput
+                  label="Duration (minutes)"
+                  min={15}
+                  max={180}
+                  step={15}
+                  required
+                  {...form.getInputProps('duration')}
+                />
+              </Group>
+
+              <Select
+                label="Session Type"
+                data={[
+                  { value: 'in_person', label: 'In-Person' },
+                  { value: 'online', label: 'Online' },
+                  { value: 'hybrid', label: 'Hybrid' }
+                ]}
+                required
+                {...form.getInputProps('sessionType')}
+              />
+
+              {form.values.sessionType === 'in_person' && (
+                <TextInput
+                  label="Location"
+                  placeholder="Gym address or location"
+                  {...form.getInputProps('location')}
+                />
+              )}
+
+              {form.values.sessionType === 'online' && (
+                <TextInput
+                  label="Meeting Link"
+                  placeholder="Zoom, Google Meet, or other meeting link"
+                  type="url"
+                  {...form.getInputProps('meetingLink')}
+                />
+              )}
+
+              {assignedClients.length > 0 && (
+                <MultiSelect
+                  label="Select Clients"
+                  description="Choose which clients to schedule this session for"
+                  data={assignedClients.map(c => ({
+                    value: (c.client_id || c.id).toString(),
+                    label: c.name || c.client_name || `Client ${c.client_id || c.id}`
+                  }))}
+                  {...form.getInputProps('clientIds')}
+                  required
+                />
+              )}
+
+              <Divider />
+
+              <Checkbox
+                label="Repeat this session"
+                description="Schedule this session to repeat on the same day each week"
+                {...form.getInputProps('repeat', { type: 'checkbox' })}
+              />
+
+              {form.values.repeat && (
+                <Stack gap="sm">
+                  <Select
+                    label="Repeat Pattern"
+                    data={[
+                      { value: 'weekly', label: 'Weekly' },
+                      { value: 'biweekly', label: 'Bi-weekly (Every 2 weeks)' },
+                      { value: 'monthly', label: 'Monthly' }
+                    ]}
+                    {...form.getInputProps('repeatPattern')}
+                  />
+                  <DatePickerInput
+                    label="Repeat Until"
+                    placeholder="Select end date"
+                    minDate={new Date(sessionDate)}
+                    required
+                    {...form.getInputProps('repeatEndDate')}
+                  />
+                </Stack>
+              )}
+
+              <Divider />
+            </>
+          )}
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              {form.values.scheduleAsSession ? 'Skip Scheduling' : 'Close'}
+            </Button>
+            <Button type="submit" color="robinhoodGreen" loading={loading}>
+              {form.values.scheduleAsSession ? 'Create Session' : 'Done'}
             </Button>
           </Group>
         </Stack>

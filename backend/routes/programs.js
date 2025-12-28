@@ -725,6 +725,226 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
   }
 })
 
+// Get assigned clients for a program (trainer only)
+router.get('/:id/assigned-clients', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Verify program belongs to trainer
+    const programCheck = await pool.query(
+      'SELECT trainer_id FROM programs WHERE id = $1',
+      [id]
+    )
+
+    if (programCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Program not found' })
+    }
+
+    if (programCheck.rows[0].trainer_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' })
+    }
+
+    // Get assigned clients
+    const result = await pool.query(
+      `SELECT 
+        pa.client_id,
+        u.id,
+        u.name,
+        u.email,
+        c.id as client_table_id
+       FROM program_assignments pa
+       JOIN users u ON pa.client_id = u.id
+       LEFT JOIN clients c ON u.id = c.user_id
+       WHERE pa.program_id = $1 AND pa.status = 'active'
+       ORDER BY u.name`,
+      [id]
+    )
+
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching assigned clients:', error)
+    res.status(500).json({ message: 'Failed to fetch assigned clients', error: error.message })
+  }
+})
+
+// Create sessions from program workout (trainer only)
+router.post('/:id/workout/:workoutId/create-sessions', requireRole(['trainer']), async (req, res) => {
+  const dbClient = await pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+    
+    const { id: programId, workoutId } = req.params
+    const { 
+      sessionDate, 
+      sessionTime, 
+      duration, 
+      sessionType, 
+      location, 
+      meetingLink,
+      repeat,
+      repeatPattern,
+      repeatEndDate,
+      clientIds
+    } = req.body
+
+    // Verify program and workout belong to trainer
+    const programCheck = await dbClient.query(
+      'SELECT trainer_id, start_date, name FROM programs WHERE id = $1',
+      [programId]
+    )
+
+    if (programCheck.rows.length === 0) {
+      await dbClient.query('ROLLBACK')
+      return res.status(404).json({ message: 'Program not found' })
+    }
+
+    if (programCheck.rows[0].trainer_id !== req.user.id) {
+      await dbClient.query('ROLLBACK')
+      return res.status(403).json({ message: 'Not authorized' })
+    }
+
+    const workoutCheck = await dbClient.query(
+      'SELECT id, week_number, day_number FROM program_workouts WHERE id = $1 AND program_id = $2',
+      [workoutId, programId]
+    )
+
+    if (workoutCheck.rows.length === 0) {
+      await dbClient.query('ROLLBACK')
+      return res.status(404).json({ message: 'Workout not found' })
+    }
+
+    const workout = workoutCheck.rows[0]
+    const programStartDate = programCheck.rows[0].start_date
+
+    if (!programStartDate) {
+      await dbClient.query('ROLLBACK')
+      return res.status(400).json({ message: 'Program start date is required to create sessions' })
+    }
+
+    // Generate session dates
+    let sessionDates = [sessionDate]
+    
+    if (repeat && repeatEndDate) {
+      const start = new Date(sessionDate)
+      const end = new Date(repeatEndDate)
+      const dates = []
+      let current = new Date(start)
+      
+      while (current <= end) {
+        dates.push(new Date(current).toISOString().split('T')[0])
+        
+        if (repeatPattern === 'weekly') {
+          current.setDate(current.getDate() + 7)
+        } else if (repeatPattern === 'biweekly') {
+          current.setDate(current.getDate() + 14)
+        } else if (repeatPattern === 'monthly') {
+          current.setMonth(current.getMonth() + 1)
+        } else {
+          current.setDate(current.getDate() + 7) // Default to weekly
+        }
+      }
+      
+      sessionDates = dates
+    }
+
+    // Get trainer defaults for day-specific times
+    const trainerPrefs = await dbClient.query(
+      `SELECT 
+        COALESCE(default_session_time, '18:00:00'::TIME) as default_session_time,
+        COALESCE(default_session_duration, 60) as default_duration,
+        day_specific_session_times,
+        day_specific_session_durations
+       FROM trainers 
+       WHERE user_id = $1`,
+      [req.user.id]
+    )
+
+    const trainerData = trainerPrefs.rows[0] || {
+      default_session_time: '18:00:00',
+      default_duration: 60,
+      day_specific_session_times: null,
+      day_specific_session_durations: null
+    }
+
+    // Get session time for this day (use provided or day-specific or default)
+    const getSessionTime = () => {
+      if (sessionTime) return sessionTime
+      if (trainerData.day_specific_session_times?.[workout.day_number.toString()]) {
+        return trainerData.day_specific_session_times[workout.day_number.toString()]
+      }
+      return trainerData.default_session_time
+    }
+
+    const getSessionDuration = () => {
+      if (duration) return duration
+      if (trainerData.day_specific_session_durations?.[workout.day_number.toString()]) {
+        return parseInt(trainerData.day_specific_session_durations[workout.day_number.toString()])
+      }
+      return trainerData.default_duration
+    }
+
+    const finalSessionTime = getSessionTime()
+    const finalDuration = getSessionDuration()
+
+    let sessionsCreated = 0
+    const createdSessions = []
+
+    // Create sessions for each client and date
+    for (const clientId of clientIds) {
+      for (const date of sessionDates) {
+        // Check if session already exists
+        const existing = await dbClient.query(
+          `SELECT id FROM sessions 
+           WHERE trainer_id = $1 
+           AND client_id = $2 
+           AND program_workout_id = $3 
+           AND session_date = $4`,
+          [req.user.id, clientId, workoutId, date]
+        )
+
+        if (existing.rows.length === 0) {
+          const result = await dbClient.query(
+            `INSERT INTO sessions (
+              trainer_id, client_id, program_id, program_workout_id,
+              session_date, session_time, duration, session_type, location, meeting_link, status, notes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'scheduled', $11)
+            RETURNING id`,
+            [
+              req.user.id,
+              clientId,
+              programId,
+              workoutId,
+              date,
+              finalSessionTime,
+              finalDuration,
+              sessionType || 'in_person',
+              location || null,
+              meetingLink || null,
+              `From ${programCheck.rows[0].name || 'Program'} - Week ${workout.week_number}, Day ${workout.day_number}`
+            ]
+          )
+          sessionsCreated++
+          createdSessions.push(result.rows[0])
+        }
+      }
+    }
+
+    await dbClient.query('COMMIT')
+
+    res.json({
+      message: 'Sessions created successfully',
+      sessionsCreated,
+      totalSessions: sessionDates.length * clientIds.length
+    })
+  } catch (error) {
+    await dbClient.query('ROLLBACK')
+    console.error('Error creating sessions:', error)
+    res.status(500).json({ message: 'Failed to create sessions', error: error.message })
+  } finally {
+    dbClient.release()
+  }
+})
+
 // Complete a program workout (client only)
 router.post('/workout/:workoutId/complete', requireRole(['client']), async (req, res) => {
   try {
