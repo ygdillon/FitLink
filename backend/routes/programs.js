@@ -589,23 +589,43 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
 
     console.log(`[DEBUG] Assignment successful:`, assignmentResult.rows[0])
 
-    // Get trainer default session preferences
+    // Get trainer default session preferences including day-specific overrides
     const trainerPrefs = await dbClient.query(
       `SELECT 
-        COALESCE(default_session_time, '18:00:00'::TIME) as session_time,
-        COALESCE(default_session_duration, 60) as duration,
+        COALESCE(default_session_time, '18:00:00'::TIME) as default_session_time,
+        COALESCE(default_session_duration, 60) as default_duration,
         COALESCE(default_session_type, 'in_person') as session_type,
-        default_session_location as location
+        default_session_location as location,
+        day_specific_session_times,
+        day_specific_session_durations
        FROM trainers 
        WHERE user_id = $1`,
       [req.user.id]
     )
 
-    const defaults = trainerPrefs.rows[0] || {
-      session_time: '18:00:00',
-      duration: 60,
+    const trainerData = trainerPrefs.rows[0] || {
+      default_session_time: '18:00:00',
+      default_duration: 60,
       session_type: 'in_person',
-      location: null
+      location: null,
+      day_specific_session_times: null,
+      day_specific_session_durations: null
+    }
+
+    // Helper function to get session time for a specific day (1=Monday, 7=Sunday)
+    const getSessionTimeForDay = (dayNumber) => {
+      if (trainerData.day_specific_session_times && trainerData.day_specific_session_times[dayNumber.toString()]) {
+        return trainerData.day_specific_session_times[dayNumber.toString()]
+      }
+      return trainerData.default_session_time
+    }
+
+    // Helper function to get session duration for a specific day
+    const getSessionDurationForDay = (dayNumber) => {
+      if (trainerData.day_specific_session_durations && trainerData.day_specific_session_durations[dayNumber.toString()]) {
+        return parseInt(trainerData.day_specific_session_durations[dayNumber.toString()])
+      }
+      return trainerData.default_duration
     }
 
     // Fetch all workouts from the program
@@ -627,6 +647,10 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
         // Calculate actual session date
         const sessionDate = calculateSessionDate(programStartDate, workout.week_number, workout.day_number)
         
+        // Get day-specific session time and duration (day_number is 1=Monday, 7=Sunday)
+        const sessionTime = getSessionTimeForDay(workout.day_number)
+        const sessionDuration = getSessionDurationForDay(workout.day_number)
+        
         // Check for conflicts (optional - warn but don't block)
         const conflictCheck = await dbClient.query(
           `SELECT id FROM sessions 
@@ -634,11 +658,11 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
            AND session_date = $2 
            AND session_time = $3 
            AND status NOT IN ('cancelled', 'completed')`,
-          [req.user.id, sessionDate, defaults.session_time]
+          [req.user.id, sessionDate, sessionTime]
         )
 
         if (conflictCheck.rows.length > 0) {
-          console.log(`[WARN] Conflict detected for ${sessionDate} at ${defaults.session_time}`)
+          console.log(`[WARN] Conflict detected for ${sessionDate} at ${sessionTime}`)
           conflictsDetected++
           // Continue anyway - trainer can reschedule later
         }
@@ -665,10 +689,10 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
               id,
               workout.id,
               sessionDate,
-              defaults.session_time,
-              defaults.duration,
-              defaults.session_type,
-              defaults.location,
+              sessionTime,
+              sessionDuration,
+              trainerData.session_type,
+              trainerData.location,
               `From ${programCheck.rows[0].name} - Week ${workout.week_number}, Day ${workout.day_number}`
             ]
           )
