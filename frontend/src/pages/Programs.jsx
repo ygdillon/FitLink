@@ -458,64 +458,77 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {programs.map((program) => (
-            <Card key={program.id} shadow="sm" padding="lg" radius="sm" withBorder>
-              <Stack gap="sm">
-                <Group justify="space-between">
-                  <Title order={4}>{program.name}</Title>
-                  {program.is_template && (
-                    <Badge color="blue" variant="light">Template</Badge>
+            <Card key={program.id} shadow="sm" padding="md" radius="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Stack gap="xs" style={{ flex: 1 }}>
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Title order={4} lineClamp={2} style={{ flex: 1, margin: 0 }}>
+                    {program.name}
+                  </Title>
+                  {program.is_template ? (
+                    <Badge color="blue" variant="light" size="sm" style={{ flexShrink: 0 }}>
+                      Template
+                    </Badge>
+                  ) : (
+                    <Badge color="gray" variant="outline" size="sm" style={{ flexShrink: 0 }}>
+                      CUSTOM
+                    </Badge>
                   )}
                 </Group>
                 {program.description && (
-                  <Text size="sm" c="dimmed" lineClamp={2}>
+                  <Text size="sm" c="dimmed" lineClamp={2} style={{ minHeight: '2.5rem' }}>
                     {program.description}
                   </Text>
                 )}
-                <Group gap="xs">
+                <Group gap="xs" mt="xs">
                   {program.split_type && (
-                    <Badge size="sm" variant="outline">{program.split_type}</Badge>
+                    <Badge size="sm" variant="outline" color="gray">
+                      {program.split_type}
+                    </Badge>
                   )}
                   <Text size="xs" c="dimmed">
                     {program.workout_count || 0} workouts
                   </Text>
                 </Group>
-                <Group justify="space-between" mt="auto">
+                <Group justify="space-between" mt="auto" pt="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
                   <Button 
                     variant="light" 
                     size="sm"
+                    color="robinhoodGreen"
                     onClick={() => onViewProgram(program.id)}
+                    style={{ flex: 1 }}
                   >
                     View
                   </Button>
-                  <Group gap="xs">
+                  <Group gap={4} ml="xs">
                     <ActionIcon
                       variant="light"
                       color="blue"
-                      size="sm"
+                      size="md"
                       onClick={() => handleEditProgram(program)}
                     >
-                      <IconEdit size={16} />
+                      <IconEdit size={18} />
                     </ActionIcon>
                     <ActionIcon
                       variant="light"
                       color="red"
-                      size="sm"
+                      size="md"
                       onClick={() => handleDeleteProgram(program)}
                     >
-                      <IconTrash size={16} />
+                      <IconTrash size={18} />
                     </ActionIcon>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      color="robinhoodGreen"
-                      onClick={() => {
-                        setProgramToAssign(program)
-                        openAssign()
-                      }}
-                    >
-                      Assign
-                    </Button>
                   </Group>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    color="robinhoodGreen"
+                    onClick={() => {
+                      setProgramToAssign(program)
+                      openAssign()
+                    }}
+                    ml="xs"
+                  >
+                    Assign
+                  </Button>
                 </Group>
               </Stack>
             </Card>
