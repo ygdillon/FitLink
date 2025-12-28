@@ -338,6 +338,94 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
     }
   }
 
+  const handleEditProgram = (program) => {
+    setProgramToEdit(program)
+    editForm.setValues({
+      name: program.name || '',
+      description: program.description || '',
+      split_type: program.split_type || '',
+      duration_weeks: program.duration_weeks || 4,
+      start_date: program.start_date ? new Date(program.start_date) : null,
+      end_date: program.end_date ? new Date(program.end_date) : null
+    })
+    openEdit()
+  }
+
+  const handleUpdateProgram = async (values) => {
+    try {
+      // Calculate end_date if not provided
+      let endDate = values.end_date
+      if (!endDate && values.start_date && values.duration_weeks) {
+        const start = new Date(values.start_date)
+        const end = new Date(start)
+        end.setDate(start.getDate() + (values.duration_weeks * 7) - 1)
+        endDate = end.toISOString().split('T')[0]
+      }
+
+      const programData = {
+        name: values.name,
+        description: values.description,
+        split_type: values.split_type,
+        duration_weeks: values.duration_weeks,
+        start_date: values.start_date ? new Date(values.start_date).toISOString().split('T')[0] : null,
+        end_date: endDate || null
+      }
+
+      await api.put(`/programs/${programToEdit.id}`, programData)
+      notifications.show({
+        title: 'Success',
+        message: 'Program updated successfully',
+        color: 'green',
+      })
+      closeEdit()
+      editForm.reset()
+      onRefresh()
+      // Refresh the program view if it's open
+      if (selectedProgram?.id === programToEdit.id) {
+        const response = await api.get(`/programs/${programToEdit.id}`)
+        setSelectedProgram(response.data)
+      }
+    } catch (error) {
+      console.error('Error updating program:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to update program',
+        color: 'red',
+      })
+    }
+  }
+
+  const handleDeleteProgram = (program) => {
+    setProgramToDelete(program)
+    openDelete()
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      await api.delete(`/programs/${programToDelete.id}`)
+      notifications.show({
+        title: 'Success',
+        message: 'Program deleted successfully. All client assignments have been removed.',
+        color: 'green',
+      })
+      closeDelete()
+      setProgramToDelete(null)
+      onRefresh()
+      // Close program view if it was open
+      if (selectedProgram?.id === programToDelete.id) {
+        closeProgramView()
+        setSelectedProgram(null)
+      }
+    } catch (error) {
+      console.error('Error deleting program:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to delete program',
+        color: 'red',
+      })
+    }
+  }
+
   return (
     <>
       <Group justify="space-between" mb="xl">

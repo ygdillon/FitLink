@@ -134,22 +134,11 @@ router.get('/clients/:clientId', async (req, res) => {
       return dateB - dateA // Most recent first
     })
 
-    // Get workout assignments
-    const workoutsResult = await pool.query(
-      `SELECT wa.*, w.name as workout_name, w.description
-       FROM workout_assignments wa
-       JOIN workouts w ON wa.workout_id = w.id
-       WHERE wa.client_id = $1
-       ORDER BY wa.assigned_date DESC`,
-      [client.user_id]
-    )
-
     res.json({
       ...client,
       custom_metrics: metricsResult.rows,
       recent_progress: combinedProgress,
-      check_ins: checkInsResult.rows, // Keep separate for backward compatibility
-      workouts: workoutsResult.rows
+      check_ins: checkInsResult.rows // Keep separate for backward compatibility
     })
   } catch (error) {
     console.error('Error fetching client profile:', error)
