@@ -1889,7 +1889,10 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       {isTrainer && (
         <WorkoutActionsModal
           opened={workoutActionsOpened}
-          onClose={closeWorkoutActions}
+          onClose={() => {
+            console.log('[DEBUG] WorkoutActionsModal onClose called')
+            closeWorkoutActions()
+          }}
           program={currentProgram}
           workout={savedWorkout || savedWorkoutRef.current}
           workoutId={savedWorkoutId}
