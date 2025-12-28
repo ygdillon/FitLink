@@ -1553,6 +1553,22 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
     }
   })
 
+  // Update form when workout changes (for editing)
+  useEffect(() => {
+    if (workout) {
+      form.setValues({
+        workout_name: workout.workout_name || '',
+        exercises: workout.exercises || []
+      })
+    } else {
+      // Reset form for new workout
+      form.setValues({
+        workout_name: '',
+        exercises: []
+      })
+    }
+  }, [workout, opened])
+
   const addExercise = () => {
     form.insertListItem('exercises', {
       exercise_name: '',
