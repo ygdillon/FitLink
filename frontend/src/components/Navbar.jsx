@@ -137,7 +137,7 @@ function Navbar({ children }) {
           component={NavLink}
           to="/programs"
           label="Programs"
-          leftSection={<WorkoutIcon />}
+          leftSection={<IconBook size={18} />}
           className="nav-link"
           style={{ padding: '0.5rem 0.75rem' }}
         />
