@@ -468,7 +468,6 @@ function ClientNutrition({ clientId, clientName }) {
             <Tabs.Tab value="meals">Meals</Tabs.Tab>
             <Tabs.Tab value="log">Food Log</Tabs.Tab>
             <Tabs.Tab value="history">Progress</Tabs.Tab>
-            <Tabs.Tab value="database">Food Database</Tabs.Tab>
           </Tabs.List>
 
           {/* Dashboard Tab */}
@@ -1085,68 +1084,6 @@ function ClientNutrition({ clientId, clientName }) {
                 )}
               </Paper>
             </Stack>
-          </Tabs.Panel>
-
-          {/* Food Database Tab */}
-          <Tabs.Panel value="database" pt="xl">
-            <Paper p="md" withBorder>
-              <Title order={3} mb="md">Food Database</Title>
-              
-              <TextInput
-                placeholder="Search for foods..."
-                leftSection={<IconSearch size={16} />}
-                value={searchFood}
-                onChange={(e) => {
-                  setSearchFood(e.target.value)
-                  handleSearchFoods(e.target.value)
-                }}
-                mb="md"
-              />
-
-              {foods.length > 0 ? (
-                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-                  {foods.map(food => (
-                    <Card
-                      key={food.id}
-                      withBorder
-                      p="md"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        handleSelectFood(food)
-                        openLogModal()
-                      }}
-                    >
-                      <Text fw={600} mb="xs">{food.name}</Text>
-                      <Text size="sm" c="dimmed" mb="xs">
-                        Serving: {food.serving_size} {food.serving_unit}
-                      </Text>
-                      <Group gap="xs">
-                        <Badge size="sm" variant="light">
-                          {food.calories} cal
-                        </Badge>
-                        <Badge size="sm" variant="light" color="blue">
-                          P: {food.protein}g
-                        </Badge>
-                        <Badge size="sm" variant="light" color="orange">
-                          C: {food.carbs}g
-                        </Badge>
-                        <Badge size="sm" variant="light" color="yellow">
-                          F: {food.fats}g
-                        </Badge>
-                      </Group>
-                    </Card>
-                  ))}
-                </SimpleGrid>
-              ) : searchFood.length >= 2 ? (
-                <Text c="dimmed" ta="center" py="xl">
-                  No foods found. Try a different search term.
-                </Text>
-              ) : (
-                <Text c="dimmed" ta="center" py="xl">
-                  Start typing to search for foods in the database.
-                </Text>
-              )}
-            </Paper>
           </Tabs.Panel>
         </Tabs>
       ) : (
