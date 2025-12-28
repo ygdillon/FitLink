@@ -857,5 +857,487 @@ router.delete('/logs/:id', requireRole(['client']), async (req, res) => {
   }
 })
 
+// ============================================
+// MEAL RECOMMENDATIONS ENDPOINTS
+// ============================================
+
+// Get meal recommendations for a client (trainer view)
+router.get('/meals/recommendations/:clientId', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const { category, type } = req.query
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    let query = `
+      SELECT tmr.*, 
+             r.name as recipe_name,
+             r.description as recipe_description,
+             r.image_url,
+             r.is_vegan,
+             r.is_vegetarian,
+             r.is_gluten_free,
+             r.is_dairy_free,
+             r.is_nut_free,
+             r.is_quick_meal,
+             r.is_meal_prep_friendly,
+             r.prep_time,
+             r.cook_time,
+             r.total_time
+      FROM trainer_meal_recommendations tmr
+      LEFT JOIN recipes r ON tmr.recipe_id = r.id
+      WHERE tmr.client_id = $1 AND tmr.trainer_id = $2 AND tmr.is_active = true
+    `
+    const params = [clientId, req.user.id]
+    let paramCount = 3
+
+    if (category) {
+      query += ` AND tmr.meal_category = $${paramCount++}`
+      params.push(category)
+    }
+
+    if (type) {
+      query += ` AND tmr.recommendation_type = $${paramCount++}`
+      params.push(type)
+    }
+
+    query += ' ORDER BY tmr.priority DESC, tmr.created_at DESC'
+
+    const result = await pool.query(query, params)
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching meal recommendations:', error)
+    res.status(500).json({ message: 'Failed to fetch meal recommendations' })
+  }
+})
+
+// Create meal recommendation (trainer)
+router.post('/meals/recommendations', requireRole(['trainer']), async (req, res) => {
+  try {
+    const {
+      client_id,
+      recipe_id,
+      meal_name,
+      meal_description,
+      meal_category,
+      meal_type,
+      calories_per_serving,
+      protein_per_serving,
+      carbs_per_serving,
+      fats_per_serving,
+      is_assigned,
+      assigned_day_number,
+      assigned_date,
+      assigned_meal_slot,
+      recommendation_type,
+      priority,
+      notes,
+      nutrition_plan_id
+    } = req.body
+
+    // Verify client belongs to trainer
+    const clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [client_id, req.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    // If recipe_id provided, get macros from recipe
+    let finalCalories = calories_per_serving
+    let finalProtein = protein_per_serving
+    let finalCarbs = carbs_per_serving
+    let finalFats = fats_per_serving
+
+    if (recipe_id) {
+      const recipeResult = await pool.query(
+        'SELECT calories_per_serving, protein_per_serving, carbs_per_serving, fats_per_serving, name FROM recipes WHERE id = $1',
+        [recipe_id]
+      )
+      if (recipeResult.rows.length > 0) {
+        const recipe = recipeResult.rows[0]
+        finalCalories = finalCalories || recipe.calories_per_serving
+        finalProtein = finalProtein || recipe.protein_per_serving
+        finalCarbs = finalCarbs || recipe.carbs_per_serving
+        finalFats = finalFats || recipe.fats_per_serving
+        if (!meal_name) {
+          meal_name = recipe.name
+        }
+      }
+    }
+
+    const result = await pool.query(
+      `INSERT INTO trainer_meal_recommendations (
+        trainer_id, client_id, nutrition_plan_id, recipe_id, meal_name, meal_description,
+        meal_category, meal_type, calories_per_serving, protein_per_serving,
+        carbs_per_serving, fats_per_serving, is_assigned, assigned_day_number,
+        assigned_date, assigned_meal_slot, recommendation_type, priority, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      RETURNING *`,
+      [
+        req.user.id, client_id, nutrition_plan_id || null, recipe_id || null,
+        meal_name, meal_description || null, meal_category, meal_type || null,
+        finalCalories, finalProtein, finalCarbs, finalFats,
+        is_assigned || false, assigned_day_number || null, assigned_date || null,
+        assigned_meal_slot || null, recommendation_type || 'flexible', priority || 0, notes || null
+      ]
+    )
+
+    res.status(201).json(result.rows[0])
+  } catch (error) {
+    console.error('Error creating meal recommendation:', error)
+    res.status(500).json({ message: 'Failed to create meal recommendation', error: error.message })
+  }
+})
+
+// Update meal recommendation (trainer)
+router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { id } = req.params
+    const updates = req.body
+
+    // Verify recommendation belongs to trainer
+    const checkResult = await pool.query(
+      'SELECT id FROM trainer_meal_recommendations WHERE id = $1 AND trainer_id = $2',
+      [id, req.user.id]
+    )
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Recommendation not found' })
+    }
+
+    const allowedFields = [
+      'meal_name', 'meal_description', 'meal_category', 'meal_type',
+      'calories_per_serving', 'protein_per_serving', 'carbs_per_serving', 'fats_per_serving',
+      'is_assigned', 'assigned_day_number', 'assigned_date', 'assigned_meal_slot',
+      'recommendation_type', 'priority', 'notes', 'is_active'
+    ]
+
+    const updateFields = []
+    const values = []
+    let paramCount = 1
+
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        updateFields.push(`${field} = $${paramCount++}`)
+        values.push(updates[field])
+      }
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' })
+    }
+
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`)
+    values.push(id)
+
+    const result = await pool.query(
+      `UPDATE trainer_meal_recommendations 
+       SET ${updateFields.join(', ')}
+       WHERE id = $${paramCount}
+       RETURNING *`,
+      values
+    )
+
+    res.json(result.rows[0])
+  } catch (error) {
+    console.error('Error updating meal recommendation:', error)
+    res.status(500).json({ message: 'Failed to update meal recommendation' })
+  }
+})
+
+// Delete meal recommendation (trainer)
+router.delete('/meals/recommendations/:id', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Verify recommendation belongs to trainer
+    const checkResult = await pool.query(
+      'SELECT id FROM trainer_meal_recommendations WHERE id = $1 AND trainer_id = $2',
+      [id, req.user.id]
+    )
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Recommendation not found' })
+    }
+
+    await pool.query('DELETE FROM trainer_meal_recommendations WHERE id = $1', [id])
+
+    res.json({ message: 'Recommendation deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting meal recommendation:', error)
+    res.status(500).json({ message: 'Failed to delete meal recommendation' })
+  }
+})
+
+// Get meal recommendations for client (client view)
+router.get('/meals/recommended', requireRole(['client']), async (req, res) => {
+  try {
+    const { category, date } = req.query
+
+    let query = `
+      SELECT tmr.*, 
+             r.name as recipe_name,
+             r.description as recipe_description,
+             r.image_url,
+             r.ingredients,
+             r.instructions,
+             r.is_vegan,
+             r.is_vegetarian,
+             r.is_gluten_free,
+             r.is_dairy_free,
+             r.is_nut_free,
+             r.is_quick_meal,
+             r.is_meal_prep_friendly,
+             r.prep_time,
+             r.cook_time,
+             r.total_time,
+             r.nutrition_tips,
+             r.prep_tips,
+             r.storage_tips
+      FROM trainer_meal_recommendations tmr
+      LEFT JOIN recipes r ON tmr.recipe_id = r.id
+      WHERE tmr.client_id = $1 AND tmr.is_active = true
+    `
+    const params = [req.user.id]
+    let paramCount = 2
+
+    if (category) {
+      query += ` AND tmr.meal_category = $${paramCount++}`
+      params.push(category)
+    }
+
+    if (date) {
+      query += ` AND (tmr.assigned_date = $${paramCount++} OR tmr.assigned_date IS NULL)`
+      params.push(date)
+    }
+
+    query += ' ORDER BY tmr.is_assigned DESC, tmr.priority DESC, tmr.created_at DESC'
+
+    const result = await pool.query(query, params)
+
+    // Separate assigned and flexible recommendations
+    const assigned = result.rows.filter(r => r.is_assigned)
+    const flexible = result.rows.filter(r => !r.is_assigned)
+
+    // Group flexible by category
+    const flexibleByCategory = flexible.reduce((acc, meal) => {
+      if (!acc[meal.meal_category]) {
+        acc[meal.meal_category] = []
+      }
+      acc[meal.meal_category].push(meal)
+      return acc
+    }, {})
+
+    res.json({
+      assigned,
+      flexible: flexibleByCategory,
+      all: result.rows
+    })
+  } catch (error) {
+    console.error('Error fetching recommended meals:', error)
+    res.status(500).json({ message: 'Failed to fetch recommended meals' })
+  }
+})
+
+// Client selects a meal
+router.post('/meals/select', requireRole(['client']), async (req, res) => {
+  try {
+    const {
+      recommendation_id,
+      recipe_id,
+      selected_date,
+      meal_category,
+      meal_slot,
+      servings
+    } = req.body
+
+    // Get meal details from recommendation or recipe
+    let mealData = null
+    if (recommendation_id) {
+      const recResult = await pool.query(
+        `SELECT tmr.*, r.name as recipe_name
+         FROM trainer_meal_recommendations tmr
+         LEFT JOIN recipes r ON tmr.recipe_id = r.id
+         WHERE tmr.id = $1 AND tmr.client_id = $2`,
+        [recommendation_id, req.user.id]
+      )
+      if (recResult.rows.length > 0) {
+        mealData = recResult.rows[0]
+      }
+    } else if (recipe_id) {
+      const recipeResult = await pool.query(
+        'SELECT * FROM recipes WHERE id = $1',
+        [recipe_id]
+      )
+      if (recipeResult.rows.length > 0) {
+        const recipe = recipeResult.rows[0]
+        mealData = {
+          recipe_id: recipe.id,
+          meal_name: recipe.name,
+          meal_category: recipe.category,
+          calories_per_serving: recipe.calories_per_serving,
+          protein_per_serving: recipe.protein_per_serving,
+          carbs_per_serving: recipe.carbs_per_serving,
+          fats_per_serving: recipe.fats_per_serving
+        }
+      }
+    }
+
+    if (!mealData) {
+      return res.status(404).json({ message: 'Meal not found' })
+    }
+
+    const servingMultiplier = parseFloat(servings) || 1.0
+
+    const result = await pool.query(
+      `INSERT INTO client_meal_selections (
+        client_id, recommendation_id, recipe_id, selected_date,
+        meal_category, meal_slot, servings,
+        actual_calories, actual_protein, actual_carbs, actual_fats
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *`,
+      [
+        req.user.id,
+        recommendation_id || null,
+        mealData.recipe_id || recipe_id || null,
+        selected_date,
+        meal_category || mealData.meal_category,
+        meal_slot || null,
+        servingMultiplier,
+        (mealData.calories_per_serving || 0) * servingMultiplier,
+        (mealData.protein_per_serving || 0) * servingMultiplier,
+        (mealData.carbs_per_serving || 0) * servingMultiplier,
+        (mealData.fats_per_serving || 0) * servingMultiplier
+      ]
+    )
+
+    res.status(201).json(result.rows[0])
+  } catch (error) {
+    console.error('Error selecting meal:', error)
+    res.status(500).json({ message: 'Failed to select meal', error: error.message })
+  }
+})
+
+// Get weekly meal plan view
+router.get('/meals/weekly', requireRole(['client']), async (req, res) => {
+  try {
+    const { week_start } = req.query
+    const clientId = req.user.id
+
+    // Calculate week dates
+    const startDate = week_start ? new Date(week_start) : new Date()
+    const dayOfWeek = startDate.getDay()
+    const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Monday
+    const monday = new Date(startDate.setDate(diff))
+    monday.setHours(0, 0, 0, 0)
+
+    const weekDates = []
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday)
+      date.setDate(monday.getDate() + i)
+      weekDates.push(date.toISOString().split('T')[0])
+    }
+
+    // Get assigned meals from meal_plan_meals
+    const planResult = await pool.query(
+      `SELECT np.*, 
+              json_agg(
+                json_build_object(
+                  'id', mpm.id,
+                  'day_number', mpm.day_number,
+                  'meal_number', mpm.meal_number,
+                  'meal_name', mpm.meal_name,
+                  'meal_time', mpm.meal_time,
+                  'target_calories', mpm.target_calories,
+                  'target_protein', mpm.target_protein,
+                  'target_carbs', mpm.target_carbs,
+                  'target_fats', mpm.target_fats,
+                  'recipe_id', mpm.recipe_id,
+                  'foods', (
+                    SELECT json_agg(
+                      json_build_object(
+                        'id', mpf.id,
+                        'food_name', mpf.food_name,
+                        'quantity', mpf.quantity,
+                        'unit', mpf.unit,
+                        'calories', mpf.calories,
+                        'protein', mpf.protein,
+                        'carbs', mpf.carbs,
+                        'fats', mpf.fats
+                      )
+                    )
+                    FROM meal_plan_foods mpf
+                    WHERE mpf.meal_plan_meal_id = mpm.id
+                  )
+                ) ORDER BY mpm.day_number, mpm.meal_number
+              ) as meals
+       FROM nutrition_plans np
+       LEFT JOIN meal_plan_meals mpm ON np.id = mpm.nutrition_plan_id
+       WHERE np.client_id = $1 AND np.is_active = true
+       GROUP BY np.id
+       LIMIT 1`,
+      [clientId]
+    )
+
+    // Get client meal selections for the week
+    const selectionsResult = await pool.query(
+      `SELECT cms.*, 
+              r.name as recipe_name,
+              r.image_url,
+              r.is_vegan,
+              r.is_vegetarian,
+              r.is_gluten_free,
+              r.is_dairy_free
+       FROM client_meal_selections cms
+       LEFT JOIN recipes r ON cms.recipe_id = r.id
+       WHERE cms.client_id = $1 
+       AND cms.selected_date >= $2 
+       AND cms.selected_date <= $3
+       ORDER BY cms.selected_date, cms.meal_slot`,
+      [clientId, weekDates[0], weekDates[6]]
+    )
+
+    // Calculate weekly averages
+    const weeklyTotals = selectionsResult.rows.reduce((acc, selection) => ({
+      calories: acc.calories + parseFloat(selection.actual_calories || 0),
+      protein: acc.protein + parseFloat(selection.actual_protein || 0),
+      carbs: acc.carbs + parseFloat(selection.actual_carbs || 0),
+      fats: acc.fats + parseFloat(selection.actual_fats || 0),
+      days: new Set([...acc.days, selection.selected_date]).size
+    }), { calories: 0, protein: 0, carbs: 0, fats: 0, days: new Set() })
+
+    const daysWithMeals = weeklyTotals.days.size
+    const weeklyAverages = {
+      calories: daysWithMeals > 0 ? Math.round(weeklyTotals.calories / daysWithMeals) : 0,
+      protein: daysWithMeals > 0 ? Math.round(weeklyTotals.protein / daysWithMeals) : 0,
+      carbs: daysWithMeals > 0 ? Math.round(weeklyTotals.carbs / daysWithMeals) : 0,
+      fats: daysWithMeals > 0 ? Math.round(weeklyTotals.fats / daysWithMeals) : 0,
+      days_logged: daysWithMeals
+    }
+
+    res.json({
+      week_start: weekDates[0],
+      week_end: weekDates[6],
+      assigned_meals: planResult.rows[0]?.meals || [],
+      client_selections: selectionsResult.rows,
+      weekly_averages: weeklyAverages
+    })
+  } catch (error) {
+    console.error('Error fetching weekly meal plan:', error)
+    res.status(500).json({ message: 'Failed to fetch weekly meal plan' })
+  }
+})
+
 export default router
 

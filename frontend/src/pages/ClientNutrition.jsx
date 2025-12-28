@@ -399,7 +399,7 @@ function ClientNutrition({ clientId, clientName }) {
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List>
             <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
-            <Tabs.Tab value="meal-plan">Meal Plan</Tabs.Tab>
+            <Tabs.Tab value="meals">Meals</Tabs.Tab>
             <Tabs.Tab value="log">Food Log</Tabs.Tab>
             <Tabs.Tab value="history">Progress</Tabs.Tab>
             <Tabs.Tab value="database">Food Database</Tabs.Tab>
@@ -571,8 +571,8 @@ function ClientNutrition({ clientId, clientName }) {
             </Stack>
           </Tabs.Panel>
 
-          {/* Meal Plan Tab */}
-          <Tabs.Panel value="meal-plan" pt="xl">
+          {/* Meals Tab */}
+          <Tabs.Panel value="meals" pt="xl">
             <Stack gap="xl">
               {/* Active Plan Info */}
               <Card withBorder p="md">
