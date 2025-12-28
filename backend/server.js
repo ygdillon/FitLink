@@ -7,7 +7,6 @@ import cors from 'cors'
 import authRoutes from './routes/auth.js'
 import trainerRoutes from './routes/trainer.js'
 import clientRoutes from './routes/client.js'
-import workoutRoutes from './routes/workout.js'
 import messageRoutes from './routes/message.js'
 import profileRoutes from './routes/profile.js'
 import paymentRoutes from './routes/payment.js'
@@ -36,7 +35,6 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/trainer', trainerRoutes)
 app.use('/api/client', clientRoutes)
-app.use('/api/workouts', workoutRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/profile', profileRoutes)
 app.use('/api/payments', paymentRoutes)

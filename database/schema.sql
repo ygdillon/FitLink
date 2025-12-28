@@ -42,60 +42,6 @@ CREATE TABLE IF NOT EXISTS clients (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Workouts table (workout templates)
-CREATE TABLE IF NOT EXISTS workouts (
-    id SERIAL PRIMARY KEY,
-    trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    is_template BOOLEAN DEFAULT false,
-    category VARCHAR(100),
-    tags JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Workout exercises (exercises within a workout)
-CREATE TABLE IF NOT EXISTS workout_exercises (
-    id SERIAL PRIMARY KEY,
-    workout_id INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
-    exercise_name VARCHAR(255) NOT NULL,
-    sets INTEGER,
-    reps VARCHAR(50),
-    weight VARCHAR(50),
-    rest VARCHAR(50),
-    notes TEXT,
-    order_index INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Workout assignments (assigning workouts to clients)
-CREATE TABLE IF NOT EXISTS workout_assignments (
-    id SERIAL PRIMARY KEY,
-    workout_id INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
-    client_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assigned_date DATE NOT NULL,
-    due_date DATE,
-    status VARCHAR(50) DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'completed', 'skipped')),
-    completed_date TIMESTAMP,
-    blockchain_verification_hash VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Workout logs (client workout completion records)
-CREATE TABLE IF NOT EXISTS workout_logs (
-    id SERIAL PRIMARY KEY,
-    client_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    workout_id INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
-    completed_date TIMESTAMP NOT NULL,
-    exercises_completed JSONB,
-    notes TEXT,
-    duration INTEGER, -- in minutes
-    blockchain_hash VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Progress entries (client progress tracking)
 CREATE TABLE IF NOT EXISTS progress_entries (
     id SERIAL PRIMARY KEY,
@@ -141,11 +87,6 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_trainers_user_id ON trainers(user_id);
 CREATE INDEX IF NOT EXISTS idx_clients_user_id ON clients(user_id);
 CREATE INDEX IF NOT EXISTS idx_clients_trainer_id ON clients(trainer_id);
-CREATE INDEX IF NOT EXISTS idx_workouts_trainer_id ON workouts(trainer_id);
-CREATE INDEX IF NOT EXISTS idx_workout_exercises_workout_id ON workout_exercises(workout_id);
-CREATE INDEX IF NOT EXISTS idx_workout_assignments_client_id ON workout_assignments(client_id);
-CREATE INDEX IF NOT EXISTS idx_workout_assignments_workout_id ON workout_assignments(workout_id);
-CREATE INDEX IF NOT EXISTS idx_workout_logs_client_id ON workout_logs(client_id);
 CREATE INDEX IF NOT EXISTS idx_progress_entries_client_id ON progress_entries(client_id);
 CREATE INDEX IF NOT EXISTS idx_progress_entries_date ON progress_entries(date);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
@@ -175,13 +116,6 @@ DROP TRIGGER IF EXISTS update_clients_updated_at ON clients;
 CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS update_workouts_updated_at ON workouts;
-CREATE TRIGGER update_workouts_updated_at BEFORE UPDATE ON workouts
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_workout_assignments_updated_at ON workout_assignments;
-CREATE TRIGGER update_workout_assignments_updated_at BEFORE UPDATE ON workout_assignments
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Subscriptions table (recurring payments) - Created before payments since payments references it
 CREATE TABLE IF NOT EXISTS subscriptions (

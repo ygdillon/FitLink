@@ -8,24 +8,6 @@ const router = express.Router()
 router.use(authenticate)
 router.use(requireRole(['client']))
 
-// Get client's assigned workouts
-router.get('/workouts', async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT w.id, w.name, w.description, wa.status, wa.assigned_date, wa.due_date
-       FROM workout_assignments wa
-       JOIN workouts w ON wa.workout_id = w.id
-       WHERE wa.client_id = $1
-       ORDER BY wa.assigned_date DESC`,
-      [req.user.id]
-    )
-
-    res.json(result.rows)
-  } catch (error) {
-    console.error('Error fetching workouts:', error)
-    res.status(500).json({ message: 'Failed to fetch workouts' })
-  }
-})
 
 // Daily check-in
 router.post('/check-in', async (req, res) => {

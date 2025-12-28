@@ -15,11 +15,9 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
     let query = `
       SELECT s.*, 
              u.name as client_name, u.email as client_email,
-             w.name as workout_name,
              c.id as client_profile_id
       FROM sessions s
       JOIN users u ON s.client_id = u.id
-      LEFT JOIN workouts w ON s.workout_id = w.id
       LEFT JOIN clients c ON c.user_id = u.id AND c.trainer_id = $1
       WHERE s.trainer_id = $1
         AND s.status IN ('scheduled', 'confirmed')
@@ -56,11 +54,9 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
     console.log(`[Schedule API] Fetching client sessions for user_id: ${req.user.id}, email: ${req.user.email}`)
     const result = await pool.query(
       `SELECT s.*, 
-              u.name as trainer_name,
-              w.name as workout_name
+              u.name as trainer_name
        FROM sessions s
        JOIN users u ON s.trainer_id = u.id
-       LEFT JOIN workouts w ON s.workout_id = w.id
        WHERE s.client_id = $1
          AND s.status IN ('scheduled', 'confirmed')
          AND s.session_date >= CURRENT_DATE
@@ -103,9 +99,8 @@ router.get('/trainer/clients/:clientId/sessions', requireRole(['trainer']), asyn
     const clientUserId = clientCheck.rows[0].user_id
     
     let query = `
-      SELECT s.*, w.name as workout_name
+      SELECT s.*
       FROM sessions s
-      LEFT JOIN workouts w ON s.workout_id = w.id
       WHERE s.client_id = $1 AND s.trainer_id = $2
     `
     const params = [clientUserId, req.user.id]
@@ -179,7 +174,6 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
   try {
     const {
       clientId,
-      workoutId,
       sessionDate,
       sessionTime,
       duration,
@@ -250,15 +244,14 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
         // Create parent session (first one)
         const parentResult = await dbClient.query(
           `INSERT INTO sessions (
-            trainer_id, client_id, workout_id, session_date, session_time,
+            trainer_id, client_id, session_date, session_time,
             duration, session_type, location, meeting_link, notes, status,
             is_recurring, recurring_pattern, recurring_end_date, day_of_week
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'scheduled', true, $11, $12, $13)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled', true, $10, $11, $12)
           RETURNING *`,
           [
             req.user.id,
             clientUserId,
-            workoutId || null,
             dates[0].toISOString().split('T')[0],
             sessionTime,
             duration || 60,
@@ -304,15 +297,14 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
           if (!hasConflict) {
             const childResult = await dbClient.query(
               `INSERT INTO sessions (
-                trainer_id, client_id, workout_id, session_date, session_time,
+                trainer_id, client_id, session_date, session_time,
                 duration, session_type, location, meeting_link, notes, status,
                 is_recurring, recurring_pattern, recurring_parent_id, day_of_week
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'scheduled', true, $11, $12, $13)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled', true, $10, $11, $12)
               RETURNING *`,
               [
                 req.user.id,
                 clientUserId,
-                workoutId || null,
                 dateStr,
                 sessionTime,
                 duration || 60,
@@ -371,14 +363,13 @@ router.post('/trainer/sessions', requireRole(['trainer']), async (req, res) => {
         
         const result = await dbClient.query(
           `INSERT INTO sessions (
-            trainer_id, client_id, workout_id, session_date, session_time,
+            trainer_id, client_id, session_date, session_time,
             duration, session_type, location, meeting_link, notes, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'scheduled')
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled')
           RETURNING *`,
           [
             req.user.id,
             clientUserId,
-            workoutId || null,
             sessionDate,
             sessionTime,
             duration || 60,

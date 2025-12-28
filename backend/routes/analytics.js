@@ -359,21 +359,23 @@ async function getClientAnalytics(trainerId, dateFilter) {
 }
 
 async function getWorkoutAnalytics(trainerId, dateFilter) {
-  // Total assigned
+  // Total assigned (program workouts assigned to clients)
   const totalAssignedResult = await pool.query(
     `SELECT COUNT(*) as count
-     FROM workout_assignments wa
-     JOIN workouts w ON wa.workout_id = w.id
-     WHERE w.trainer_id = $1 ${dateFilter.replace('created_at', 'wa.created_at')}`,
+     FROM program_assignments pa
+     JOIN programs p ON pa.program_id = p.id
+     JOIN program_workouts pw ON p.id = pw.program_id
+     WHERE p.trainer_id = $1 AND pa.status = 'active' ${dateFilter.replace('created_at', 'pa.created_at')}`,
     [trainerId]
   )
 
-  // Total completed
+  // Total completed (program workout completions)
   const totalCompletedResult = await pool.query(
     `SELECT COUNT(*) as count
-     FROM workout_assignments wa
-     JOIN workouts w ON wa.workout_id = w.id
-     WHERE w.trainer_id = $1 AND wa.status = 'completed' ${dateFilter.replace('created_at', 'wa.completed_date')}`,
+     FROM program_workout_completions pwc
+     JOIN program_workouts pw ON pwc.program_workout_id = pw.id
+     JOIN programs p ON pw.program_id = p.id
+     WHERE p.trainer_id = $1 ${dateFilter.replace('created_at', 'pwc.completed_date')}`,
     [trainerId]
   )
 
@@ -420,13 +422,13 @@ async function getCheckInAnalytics(trainerId, dateFilter) {
     [trainerId]
   )
 
-  // Calculate completion rate based on workouts completed (since check-ins are required after workouts)
+  // Calculate completion rate based on program workouts completed (since check-ins are required after workouts)
   const workoutsCompletedResult = await pool.query(
     `SELECT COUNT(*) as count
-     FROM workout_assignments wa
-     JOIN workouts w ON wa.workout_id = w.id
-     JOIN clients c ON wa.client_id = c.user_id
-     WHERE w.trainer_id = $1 AND wa.status = 'completed' ${dateFilter.replace('created_at', 'wa.completed_date')}`,
+     FROM program_workout_completions pwc
+     JOIN program_workouts pw ON pwc.program_workout_id = pw.id
+     JOIN programs p ON pw.program_id = p.id
+     WHERE p.trainer_id = $1 ${dateFilter.replace('created_at', 'pwc.completed_date')}`,
     [trainerId]
   )
   

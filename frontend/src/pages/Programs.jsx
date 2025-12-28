@@ -368,10 +368,12 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
         split_type: values.split_type,
         duration_weeks: values.duration_weeks,
         start_date: values.start_date ? new Date(values.start_date).toISOString().split('T')[0] : null,
-        end_date: endDate || null
+        end_date: endDate ? (endDate instanceof Date ? endDate.toISOString().split('T')[0] : endDate) : null
       }
 
-      await api.put(`/programs/${programToEdit.id}`, programData)
+      console.log('[DEBUG] Updating program with data:', programData)
+      const response = await api.put(`/programs/${programToEdit.id}`, programData)
+      console.log('[DEBUG] Update response:', response.data)
       notifications.show({
         title: 'Success',
         message: 'Program updated successfully',

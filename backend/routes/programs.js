@@ -327,7 +327,9 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
     await client.query('BEGIN')
 
     const { id } = req.params
-    const { name, description, split_type, duration_weeks, workouts } = req.body
+    const { name, description, split_type, duration_weeks, start_date, end_date, workouts } = req.body
+    
+    console.log('[DEBUG] Updating program:', { id, name, start_date, end_date, duration_weeks })
 
     // Verify program belongs to trainer
     const programCheck = await client.query(
@@ -344,18 +346,47 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
     }
 
     // Update program
-    await client.query(
-      `UPDATE programs 
-       SET name = COALESCE($1, name),
-           description = COALESCE($2, description),
-           split_type = COALESCE($3, split_type),
-           duration_weeks = COALESCE($4, duration_weeks),
-           start_date = COALESCE($5, start_date),
-           end_date = COALESCE($6, end_date),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7`,
-      [name, description, split_type, duration_weeks, start_date || null, end_date || null, id]
-    )
+    // Build dynamic update query based on provided fields
+    const updateFields = []
+    const updateValues = []
+    let paramIndex = 1
+
+    if (name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`)
+      updateValues.push(name)
+    }
+    if (description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`)
+      updateValues.push(description)
+    }
+    if (split_type !== undefined) {
+      updateFields.push(`split_type = $${paramIndex++}`)
+      updateValues.push(split_type)
+    }
+    if (duration_weeks !== undefined) {
+      updateFields.push(`duration_weeks = $${paramIndex++}`)
+      updateValues.push(duration_weeks)
+    }
+    if (start_date !== undefined) {
+      updateFields.push(`start_date = $${paramIndex++}`)
+      updateValues.push(start_date || null)
+    }
+    if (end_date !== undefined) {
+      updateFields.push(`end_date = $${paramIndex++}`)
+      updateValues.push(end_date || null)
+    }
+
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`)
+    updateValues.push(id)
+
+    if (updateFields.length > 1) { // More than just updated_at
+      await client.query(
+        `UPDATE programs 
+         SET ${updateFields.join(', ')}
+         WHERE id = $${paramIndex}`,
+        updateValues
+      )
+    }
 
     // If workouts are provided, update them
     if (workouts && Array.isArray(workouts)) {
