@@ -1548,8 +1548,6 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         }
         
         console.log('[DEBUG] Setting saved workout:', workoutToSave)
-        setSavedWorkout(workoutToSave)
-        setSavedWorkoutId(savedWorkout?.id || null)
         
         // Fetch assigned clients for this program and then open modal
         const fetchClientsAndOpenModal = async () => {
@@ -1562,14 +1560,20 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
             setAssignedClients([])
           }
           
+          // Set state and then open modal after state has been set
+          setSavedWorkout(workoutToSave)
+          setSavedWorkoutId(savedWorkout?.id || null)
+          
           // Close workout modal first
           closeWorkoutModal()
           
-          // Small delay to ensure workout modal closes, then open actions modal
+          // Use a longer delay to ensure state updates have propagated
           setTimeout(() => {
             console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave)
+            // Force state update by setting workout again right before opening
+            setSavedWorkout(workoutToSave)
             openWorkoutActions()
-          }, 200)
+          }, 300)
         }
         
         fetchClientsAndOpenModal()
