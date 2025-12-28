@@ -1207,17 +1207,37 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       }
 
       // Find the saved workout ID (it should be in the response)
-      const savedWorkout = response.data.workouts?.find(w => 
-        w.week_number === weekNumber && 
-        w.day_number === dayNumber && 
-        w.workout_name === newWorkout.workout_name
+      // Try multiple ways to find it since the workout might be newly created
+      let savedWorkout = response.data.workouts?.find(w => 
+        w.id && w.week_number === weekNumber && w.day_number === dayNumber
       )
+      
+      // If not found by ID, try by name and position
+      if (!savedWorkout) {
+        savedWorkout = response.data.workouts?.find(w => 
+          w.week_number === weekNumber && 
+          w.day_number === dayNumber && 
+          w.workout_name === newWorkout.workout_name
+        )
+      }
+      
+      // If still not found, get the last workout for this day/week
+      if (!savedWorkout) {
+        const dayWorkouts = response.data.workouts?.filter(w => 
+          w.week_number === weekNumber && w.day_number === dayNumber
+        )
+        if (dayWorkouts && dayWorkouts.length > 0) {
+          savedWorkout = dayWorkouts[dayWorkouts.length - 1]
+        }
+      }
       
       closeWorkoutModal()
       
       // If trainer and workout was saved, show session scheduling modal
-      if (isTrainer && savedWorkout?.id) {
-        setSavedWorkoutId(savedWorkout.id)
+      if (isTrainer) {
+        // Set workout ID if found, otherwise we'll find it in the modal
+        setSavedWorkoutId(savedWorkout?.id || null)
+        
         // Fetch assigned clients for this program
         try {
           const clientsRes = await api.get(`/programs/${currentProgram.id}/assigned-clients`)
@@ -1226,7 +1246,12 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           console.error('Error fetching assigned clients:', error)
           setAssignedClients([])
         }
-        openSessionScheduling()
+        
+        // Always show session scheduling modal for trainers
+        // Small delay to ensure workout modal closes first
+        setTimeout(() => {
+          openSessionScheduling()
+        }, 200)
       } else {
         notifications.show({
           title: 'Success',
@@ -1417,8 +1442,11 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                                   if (!isTrainer) {
                                     handleClientWorkoutClick(workout)
                                   } else {
-                                    handleDayClick(weekNum, dayNum)
+                                    // Set the workout to edit before opening modal
                                     setEditingWorkout(workout)
+                                    setSelectedWeek(weekNum)
+                                    setSelectedDay(dayNum)
+                                    openWorkoutModal()
                                   }
                                 }}
                                 onMouseEnter={(e) => {
@@ -1827,10 +1855,50 @@ function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumbe
       return
     }
 
+    // If no workoutId, we can still create sessions but need to find the workout
     if (!workoutId) {
+      // Try to find the workout from the program
+      try {
+        const programRes = await api.get(`/programs/${program.id}`)
+        const workout = programRes.data.workouts?.find(w => 
+          w.week_number === weekNumber && w.day_number === dayNumber
+        )
+        if (workout?.id) {
+          // Use the found workout ID
+          const sessionData = {
+            workoutId: workout.id,
+            sessionDate,
+            sessionTime: values.sessionTime,
+            duration: values.duration,
+            sessionType: values.sessionType,
+            location: values.location || null,
+            meetingLink: values.meetingLink || null,
+            repeat: values.repeat,
+            repeatPattern: values.repeatPattern,
+            repeatEndDate: values.repeatEndDate,
+            clientIds: values.clientIds.length > 0 ? values.clientIds : assignedClients.map(c => c.client_id || c.id).filter(Boolean)
+          }
+
+          await api.post(`/programs/${program.id}/workout/${workout.id}/create-sessions`, sessionData)
+          
+          notifications.show({
+            title: 'Success',
+            message: values.repeat 
+              ? `Sessions created and scheduled to repeat ${values.repeatPattern}` 
+              : 'Session created successfully',
+            color: 'green',
+          })
+          
+          onClose()
+          return
+        }
+      } catch (error) {
+        console.error('Error finding workout:', error)
+      }
+      
       notifications.show({
         title: 'Error',
-        message: 'Workout ID not found',
+        message: 'Workout not found. Please try again.',
         color: 'red',
       })
       return
@@ -2025,12 +2093,40 @@ function SessionSchedulingModal({ opened, onClose, program, workoutId, weekNumbe
           )}
 
           <Group justify="flex-end" mt="md">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                onClose()
+                notifications.show({
+                  title: 'Success',
+                  message: 'Workout saved successfully',
+                  color: 'green',
+                })
+              }} 
+              disabled={loading}
+            >
               {form.values.scheduleAsSession ? 'Skip Scheduling' : 'Close'}
             </Button>
-            <Button type="submit" color="robinhoodGreen" loading={loading}>
-              {form.values.scheduleAsSession ? 'Create Session' : 'Done'}
-            </Button>
+            {form.values.scheduleAsSession ? (
+              <Button type="submit" color="robinhoodGreen" loading={loading}>
+                Create Session
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => {
+                  onClose()
+                  notifications.show({
+                    title: 'Success',
+                    message: 'Workout saved successfully',
+                    color: 'green',
+                  })
+                }}
+                color="robinhoodGreen"
+                disabled={loading}
+              >
+                Done
+              </Button>
+            )}
           </Group>
         </Stack>
       </form>
