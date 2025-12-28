@@ -427,9 +427,11 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
               {...form.getInputProps('start_date')}
             />
             <DateInput
-              label="End Date (optional)"
+              label="End Date"
               placeholder="Auto-calculated from start date + duration"
               minDate={form.values.start_date ? new Date(form.values.start_date) : undefined}
+              description="Automatically calculated from start date and duration"
+              readOnly
               {...form.getInputProps('end_date')}
             />
             <Group justify="flex-end" mt="md">
