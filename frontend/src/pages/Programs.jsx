@@ -1558,6 +1558,11 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       }
     } catch (error) {
       console.error('Error saving workout:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      })
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save workout'
       notifications.show({
         title: 'Error',
@@ -1881,16 +1886,30 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
   }, [workout, opened])
 
   const addExercise = () => {
-    form.insertListItem('exercises', {
-      exercise_name: '',
-      exercise_type: 'REGULAR',
-      sets: null,
-      reps: '',
-      weight: '',
-      duration: '',
-      rest: '',
-      tempo: ''
-    })
+    try {
+      // Ensure exercises array exists
+      const currentExercises = form.values.exercises || []
+      form.setFieldValue('exercises', [
+        ...currentExercises,
+        {
+          exercise_name: '',
+          exercise_type: 'REGULAR',
+          sets: null,
+          reps: '',
+          weight: '',
+          duration: '',
+          rest: '',
+          tempo: ''
+        }
+      ])
+    } catch (error) {
+      console.error('Error adding exercise:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to add exercise. Please try again.',
+        color: 'red',
+      })
+    }
   }
 
   return (
@@ -1906,7 +1925,7 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
           
           <Divider label="Exercises" />
           
-          {form.values.exercises.map((exercise, index) => (
+          {(form.values.exercises || []).map((exercise, index) => (
             <Card key={index} p="md" withBorder>
               <Stack gap="sm">
                 <Group grow>
@@ -1964,7 +1983,13 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
             </Card>
           ))}
 
-          <Button variant="light" onClick={addExercise}>
+          <Button 
+            type="button" 
+            variant="light" 
+            onClick={addExercise}
+            fullWidth
+            color="robinhoodGreen"
+          >
             + Add Exercise
           </Button>
 
