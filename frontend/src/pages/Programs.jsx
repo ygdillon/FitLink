@@ -1561,20 +1561,24 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
             setAssignedClients([])
           }
           
-          // Set state and then open modal after state has been set
+          // Set both state and ref for immediate access
           setSavedWorkout(workoutToSave)
+          savedWorkoutRef.current = workoutToSave
           setSavedWorkoutId(savedWorkout?.id || null)
           
           // Close workout modal first
           closeWorkoutModal()
           
-          // Use a longer delay to ensure state updates have propagated
-          setTimeout(() => {
-            console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave)
-            // Force state update by setting workout again right before opening
-            setSavedWorkout(workoutToSave)
-            openWorkoutActions()
-          }, 300)
+          // Use requestAnimationFrame to ensure state has updated, then setTimeout for modal transition
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave, 'ref:', savedWorkoutRef.current)
+              // Ensure state is set one more time right before opening
+              setSavedWorkout(workoutToSave)
+              savedWorkoutRef.current = workoutToSave
+              openWorkoutActions()
+            }, 300)
+          })
         }
         
         fetchClientsAndOpenModal()
