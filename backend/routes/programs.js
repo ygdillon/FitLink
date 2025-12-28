@@ -518,40 +518,65 @@ router.delete('/:id', requireRole(['trainer']), async (req, res) => {
   }
 })
 
-// Assign program to client
+// Helper function to calculate session date from program start date, week, and day
+function calculateSessionDate(startDate, weekNumber, dayNumber) {
+  const start = new Date(startDate)
+  // Get the day of week for the start date (0 = Sunday, 1 = Monday, etc.)
+  const startDayOfWeek = start.getDay()
+  // Convert to Monday = 1, Sunday = 7 format
+  const startDay = startDayOfWeek === 0 ? 7 : startDayOfWeek
+  
+  // Calculate days to add: (week - 1) * 7 + (day - startDay)
+  const daysToAdd = (weekNumber - 1) * 7 + (dayNumber - startDay)
+  const sessionDate = new Date(start)
+  sessionDate.setDate(start.getDate() + daysToAdd)
+  
+  return sessionDate.toISOString().split('T')[0] // Return as YYYY-MM-DD
+}
+
+// Assign program to client and auto-create sessions
 router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
+  const dbClient = await pool.connect()
   try {
+    await dbClient.query('BEGIN')
+    
     const { id } = req.params
     const { client_id, start_date } = req.body
 
     console.log(`[DEBUG] Assigning program ${id} to client_id ${client_id} by trainer ${req.user.id}`)
 
     // Verify program belongs to trainer
-    const programCheck = await pool.query(
-      'SELECT trainer_id, is_template FROM programs WHERE id = $1',
+    const programCheck = await dbClient.query(
+      'SELECT trainer_id, is_template, name FROM programs WHERE id = $1',
       [id]
     )
 
     if (programCheck.rows.length === 0) {
+      await dbClient.query('ROLLBACK')
       return res.status(404).json({ message: 'Program not found' })
     }
 
     if (programCheck.rows[0].trainer_id !== req.user.id) {
+      await dbClient.query('ROLLBACK')
       return res.status(403).json({ message: 'Not authorized to assign this program' })
     }
 
     // Verify client_id is a valid user_id
-    const clientCheck = await pool.query(
+    const clientUserCheck = await dbClient.query(
       'SELECT id FROM users WHERE id = $1',
       [client_id]
     )
 
-    if (clientCheck.rows.length === 0) {
+    if (clientUserCheck.rows.length === 0) {
+      await dbClient.query('ROLLBACK')
       return res.status(400).json({ message: 'Invalid client_id' })
     }
 
+    // Determine start date (use provided or default to today)
+    const programStartDate = start_date || new Date().toISOString().split('T')[0]
+
     // Insert or update assignment
-    const assignmentResult = await pool.query(
+    const assignmentResult = await dbClient.query(
       `INSERT INTO program_assignments (program_id, client_id, assigned_date, start_date, status)
        VALUES ($1, $2, CURRENT_DATE, $3, 'active')
        ON CONFLICT (program_id, client_id) 
@@ -559,15 +584,120 @@ router.post('/:id/assign', requireRole(['trainer']), async (req, res) => {
                      status = 'active',
                      updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [id, client_id, start_date || null]
+      [id, client_id, programStartDate]
     )
 
     console.log(`[DEBUG] Assignment successful:`, assignmentResult.rows[0])
 
-    res.json({ message: 'Program assigned successfully' })
+    // Get trainer default session preferences
+    const trainerPrefs = await dbClient.query(
+      `SELECT 
+        COALESCE(default_session_time, '18:00:00'::TIME) as session_time,
+        COALESCE(default_session_duration, 60) as duration,
+        COALESCE(default_session_type, 'in_person') as session_type,
+        default_session_location as location
+       FROM trainers 
+       WHERE user_id = $1`,
+      [req.user.id]
+    )
+
+    const defaults = trainerPrefs.rows[0] || {
+      session_time: '18:00:00',
+      duration: 60,
+      session_type: 'in_person',
+      location: null
+    }
+
+    // Fetch all workouts from the program
+    const workoutsResult = await dbClient.query(
+      `SELECT id, workout_name, week_number, day_number, order_index
+       FROM program_workouts
+       WHERE program_id = $1
+       ORDER BY week_number, day_number, order_index`,
+      [id]
+    )
+
+    const workouts = workoutsResult.rows
+    let sessionsCreated = 0
+    let conflictsDetected = 0
+
+    // Create sessions for each workout
+    for (const workout of workouts) {
+      try {
+        // Calculate actual session date
+        const sessionDate = calculateSessionDate(programStartDate, workout.week_number, workout.day_number)
+        
+        // Check for conflicts (optional - warn but don't block)
+        const conflictCheck = await dbClient.query(
+          `SELECT id FROM sessions 
+           WHERE trainer_id = $1 
+           AND session_date = $2 
+           AND session_time = $3 
+           AND status NOT IN ('cancelled', 'completed')`,
+          [req.user.id, sessionDate, defaults.session_time]
+        )
+
+        if (conflictCheck.rows.length > 0) {
+          console.log(`[WARN] Conflict detected for ${sessionDate} at ${defaults.session_time}`)
+          conflictsDetected++
+          // Continue anyway - trainer can reschedule later
+        }
+
+        // Create session (check if it already exists to avoid duplicates)
+        const existingSession = await dbClient.query(
+          `SELECT id FROM sessions 
+           WHERE trainer_id = $1 
+           AND client_id = $2 
+           AND program_workout_id = $3 
+           AND session_date = $4`,
+          [req.user.id, client_id, workout.id, sessionDate]
+        )
+
+        if (existingSession.rows.length === 0) {
+          await dbClient.query(
+            `INSERT INTO sessions (
+              trainer_id, client_id, program_id, program_workout_id,
+              session_date, session_time, duration, session_type, location, status, notes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled', $10)`,
+            [
+              req.user.id,
+              client_id,
+              id,
+              workout.id,
+              sessionDate,
+              defaults.session_time,
+              defaults.duration,
+              defaults.session_type,
+              defaults.location,
+              `From ${programCheck.rows[0].name} - Week ${workout.week_number}, Day ${workout.day_number}`
+            ]
+          )
+          sessionsCreated++
+        } else {
+          console.log(`[INFO] Session already exists for workout ${workout.id} on ${sessionDate}`)
+        }
+      } catch (error) {
+        console.error(`Error creating session for workout ${workout.id}:`, error)
+        // Continue with other workouts even if one fails
+      }
+    }
+
+    await dbClient.query('COMMIT')
+
+    console.log(`[DEBUG] Created ${sessionsCreated} sessions, ${conflictsDetected} conflicts detected`)
+
+    res.json({ 
+      message: 'Program assigned successfully',
+      sessionsCreated,
+      conflictsDetected,
+      totalWorkouts: workouts.length
+    })
   } catch (error) {
+    await dbClient.query('ROLLBACK')
     console.error('Error assigning program:', error)
     res.status(500).json({ message: 'Failed to assign program', error: error.message })
+  } finally {
+    dbClient.release()
   }
 })
 
