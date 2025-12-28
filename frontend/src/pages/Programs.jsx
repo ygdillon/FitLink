@@ -1314,6 +1314,11 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   const [copyWorkoutOpened, { open: openCopyWorkout, close: closeCopyWorkout }] = useDisclosure(false)
   const [repeatWorkoutOpened, { open: openRepeatWorkout, close: closeRepeatWorkout }] = useDisclosure(false)
 
+  // Track workoutActionsOpened state changes
+  useEffect(() => {
+    console.log('[DEBUG] workoutActionsOpened state changed to:', workoutActionsOpened)
+  }, [workoutActionsOpened])
+
   // Update current program when program prop changes
   useEffect(() => {
     setCurrentProgram(program)
