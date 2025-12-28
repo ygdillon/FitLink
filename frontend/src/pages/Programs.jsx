@@ -474,18 +474,20 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
                     </Badge>
                   )}
                 </Group>
-                {program.description && (
-                  <Text size="sm" c="dimmed" lineClamp={2} style={{ minHeight: '2.5rem' }}>
-                    {program.description}
-                  </Text>
-                )}
-                <Group gap="xs" mt="xs">
+                <div style={{ minHeight: '2.5rem', display: 'flex', alignItems: 'flex-start' }}>
+                  {program.description ? (
+                    <Text size="sm" c="dimmed" lineClamp={2} style={{ width: '100%' }}>
+                      {program.description}
+                    </Text>
+                  ) : null}
+                </div>
+                <Group gap="xs" mt="xs" align="center" style={{ minHeight: '1.5rem' }}>
                   {program.split_type && (
-                    <Badge size="sm" variant="outline" color="gray">
+                    <Badge size="sm" variant="outline" color="gray" style={{ flexShrink: 0 }}>
                       {program.split_type}
                     </Badge>
                   )}
-                  <Text size="xs" c="dimmed">
+                  <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
                     {program.workout_count || 0} workouts
                   </Text>
                 </Group>
