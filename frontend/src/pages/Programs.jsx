@@ -1539,28 +1539,38 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       // If trainer and workout was saved, show workout actions modal
       if (isTrainer) {
         // Set saved workout data - ensure we have the full workout object
-        const workoutToSave = savedWorkout || {
+        const workoutToSave = savedWorkout ? {
+          ...savedWorkout,
+          workout_name: savedWorkout.workout_name || newWorkout.workout_name,
+          exercises: savedWorkout.exercises || newWorkout.exercises
+        } : {
           ...newWorkout,
-          id: savedWorkout?.id,
           workout_name: newWorkout.workout_name,
           exercises: newWorkout.exercises
         }
+        
+        console.log('[DEBUG] Setting saved workout:', workoutToSave)
         setSavedWorkout(workoutToSave)
         setSavedWorkoutId(savedWorkout?.id || null)
         
         // Fetch assigned clients for this program
-        try {
-          const clientsRes = await api.get(`/programs/${currentProgram.id}/assigned-clients`)
-          setAssignedClients(clientsRes.data || [])
-        } catch (error) {
-          console.error('Error fetching assigned clients:', error)
-          setAssignedClients([])
+        const fetchClients = async () => {
+          try {
+            const clientsRes = await api.get(`/programs/${currentProgram.id}/assigned-clients`)
+            console.log('[DEBUG] Assigned clients:', clientsRes.data)
+            setAssignedClients(clientsRes.data || [])
+          } catch (error) {
+            console.error('Error fetching assigned clients:', error)
+            setAssignedClients([])
+          }
         }
+        
+        fetchClients()
         
         // Show workout actions modal for trainers
         // Small delay to ensure workout modal closes first
         setTimeout(() => {
-          console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave)
+          console.log('[DEBUG] Opening workout actions modal, savedWorkout:', workoutToSave, 'opened state:', workoutActionsOpened)
           openWorkoutActions()
         }, 300)
       } else {
