@@ -212,7 +212,11 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
   const navigate = useNavigate()
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false)
   const [assignOpened, { open: openAssign, close: closeAssign }] = useDisclosure(false)
+  const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false)
+  const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false)
   const [programToAssign, setProgramToAssign] = useState(null)
+  const [programToEdit, setProgramToEdit] = useState(null)
+  const [programToDelete, setProgramToDelete] = useState(null)
 
   // Remove the Container and Title from here since they're now in the parent
 
@@ -244,6 +248,29 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
       start_date: ''
     }
   })
+
+  const editForm = useForm({
+    initialValues: {
+      name: '',
+      description: '',
+      split_type: '',
+      duration_weeks: 4,
+      start_date: null,
+      end_date: null
+    }
+  })
+
+  // Auto-calculate end_date for edit form
+  useEffect(() => {
+    if (editForm.values.start_date && editForm.values.duration_weeks) {
+      const start = new Date(editForm.values.start_date)
+      const end = new Date(start)
+      end.setDate(start.getDate() + (editForm.values.duration_weeks * 7) - 1)
+      editForm.setFieldValue('end_date', end)
+    } else if (!editForm.values.start_date) {
+      editForm.setFieldValue('end_date', null)
+    }
+  }, [editForm.values.start_date, editForm.values.duration_weeks])
 
   const handleCreateProgram = async (values) => {
     try {
@@ -370,17 +397,35 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
                   >
                     View
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    color="robinhoodGreen"
-                    onClick={() => {
-                      setProgramToAssign(program)
-                      openAssign()
-                    }}
-                  >
-                    Assign
-                  </Button>
+                  <Group gap="xs">
+                    <ActionIcon
+                      variant="light"
+                      color="blue"
+                      size="sm"
+                      onClick={() => handleEditProgram(program)}
+                    >
+                      <IconEdit size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                      variant="light"
+                      color="red"
+                      size="sm"
+                      onClick={() => handleDeleteProgram(program)}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      color="robinhoodGreen"
+                      onClick={() => {
+                        setProgramToAssign(program)
+                        openAssign()
+                      }}
+                    >
+                      Assign
+                    </Button>
+                  </Group>
                 </Group>
               </Stack>
             </Card>
@@ -466,6 +511,81 @@ function TrainerProgramsView({ programs, clients, onViewProgram, onRefresh, sele
             </Group>
           </Stack>
         </form>
+      </Modal>
+
+      {/* Edit Program Modal */}
+      <Modal opened={editOpened} onClose={closeEdit} title="Edit Program" size="lg">
+        <form onSubmit={editForm.onSubmit(handleUpdateProgram)}>
+          <Stack gap="md">
+            <TextInput
+              label="Program Name"
+              placeholder="e.g., Push/Pull/Legs Split"
+              required
+              {...editForm.getInputProps('name')}
+            />
+            <Textarea
+              label="Description"
+              placeholder="Describe the program..."
+              {...editForm.getInputProps('description')}
+            />
+            <Select
+              label="Split Type"
+              placeholder="Select split type"
+              data={[
+                { value: 'PPL', label: 'Push/Pull/Legs (PPL)' },
+                { value: 'Upper/Lower', label: 'Upper/Lower' },
+                { value: 'Full Body', label: 'Full Body' },
+                { value: 'Custom', label: 'Custom' }
+              ]}
+              {...editForm.getInputProps('split_type')}
+            />
+            <NumberInput
+              label="Duration (weeks)"
+              min={1}
+              max={52}
+              {...editForm.getInputProps('duration_weeks')}
+            />
+            <DateInput
+              label="Start Date"
+              placeholder="Select program start date"
+              required
+              {...editForm.getInputProps('start_date')}
+            />
+            <DateInput
+              label="End Date"
+              placeholder="Auto-calculated from start date + duration"
+              minDate={editForm.values.start_date ? new Date(editForm.values.start_date) : undefined}
+              description="Automatically calculated from start date and duration"
+              readOnly
+              {...editForm.getInputProps('end_date')}
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="outline" onClick={closeEdit}>Cancel</Button>
+              <Button type="submit" color="robinhoodGreen">Update Program</Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
+
+      {/* Delete Program Confirmation Modal */}
+      <Modal opened={deleteOpened} onClose={closeDelete} title="Delete Program">
+        <Stack gap="md">
+          <Text>
+            Are you sure you want to delete the program "{programToDelete?.name}"?
+          </Text>
+          <Text size="sm" c="dimmed">
+            This will permanently delete the program and remove it from all clients who have it assigned. 
+            All associated workouts and sessions will also be removed. This action cannot be undone.
+          </Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="outline" onClick={closeDelete}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleConfirmDelete}>
+              Delete Program
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
 
       {/* Program View Modal */}

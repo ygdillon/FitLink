@@ -493,30 +493,53 @@ router.put('/:id', requireRole(['trainer']), async (req, res) => {
 
 // Delete a program
 router.delete('/:id', requireRole(['trainer']), async (req, res) => {
+  const dbClient = await pool.connect()
   try {
+    await dbClient.query('BEGIN')
+    
     const { id } = req.params
 
     // Verify program belongs to trainer
-    const programCheck = await pool.query(
-      'SELECT trainer_id FROM programs WHERE id = $1',
+    const programCheck = await dbClient.query(
+      'SELECT trainer_id, name FROM programs WHERE id = $1',
       [id]
     )
 
     if (programCheck.rows.length === 0) {
+      await dbClient.query('ROLLBACK')
       return res.status(404).json({ message: 'Program not found' })
     }
 
     if (programCheck.rows[0].trainer_id !== req.user.id) {
+      await dbClient.query('ROLLBACK')
       return res.status(403).json({ message: 'Not authorized to delete this program' })
     }
 
-    // Delete program (cascade will handle related records)
-    await pool.query('DELETE FROM programs WHERE id = $1', [id])
+    // Get count of assigned clients before deletion
+    const assignmentsCheck = await dbClient.query(
+      'SELECT COUNT(*) as count FROM program_assignments WHERE program_id = $1 AND status = $2',
+      [id, 'active']
+    )
+    const assignedClientsCount = parseInt(assignmentsCheck.rows[0].count) || 0
 
-    res.json({ message: 'Program deleted successfully' })
+    // Delete program assignments first (explicit deletion for clarity)
+    await dbClient.query('DELETE FROM program_assignments WHERE program_id = $1', [id])
+
+    // Delete program (cascade will handle related records like workouts, exercises, sessions, etc.)
+    await dbClient.query('DELETE FROM programs WHERE id = $1', [id])
+
+    await dbClient.query('COMMIT')
+
+    res.json({ 
+      message: 'Program deleted successfully',
+      removedFromClients: assignedClientsCount
+    })
   } catch (error) {
+    await dbClient.query('ROLLBACK')
     console.error('Error deleting program:', error)
-    res.status(500).json({ message: 'Failed to delete program' })
+    res.status(500).json({ message: 'Failed to delete program', error: error.message })
+  } finally {
+    dbClient.release()
   }
 })
 
