@@ -362,7 +362,7 @@ function ClientNutrition({ clientId, clientName }) {
               {label}
             </Text>
             <Text size="xl" fw={700} mb={4}>
-              {Math.round(consumed).toFixed(0)} / {target} {unit}
+              {Math.round(consumed).toFixed(0)} / {Math.round(target).toFixed(0)} {unit}
             </Text>
             {isOver ? (
               <Text size="xs" c="red">
@@ -681,25 +681,25 @@ function ClientNutrition({ clientId, clientName }) {
                   <Box>
                     <Text size="xs" c="dimmed">Calories</Text>
                     <Text size="lg" fw={700}>
-                      {selectedDateTotals.calories.toFixed(0)} / {targets.calories}
+                      {selectedDateTotals.calories.toFixed(0)} / {Math.round(targets.calories).toFixed(0)}
                     </Text>
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Protein</Text>
                     <Text size="lg" fw={700}>
-                      {Math.round(selectedDateTotals.protein).toFixed(0)} / {targets.protein}g
+                      {Math.round(selectedDateTotals.protein).toFixed(0)} / {Math.round(targets.protein).toFixed(0)}g
                     </Text>
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Carbs</Text>
                     <Text size="lg" fw={700}>
-                      {Math.round(selectedDateTotals.carbs).toFixed(0)} / {targets.carbs}g
+                      {Math.round(selectedDateTotals.carbs).toFixed(0)} / {Math.round(targets.carbs).toFixed(0)}g
                     </Text>
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Fats</Text>
                     <Text size="lg" fw={700}>
-                      {Math.round(selectedDateTotals.fats).toFixed(0)} / {targets.fats}g
+                      {Math.round(selectedDateTotals.fats).toFixed(0)} / {Math.round(targets.fats).toFixed(0)}g
                     </Text>
                   </Box>
                 </SimpleGrid>
