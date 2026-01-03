@@ -43,7 +43,9 @@ function ClientDashboard() {
       
       // Fetch upcoming sessions
       const sessionsRes = await api.get('/schedule/client/upcoming').catch(() => ({ data: [] }))
-      setUpcomingSessions(sessionsRes.data || [])
+      const sessions = sessionsRes.data || []
+      console.log('[ClientDashboard] Fetched sessions:', sessions.length, sessions)
+      setUpcomingSessions(sessions)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
