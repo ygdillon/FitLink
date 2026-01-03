@@ -42,10 +42,21 @@ function ClientDashboard() {
       setPrograms(programsWithDetails)
       
       // Fetch upcoming sessions
-      const sessionsRes = await api.get('/schedule/client/upcoming').catch(() => ({ data: [] }))
-      const sessions = sessionsRes.data || []
-      console.log('[ClientDashboard] Fetched sessions:', sessions.length, sessions)
-      setUpcomingSessions(sessions)
+      try {
+        const sessionsRes = await api.get('/schedule/client/upcoming')
+        const sessions = sessionsRes.data || []
+        console.log('[ClientDashboard] Fetched sessions:', sessions.length, 'sessions:', sessions)
+        if (sessions.length === 0) {
+          console.log('[ClientDashboard] No sessions returned from API')
+        } else {
+          console.log('[ClientDashboard] Sample session:', sessions[0])
+        }
+        setUpcomingSessions(sessions)
+      } catch (error) {
+        console.error('[ClientDashboard] Error fetching sessions:', error)
+        console.error('[ClientDashboard] Error response:', error.response?.data)
+        setUpcomingSessions([])
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
