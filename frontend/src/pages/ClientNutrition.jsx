@@ -416,11 +416,11 @@ function ClientNutrition({ clientId, clientName }) {
 
     return (
       <Card withBorder p="sm" style={{ height: '100%' }}>
-        <Group gap="md" align="center" wrap="nowrap">
+        <Group gap="sm" align="center" wrap="nowrap">
           <Box style={{ flexShrink: 0 }}>
             <RingProgress
-              size={70}
-              thickness={7}
+              size={60}
+              thickness={6}
               sections={[{ value: percentage, color: color }]}
               styles={{
                 root: {
@@ -429,16 +429,16 @@ function ClientNutrition({ clientId, clientName }) {
               }}
               label={
                 <Center>
-                  <Icon size={20} color={color} />
+                  <Icon size={18} color={color} />
                 </Center>
               }
             />
           </Box>
           <Box style={{ flex: 1, minWidth: 0 }}>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4} lh={1.2}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={3} lh={1.2}>
               {label}
             </Text>
-            <Text size="lg" fw={700} lh={1.2} mb={4}>
+            <Text size="md" fw={700} lh={1.2} mb={3}>
               {consumedRounded} / {targetRounded} {unit}
             </Text>
             {isOver ? (
