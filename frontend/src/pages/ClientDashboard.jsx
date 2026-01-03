@@ -719,8 +719,9 @@ function ClientDashboard() {
                           </Card>
                         )
                       })}
-                    </Stack>
-                  </ScrollArea>
+                      </Stack>
+                    </ScrollArea>
+                  </div>
                 )}
               </Paper>
             </Grid.Col>
