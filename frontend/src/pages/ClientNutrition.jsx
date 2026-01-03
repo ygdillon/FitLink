@@ -29,7 +29,8 @@ import {
   Image,
   ScrollArea,
   Avatar,
-  Textarea
+  Textarea,
+  List
 } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -53,7 +54,11 @@ import {
   IconMilk,
   IconClockHour4,
   IconChefHat,
-  IconX
+  IconX,
+  IconInfoCircle,
+  IconChecklist,
+  IconBook,
+  IconShoppingCart
 } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
@@ -78,6 +83,9 @@ function ClientNutrition({ clientId, clientName }) {
   const [viewAllModalOpened, { open: openViewAllModal, close: closeViewAllModal }] = useDisclosure(false)
   const [addMealModalOpened, { open: openAddMealModal, close: closeAddMealModal }] = useDisclosure(false)
   const [editMealModalOpened, { open: openEditMealModal, close: closeEditMealModal }] = useDisclosure(false)
+  const [recipeModalOpened, { open: openRecipeModal, close: closeRecipeModal }] = useDisclosure(false)
+  const [selectedRecipe, setSelectedRecipe] = useState(null)
+  const [recipeLoading, setRecipeLoading] = useState(false)
   const [selectedMealToEdit, setSelectedMealToEdit] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedMealSlot, setSelectedMealSlot] = useState(null)
@@ -495,6 +503,56 @@ function ClientNutrition({ clientId, clientName }) {
         message: errorMessage,
         color: 'red'
       })
+    }
+  }
+
+  const handleViewRecipe = async (meal) => {
+    try {
+      setRecipeLoading(true)
+      const recipeId = meal.recipe_id
+      
+      if (!recipeId) {
+        // If no recipe_id, show meal recommendation details instead
+        setSelectedRecipe({
+          name: meal.recipe_name || meal.meal_name,
+          description: meal.meal_description || meal.recipe_description,
+          calories_per_serving: meal.calories_per_serving,
+          protein_per_serving: meal.protein_per_serving,
+          carbs_per_serving: meal.carbs_per_serving,
+          fats_per_serving: meal.fats_per_serving,
+          image_url: meal.image_url,
+          is_vegan: meal.is_vegan,
+          is_vegetarian: meal.is_vegetarian,
+          is_gluten_free: meal.is_gluten_free,
+          is_dairy_free: meal.is_dairy_free,
+          notes: meal.notes,
+          is_custom_meal: true // Flag to indicate this is a custom meal, not a full recipe
+        })
+        openRecipeModal()
+        return
+      }
+
+      const result = await api.get(`/nutrition/recipes/${recipeId}`).catch(() => ({ data: null }))
+      
+      if (result.data) {
+        setSelectedRecipe(result.data)
+        openRecipeModal()
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: 'Recipe details not available',
+          color: 'red'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching recipe:', error)
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to load recipe details',
+        color: 'red'
+      })
+    } finally {
+      setRecipeLoading(false)
     }
   }
 
@@ -1254,6 +1312,7 @@ function ClientNutrition({ clientId, clientName }) {
                                         key={meal.id}
                                         meal={meal}
                                         onSelect={isTrainerView ? null : handleSelectMeal}
+                                        onViewRecipe={handleViewRecipe}
                                         mealSlot={mealSlot}
                                         showActions={!isTrainerView}
                                         onEdit={isTrainerView ? handleEditMeal : null}
@@ -1756,6 +1815,7 @@ function ClientNutrition({ clientId, clientName }) {
                   key={meal.id}
                   meal={meal}
                   onSelect={isTrainerView ? null : handleSelectMeal}
+                  onViewRecipe={handleViewRecipe}
                   mealSlot={selectedMealSlot}
                   showActions={!isTrainerView}
                   onEdit={isTrainerView ? handleEditMeal : null}

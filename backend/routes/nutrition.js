@@ -1370,5 +1370,67 @@ router.get('/meals/weekly', requireRole(['client']), async (req, res) => {
   }
 })
 
+// ============================================
+// RECIPE ENDPOINTS
+// ============================================
+
+// Get recipe by ID with full details
+router.get('/recipes/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const result = await pool.query(
+      `SELECT 
+        r.*,
+        u.name as created_by_name
+       FROM recipes r
+       LEFT JOIN users u ON r.created_by = u.id
+       WHERE r.id = $1`,
+      [id]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Recipe not found' })
+    }
+
+    const recipe = result.rows[0]
+
+    // Parse JSONB fields if they're strings
+    if (typeof recipe.ingredients === 'string') {
+      try {
+        recipe.ingredients = JSON.parse(recipe.ingredients)
+      } catch (e) {
+        recipe.ingredients = []
+      }
+    }
+    if (typeof recipe.equipment_needed === 'string') {
+      try {
+        recipe.equipment_needed = JSON.parse(recipe.equipment_needed)
+      } catch (e) {
+        recipe.equipment_needed = []
+      }
+    }
+    if (typeof recipe.substitution_options === 'string') {
+      try {
+        recipe.substitution_options = JSON.parse(recipe.substitution_options)
+      } catch (e) {
+        recipe.substitution_options = []
+      }
+    }
+    if (typeof recipe.tags === 'string') {
+      try {
+        recipe.tags = JSON.parse(recipe.tags)
+      } catch (e) {
+        recipe.tags = []
+      }
+    }
+
+    res.json(recipe)
+  } catch (error) {
+    console.error('Error fetching recipe:', error)
+    res.status(500).json({ message: 'Failed to fetch recipe' })
+  }
+})
+
 export default router
 
