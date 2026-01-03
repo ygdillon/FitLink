@@ -1945,7 +1945,7 @@ function ClientNutrition({ clientId, clientName }) {
                   Cancel
                 </Button>
                 <Button type="submit">
-                  Add Recommendation
+                  Add Meal
                 </Button>
               </Group>
             </Stack>
