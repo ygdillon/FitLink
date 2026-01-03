@@ -1758,6 +1758,7 @@ function ClientNutrition({ clientId, clientName }) {
                   onSelect={isTrainerView ? null : handleSelectMeal}
                   mealSlot={selectedMealSlot}
                   showActions={!isTrainerView}
+                  onEdit={isTrainerView ? handleEditMeal : null}
                 />
               ))}
             </SimpleGrid>
