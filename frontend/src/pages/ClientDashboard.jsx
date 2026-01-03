@@ -54,8 +54,7 @@ function ClientDashboard() {
         }
         setUpcomingSessions(sessions)
       } catch (error) {
-        console.error('[ClientDashboard] Error fetching sessions:', error)
-        console.error('[ClientDashboard] Error response:', error.response?.data)
+        console.error('[ClientDashboard] Error fetching upcoming sessions:', error.response?.data || error.message)
         setUpcomingSessions([])
       }
     } catch (error) {
@@ -67,27 +66,31 @@ function ClientDashboard() {
 
   // Get today's workout from assigned programs
   const getTodaysWorkout = useMemo(() => {
-    if (!programs.length) return null
+    if (programs.length === 0) return null
     
     const today = new Date()
-    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
-    const dayNumber = dayOfWeek === 0 ? 7 : dayOfWeek // Convert to 1-7 (Monday-Sunday)
+    today.setHours(0, 0, 0, 0)
     
-    // Find the current week in each program
     for (const program of programs) {
-      if (!program.workouts || !program.workouts.length) continue
+      if (!program.start_date || !program.workouts || program.workouts.length === 0) continue
       
-      // Calculate which week we're in (simplified - assumes program started at assignment)
-      // For MVP, we'll just check if there's a workout for today's day of week in week 1
-      // In production, this would calculate based on program start date
-      const todaysWorkouts = program.workouts.filter(w => 
-        w.week_number === 1 && w.day_number === dayNumber
+      const startDate = new Date(program.start_date)
+      startDate.setHours(0, 0, 0, 0)
+      
+      // Calculate which week and day we're on
+      const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24))
+      const weekNumber = Math.floor(daysSinceStart / 7) + 1
+      const dayNumber = (daysSinceStart % 7) + 1
+      
+      // Find workout for today
+      const workout = program.workouts.find(w => 
+        w.week_number === weekNumber && w.day_number === dayNumber
       )
       
-      if (todaysWorkouts.length > 0) {
+      if (workout) {
         return {
-          program: program,
-          workout: todaysWorkouts[0],
+          workout,
+          program,
           programId: program.id
         }
       }
@@ -96,9 +99,8 @@ function ClientDashboard() {
     return null
   }, [programs])
 
-  // Calculate program progress
   const getProgramStats = (program) => {
-    if (!program.workouts || !program.workouts.length) {
+    if (!program || !program.workouts) {
       return { completed: 0, total: 0, percentage: 0 }
     }
     
@@ -309,6 +311,32 @@ function ClientDashboard() {
     navigate(`/programs?id=${programId}`)
   }
 
+  // Find the next upcoming session
+  const nextSession = useMemo(() => {
+    if (upcomingSessions.length === 0) return null
+    
+    const now = new Date()
+    const upcoming = upcomingSessions
+      .map(session => {
+        const sessionDate = session.session_date ? new Date(session.session_date) : null
+        if (!sessionDate) return null
+        
+        // Combine date and time
+        const [hours, minutes] = session.session_time ? session.session_time.split(':') : ['0', '0']
+        const sessionDateTime = new Date(sessionDate)
+        sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+        
+        return {
+          ...session,
+          sessionDateTime
+        }
+      })
+      .filter(s => s && s.sessionDateTime >= now)
+      .sort((a, b) => a.sessionDateTime - b.sessionDateTime)
+    
+    return upcoming.length > 0 ? upcoming[0] : null
+  }, [upcomingSessions])
+
   if (loading) {
     return (
       <Container size="xl" py="xl">
@@ -325,90 +353,152 @@ function ClientDashboard() {
     <Container size="xl" py="md" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Title order={1} mb="md" style={{ flexShrink: 0 }}>My Dashboard</Title>
 
-      <Stack gap="md" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {/* Today's Workout - Prominent Card */}
-        {getTodaysWorkout ? (
-          <Card shadow="lg" padding="md" radius="md" withBorder style={{ 
-            background: 'linear-gradient(135deg, var(--mantine-color-green-6) 0%, var(--mantine-color-green-7) 100%)',
-            border: 'none',
-            flexShrink: 0
-          }}>
-            <Stack gap="md">
-              <Group justify="space-between" align="flex-start">
-                <Stack gap="xs">
-                  <Badge size="lg" variant="light" color="white">
-                    Today's Workout
-                  </Badge>
-                  <Title order={2} c="white" fw={700}>
-                    {getTodaysWorkout.workout.workout_name}
-                  </Title>
-                  <Text c="white" opacity={0.9}>
-                    {getTodaysWorkout.program.name}
-                  </Text>
+      <Grid gutter="md" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* Left Side - Today's Workout and My Programs */}
+        <Grid.Col span={{ base: 12, md: 5 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <Stack gap="md" style={{ height: '100%', overflow: 'hidden' }}>
+            {/* Today's Workout */}
+            {getTodaysWorkout ? (
+              <Card shadow="lg" padding="md" radius="md" withBorder style={{ 
+                background: 'linear-gradient(135deg, var(--mantine-color-green-6) 0%, var(--mantine-color-green-7) 100%)',
+                border: 'none',
+                flexShrink: 0
+              }}>
+                <Stack gap="md">
+                  <Group justify="space-between" align="flex-start">
+                    <Stack gap="xs">
+                      <Badge size="lg" variant="light" color="white">
+                        Today's Workout
+                      </Badge>
+                      <Title order={2} c="white" fw={700}>
+                        {getTodaysWorkout.workout.workout_name}
+                      </Title>
+                      <Text c="white" opacity={0.9}>
+                        {getTodaysWorkout.program.name}
+                      </Text>
+                    </Stack>
+                    <Group>
+                      {getTodaysWorkout.workout.exercises && (
+                        <Badge size="lg" variant="filled" color="white" c="green">
+                          {getTodaysWorkout.workout.exercises.length} exercises
+                        </Badge>
+                      )}
+                    </Group>
+                  </Group>
+                  
+                  <Divider color="white" opacity={0.3} />
+                  
+                  <Group>
+                    <Button 
+                      size="lg" 
+                      variant="white" 
+                      color="green"
+                      onClick={handleStartWorkout}
+                      style={{ flex: 1 }}
+                    >
+                      Start Workout
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      color="white"
+                      onClick={() => handleViewProgram(getTodaysWorkout.programId)}
+                    >
+                      View Program
+                    </Button>
+                  </Group>
                 </Stack>
-                <Group>
-                  {getTodaysWorkout.workout.exercises && (
-                    <Badge size="lg" variant="filled" color="white" c="green">
-                      {getTodaysWorkout.workout.exercises.length} exercises
-                    </Badge>
+              </Card>
+            ) : (
+              <Card shadow="sm" padding="md" radius="md" withBorder style={{ flexShrink: 0 }}>
+                <Stack gap="sm" align="center">
+                  <Text size="md" fw={500} c="dimmed">No workout scheduled for today</Text>
+                  <Text size="xs" c="dimmed">Check your program schedule or wait for your trainer to assign workouts</Text>
+                  {programs.length > 0 && (
+                    <Button onClick={() => navigate('/programs')} color="green" size="sm">
+                      View My Programs
+                    </Button>
                   )}
-                </Group>
-              </Group>
-              
-              <Divider color="white" opacity={0.3} />
-              
-              <Group>
-                <Button 
-                  size="lg" 
-                  variant="white" 
-                  color="green"
-                  onClick={handleStartWorkout}
-                  style={{ flex: 1 }}
-                >
-                  Start Workout
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  color="white"
-                  onClick={() => handleViewProgram(getTodaysWorkout.programId)}
-                >
-                  View Program
-                </Button>
-              </Group>
-            </Stack>
-          </Card>
-        ) : (
-          <Card shadow="sm" padding="md" radius="md" withBorder style={{ flexShrink: 0 }}>
-            <Stack gap="sm" align="center">
-              <Text size="md" fw={500} c="dimmed">No workout scheduled for today</Text>
-              <Text size="xs" c="dimmed">Check your program schedule or wait for your trainer to assign workouts</Text>
-              {programs.length > 0 && (
-                <Button onClick={() => navigate('/programs')} color="green" size="sm">
-                  View My Programs
-                </Button>
-              )}
-            </Stack>
-          </Card>
-        )}
-
-        {/* Calendar and Programs Side by Side */}
-        <Grid gutter="md" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          {/* Upcoming Sessions Calendar - Left Side */}
-          <Grid.Col span={{ base: 12, md: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                <Title order={3} style={{ fontSize: '1.1rem' }}>
-                  Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
-                </Title>
-              </Group>
-              {upcomingSessions.length === 0 ? (
-                <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
-                  <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
-                  <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                 </Stack>
-              ) : (
-                <Stack gap="sm" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              </Card>
+            )}
+
+            {/* My Programs */}
+            {programs.length > 0 && (
+              <Paper p="sm" shadow="sm" withBorder style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
+                  <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
+                    View All
+                  </Button>
+                </Group>
+                
+                <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+                  <SimpleGrid cols={1} spacing="sm">
+                    {programs.slice(0, 4).map(program => {
+                      const stats = getProgramStats(program)
+                      return (
+                        <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
+                          <Stack gap="sm">
+                            <Group justify="space-between">
+                              <Title order={4} lineClamp={1}>{program.name}</Title>
+                              {program.split_type && (
+                                <Badge size="sm" variant="outline">{program.split_type}</Badge>
+                              )}
+                            </Group>
+                            
+                            {program.description && (
+                              <Text size="sm" c="dimmed" lineClamp={2}>
+                                {program.description}
+                              </Text>
+                            )}
+                            
+                            <Stack gap="xs">
+                              <Group justify="space-between">
+                                <Text size="xs" c="dimmed">Progress</Text>
+                                <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
+                              </Group>
+                              <Progress value={stats.percentage} size="sm" color="green" />
+                            </Stack>
+                            
+                            <Group gap="xs">
+                              <Button
+                                variant="light"
+                                color="green"
+                                size="sm"
+                                fullWidth
+                                onClick={() => handleViewProgram(program.id)}
+                              >
+                                View Program
+                              </Button>
+                            </Group>
+                          </Stack>
+                        </Card>
+                      )
+                    })}
+                  </SimpleGrid>
+                </ScrollArea>
+              </Paper>
+            )}
+          </Stack>
+        </Grid.Col>
+
+        {/* Right Side - Calendar and Sessions Widget */}
+        <Grid.Col span={{ base: 12, md: 7 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <Grid gutter="sm" style={{ height: '100%', flex: 1, minHeight: 0 }}>
+            {/* Calendar - Top Right */}
+            <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>
+                    Calendar
+                  </Title>
+                </Group>
+                {upcomingSessions.length === 0 ? (
+                  <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
+                    <Text c="dimmed" size="sm">No upcoming sessions</Text>
+                  </Stack>
+                ) : (
                   <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
                     <Calendar
                       value={null}
@@ -449,194 +539,187 @@ function ClientDashboard() {
                           return { style: { cursor: 'pointer' } }
                         }
                       }}
-                    styles={{
-                      calendar: { width: '100%' },
-                      month: { width: '100%' },
-                      monthCell: { width: '100%' },
-                      weekday: {
-                        fontWeight: 600,
-                        fontSize: '0.875rem',
-                        paddingBottom: '0.75rem',
-                        paddingTop: '0.5rem',
-                        textAlign: 'center',
-                        color: 'var(--mantine-color-gray-6)',
-                      },
-                      day: {
-                        fontSize: '0.95rem',
-                        height: '5.5rem',
-                        minHeight: '5.5rem',
-                        width: '100%',
-                        borderRadius: 0,
-                        border: 'none',
-                        margin: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        justifyContent: 'flex-start',
-                        padding: '0.3rem',
-                      },
-                    }}
+                      styles={{
+                        calendar: { width: '100%' },
+                        month: { width: '100%' },
+                        monthCell: { width: '100%' },
+                        weekday: {
+                          fontWeight: 600,
+                          fontSize: '0.875rem',
+                          paddingBottom: '0.75rem',
+                          paddingTop: '0.5rem',
+                          textAlign: 'center',
+                          color: 'var(--mantine-color-gray-6)',
+                        },
+                        day: {
+                          fontSize: '0.95rem',
+                          height: '5.5rem',
+                          minHeight: '5.5rem',
+                          width: '100%',
+                          borderRadius: 0,
+                          border: 'none',
+                          margin: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          justifyContent: 'flex-start',
+                          padding: '0.3rem',
+                        },
+                      }}
                       size="sm"
                       fullWidth
                     />
                   </div>
-                  
-                  {/* Show upcoming sessions list below calendar */}
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', flexShrink: 0 }}>
+                )}
+              </Paper>
+            </Grid.Col>
+
+            {/* Sessions Widget - Bottom Right */}
+            <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>
+                    Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
+                  </Title>
+                </Group>
+                {upcomingSessions.length === 0 ? (
+                  <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
+                    <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
+                    <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
+                  </Stack>
+                ) : (
+                  <ScrollArea style={{ flex: 1, minHeight: 0 }}>
                     <Stack gap="xs">
-                      {upcomingSessions.slice(0, 5).map(session => {
+                      {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
+                        const isNextSession = nextSession && session.id === nextSession.id
+                        const [hours, minutes] = session.session_time ? session.session_time.split(':') : ['0', '0']
+                        const sessionDateTime = sessionDate ? (() => {
+                          const dt = new Date(sessionDate)
+                          dt.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+                          return dt
+                        })() : null
+                        
                         return (
-                          <Card key={session.id} p="xs" withBorder>
-                            <Group justify="space-between" gap="xs">
-                              <Stack gap={2} style={{ flex: 1 }}>
-                                <Text size="sm" fw={500}>
-                                  {sessionDate ? sessionDate.toLocaleDateString('en-US', { 
-                                    weekday: 'short', 
-                                    month: 'short', 
-                                    day: 'numeric' 
-                                  }) : 'Date TBD'}
-                                </Text>
+                          <Card 
+                            key={session.id} 
+                            p="sm" 
+                            withBorder
+                            style={{
+                              border: isNextSession ? '2px solid rgba(34, 197, 94, 0.8)' : undefined,
+                              backgroundColor: isNextSession ? 'rgba(34, 197, 94, 0.1)' : undefined,
+                              boxShadow: isNextSession ? '0 2px 8px rgba(34, 197, 94, 0.3)' : undefined
+                            }}
+                          >
+                            <Stack gap={4}>
+                              <Group justify="space-between" gap="xs">
+                                <Stack gap={2} style={{ flex: 1 }}>
+                                  {isNextSession && (
+                                    <Badge size="xs" color="green" variant="light">
+                                      Next Session
+                                    </Badge>
+                                  )}
+                                  <Text size="sm" fw={500}>
+                                    {sessionDate ? sessionDate.toLocaleDateString('en-US', { 
+                                      weekday: 'long', 
+                                      month: 'short', 
+                                      day: 'numeric' 
+                                    }) : 'Date TBD'}
+                                  </Text>
+                                  <Text size="xs" c="dimmed">
+                                    {session.session_time ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                                      hour: 'numeric', 
+                                      minute: '2-digit' 
+                                    }) : ''}
+                                  </Text>
+                                  {session.workout_name && (
+                                    <Text size="xs" fw={500} c="green">
+                                      {session.workout_name}
+                                    </Text>
+                                  )}
+                                  {session.program_name && (
+                                    <Text size="xs" c="dimmed">
+                                      {session.program_name}
+                                    </Text>
+                                  )}
+                                </Stack>
+                                <Badge size="sm" color={session.status === 'confirmed' ? 'blue' : 'gray'}>
+                                  {session.status || 'scheduled'}
+                                </Badge>
+                              </Group>
+                              {session.location && (
                                 <Text size="xs" c="dimmed">
-                                  {session.session_time ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
-                                    hour: 'numeric', 
-                                    minute: '2-digit' 
-                                  }) : ''} 
-                                  {session.workout_name && ` • ${session.workout_name}`}
+                                  📍 {session.location}
                                 </Text>
-                              </Stack>
-                              <Badge size="sm" color={session.status === 'confirmed' ? 'blue' : 'gray'}>
-                                {session.status || 'scheduled'}
-                              </Badge>
-                            </Group>
+                              )}
+                              {session.meeting_link && (
+                                <Text size="xs" c="dimmed">
+                                  🔗 <a href={session.meeting_link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                                    Join Meeting
+                                  </a>
+                                </Text>
+                              )}
+                            </Stack>
                           </Card>
                         )
                       })}
-                      {upcomingSessions.length > 5 && (
-                        <Text size="xs" c="dimmed" ta="center">
-                          +{upcomingSessions.length - 5} more sessions
-                        </Text>
-                      )}
                     </Stack>
-                  </div>
-                </Stack>
-              )}
-            </Paper>
-          </Grid.Col>
-
-          {/* Assigned Programs - Right Side */}
-          <Grid.Col span={{ base: 12, md: 8 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {programs.length > 0 && (
-              <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                  <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
-                  <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
-                    View All
-                  </Button>
-                </Group>
-                
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                  {programs.slice(0, 4).map(program => {
-                    const stats = getProgramStats(program)
-                    return (
-                      <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
-                        <Stack gap="sm">
-                          <Group justify="space-between">
-                            <Title order={4} lineClamp={1}>{program.name}</Title>
-                            {program.split_type && (
-                              <Badge size="sm" variant="outline">{program.split_type}</Badge>
-                            )}
-                          </Group>
-                          
-                          {program.description && (
-                            <Text size="sm" c="dimmed" lineClamp={2}>
-                              {program.description}
-                            </Text>
-                          )}
-                          
-                          <Stack gap="xs">
-                            <Group justify="space-between">
-                              <Text size="xs" c="dimmed">Progress</Text>
-                              <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
-                            </Group>
-                            <Progress value={stats.percentage} size="sm" color="green" />
-                          </Stack>
-                          
-                          <Group gap="xs">
-                            <Text size="xs" c="dimmed">
-                              {program.duration_weeks} weeks
-                            </Text>
-                            {program.workout_count && (
-                              <>
-                                <Text size="xs" c="dimmed">•</Text>
-                                <Text size="xs" c="dimmed">
-                                  {program.workout_count} workouts
-                                </Text>
-                              </>
-                            )}
-                          </Group>
-                          
-                          <Button 
-                            variant="light" 
-                            size="sm"
-                            fullWidth
-                            onClick={() => handleViewProgram(program.id)}
-                          >
-                            View Program
-                          </Button>
-                        </Stack>
-                      </Card>
-                    )
-                  })}
-                </SimpleGrid>
-                
-                {programs.length > 4 && (
-                  <Group justify="center" mt="sm" style={{ flexShrink: 0 }}>
-                    <Button variant="subtle" size="xs" onClick={() => navigate('/programs')}>
-                      View {programs.length - 4} more program{programs.length - 4 > 1 ? 's' : ''}
-                    </Button>
-                  </Group>
+                  </ScrollArea>
                 )}
               </Paper>
-            )}
-          </Grid.Col>
-        </Grid>
-      </Stack>
+            </Grid.Col>
+          </Grid>
+        </Grid.Col>
+      </Grid>
 
       {/* Session Details Modal */}
       <Modal
         opened={modalOpened}
         onClose={closeModal}
-        title={`Sessions on ${selectedDate ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}`}
+        title={selectedDate ? selectedDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'Session Details'}
+        size="md"
         centered
       >
         {selectedSessions.length === 0 ? (
-          <Text c="dimmed">No sessions found for this date</Text>
+          <Text c="dimmed">No sessions scheduled for this date</Text>
         ) : (
           <Stack gap="md">
             {selectedSessions.map(session => (
               <Paper key={session.id} p="md" withBorder>
-                <Stack gap="xs">
+                <Stack gap="sm">
                   <Group justify="space-between">
-                    <Text fw={600} size="lg">
-                      {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                    <Text fw={600} size="lg">{session.workout_name || 'Training Session'}</Text>
+                    <Badge color={session.status === 'confirmed' ? 'blue' : 'gray'}>
+                      {session.status || 'scheduled'}
+                    </Badge>
+                  </Group>
+                  
+                  {session.session_time && (
+                    <Text size="sm" c="dimmed">
+                      Time: {new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
                         hour: 'numeric', 
                         minute: '2-digit' 
                       })}
                     </Text>
-                    <Badge color={session.status === 'completed' ? 'green' : session.status === 'confirmed' ? 'blue' : 'gray'}>
-                      {session.status || 'scheduled'}
-                    </Badge>
-                  </Group>
-                  {session.workout_name && (
-                    <Text fw={500}>{session.workout_name}</Text>
                   )}
+                  
+                  {session.trainer_name && (
+                    <Text size="sm" c="dimmed">Trainer: {session.trainer_name}</Text>
+                  )}
+                  
                   {session.session_type && (
                     <Text size="sm" c="dimmed">Type: {session.session_type.replace('_', ' ')}</Text>
                   )}
+                  
                   {session.location && (
                     <Text size="sm" c="dimmed">Location: {session.location}</Text>
                   )}
+                  
                   {session.meeting_link && (
                     <Text size="sm" c="dimmed">
                       <a href={session.meeting_link} target="_blank" rel="noopener noreferrer">
@@ -644,6 +727,7 @@ function ClientDashboard() {
                       </a>
                     </Text>
                   )}
+                  
                   {session.notes && (
                     <Text size="sm" c="dimmed">{session.notes}</Text>
                   )}
