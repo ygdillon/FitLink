@@ -345,20 +345,32 @@ function ClientNutrition({ clientId, clientName }) {
       const userId = clientRes.data.user_id
       const activePlanId = nutritionPlan?.id || null
 
-      await api.post('/nutrition/meals/recommendations', {
+      // Validate meal_name is not empty
+      if (!values.meal_name || values.meal_name.trim() === '') {
+        notifications.show({
+          title: 'Validation Error',
+          message: 'Meal name is required',
+          color: 'red'
+        })
+        return
+      }
+
+      const payload = {
         client_id: userId,
-        meal_name: values.meal_name,
-        meal_description: values.meal_description || null,
+        meal_name: values.meal_name.trim(),
+        meal_description: values.meal_description?.trim() || null,
         meal_category: values.meal_category,
-        calories_per_serving: parseFloat(values.calories_per_serving),
+        calories_per_serving: parseFloat(values.calories_per_serving) || 0,
         protein_per_serving: parseFloat(values.protein_per_serving || 0),
         carbs_per_serving: parseFloat(values.carbs_per_serving || 0),
         fats_per_serving: parseFloat(values.fats_per_serving || 0),
-        recommendation_type: values.recommendation_type,
+        recommendation_type: values.recommendation_type || 'flexible',
         priority: parseInt(values.priority || 0),
-        notes: values.notes || null,
+        notes: values.notes?.trim() || null,
         nutrition_plan_id: activePlanId
-      })
+      }
+
+      await api.post('/nutrition/meals/recommendations', payload)
 
       notifications.show({
         title: 'Success',

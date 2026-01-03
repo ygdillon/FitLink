@@ -953,6 +953,14 @@ router.post('/meals/recommendations', requireRole(['trainer']), async (req, res)
       return res.status(404).json({ message: 'Client not found' })
     }
 
+    // Validate required fields
+    if (!meal_name || meal_name.trim() === '') {
+      return res.status(400).json({ message: 'Meal name is required' })
+    }
+    if (!meal_category) {
+      return res.status(400).json({ message: 'Meal category is required' })
+    }
+
     // If recipe_id provided, get macros from recipe
     let finalCalories = calories_per_serving
     let finalProtein = protein_per_serving
@@ -970,11 +978,17 @@ router.post('/meals/recommendations', requireRole(['trainer']), async (req, res)
         finalProtein = finalProtein || recipe.protein_per_serving
         finalCarbs = finalCarbs || recipe.carbs_per_serving
         finalFats = finalFats || recipe.fats_per_serving
-        if (!meal_name) {
+        if (!meal_name || meal_name.trim() === '') {
           meal_name = recipe.name
         }
       }
     }
+
+    // Ensure macros are valid numbers
+    finalCalories = finalCalories ? parseFloat(finalCalories) : null
+    finalProtein = finalProtein ? parseFloat(finalProtein) : null
+    finalCarbs = finalCarbs ? parseFloat(finalCarbs) : null
+    finalFats = finalFats ? parseFloat(finalFats) : null
 
     const result = await pool.query(
       `INSERT INTO trainer_meal_recommendations (
@@ -996,7 +1010,24 @@ router.post('/meals/recommendations', requireRole(['trainer']), async (req, res)
     res.status(201).json(result.rows[0])
   } catch (error) {
     console.error('Error creating meal recommendation:', error)
-    res.status(500).json({ message: 'Failed to create meal recommendation', error: error.message })
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint
+    })
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to create meal recommendation'
+    if (error.code === '23502') { // NOT NULL violation
+      errorMessage = `Missing required field: ${error.column || 'unknown'}`
+    } else if (error.code === '23503') { // Foreign key violation
+      errorMessage = 'Invalid reference: client or trainer not found'
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    res.status(500).json({ message: errorMessage, error: error.message, code: error.code })
   }
 })
 
