@@ -77,6 +77,8 @@ function ClientNutrition({ clientId, clientName }) {
   const [recommendedMeals, setRecommendedMeals] = useState({ assigned: [], flexible: {} })
   const [viewAllModalOpened, { open: openViewAllModal, close: closeViewAllModal }] = useDisclosure(false)
   const [addMealModalOpened, { open: openAddMealModal, close: closeAddMealModal }] = useDisclosure(false)
+  const [editMealModalOpened, { open: openEditMealModal, close: closeEditMealModal }] = useDisclosure(false)
+  const [selectedMealToEdit, setSelectedMealToEdit] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedMealSlot, setSelectedMealSlot] = useState(null)
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -423,6 +425,79 @@ function ClientNutrition({ clientId, clientName }) {
     }
   }
 
+  const handleEditMeal = (meal) => {
+    setSelectedMealToEdit(meal)
+    mealRecommendationForm.setValues({
+      meal_name: meal.meal_name || '',
+      meal_description: meal.meal_description || '',
+      meal_category: meal.meal_category || 'breakfast',
+      calories_per_serving: meal.calories_per_serving || '',
+      protein_per_serving: meal.protein_per_serving || 0,
+      carbs_per_serving: meal.carbs_per_serving || 0,
+      fats_per_serving: meal.fats_per_serving || 0,
+      recommendation_type: meal.recommendation_type || 'flexible',
+      priority: meal.priority || 0,
+      notes: meal.notes || ''
+    })
+    openEditMealModal()
+  }
+
+  const handleUpdateMealRecommendation = async (values) => {
+    try {
+      if (!isTrainerView || !selectedMealToEdit?.id) {
+        notifications.show({
+          title: 'Error',
+          message: 'Invalid request',
+          color: 'red'
+        })
+        return
+      }
+
+      // Validate meal_name is not empty
+      if (!values.meal_name || values.meal_name.trim() === '') {
+        notifications.show({
+          title: 'Validation Error',
+          message: 'Meal name is required',
+          color: 'red'
+        })
+        return
+      }
+
+      await api.put(`/nutrition/meals/recommendations/${selectedMealToEdit.id}`, {
+        meal_name: values.meal_name.trim(),
+        meal_description: values.meal_description?.trim() || null,
+        meal_category: values.meal_category,
+        calories_per_serving: parseFloat(values.calories_per_serving) || 0,
+        protein_per_serving: parseFloat(values.protein_per_serving || 0),
+        carbs_per_serving: parseFloat(values.carbs_per_serving || 0),
+        fats_per_serving: parseFloat(values.fats_per_serving || 0),
+        recommendation_type: values.recommendation_type || 'flexible',
+        priority: parseInt(values.priority || 0),
+        notes: values.notes?.trim() || null
+      })
+
+      notifications.show({
+        title: 'Success',
+        message: 'Meal recommendation updated successfully',
+        color: 'green'
+      })
+
+      closeEditMealModal()
+      setSelectedMealToEdit(null)
+      mealRecommendationForm.reset()
+      fetchRecommendedMeals()
+    } catch (error) {
+      console.error('Error updating meal recommendation:', error)
+      console.error('Error details:', error.response?.data)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to update meal recommendation'
+      notifications.show({
+        title: 'Error',
+        message: errorMessage,
+        color: 'red'
+      })
+    }
+  }
+
   const handleSearchFoods = async (searchTerm) => {
     if (searchTerm.length < 2) {
       setFoods([])
@@ -623,7 +698,7 @@ function ClientNutrition({ clientId, clientName }) {
   }
 
   // Enhanced Meal Card Component
-  const MealCard = ({ meal, onSelect, onViewRecipe, mealSlot, showActions = true }) => {
+  const MealCard = ({ meal, onSelect, onViewRecipe, mealSlot, showActions = true, onEdit = null }) => {
     const mealName = meal.recipe_name || meal.meal_name || 'Meal'
     const imageUrl = meal.image_url
     const calories = Math.round(meal.calories_per_serving || meal.actual_calories || 0)
@@ -722,6 +797,21 @@ function ClientNutrition({ clientId, clientName }) {
                 </Button>
               )}
             </Group>
+          )}
+          {/* Trainer Edit Action */}
+          {isTrainerView && onEdit && (
+            <Button
+              size="xs"
+              variant="light"
+              fullWidth
+              mt="xs"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(meal)
+              }}
+            >
+              Edit
+            </Button>
           )}
         </Stack>
       </Card>
@@ -1166,6 +1256,7 @@ function ClientNutrition({ clientId, clientName }) {
                                         onSelect={isTrainerView ? null : handleSelectMeal}
                                         mealSlot={mealSlot}
                                         showActions={!isTrainerView}
+                                        onEdit={isTrainerView ? handleEditMeal : null}
                                       />
                                     ))}
                                   </SimpleGrid>
@@ -1777,6 +1868,115 @@ function ClientNutrition({ clientId, clientName }) {
                 </Button>
                 <Button type="submit">
                   Add Recommendation
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Modal>
+      )}
+
+      {/* Edit Meal Recommendation Modal (Trainer Only) */}
+      {isTrainerView && (
+        <Modal
+          opened={editMealModalOpened}
+          onClose={() => {
+            closeEditMealModal()
+            setSelectedMealToEdit(null)
+            mealRecommendationForm.reset()
+          }}
+          title="Edit Meal Recommendation"
+          size="lg"
+        >
+          <form onSubmit={mealRecommendationForm.onSubmit(handleUpdateMealRecommendation)}>
+            <Stack gap="md">
+              <TextInput
+                label="Meal Name"
+                placeholder="e.g., Grilled Chicken with Vegetables"
+                required
+                {...mealRecommendationForm.getInputProps('meal_name')}
+              />
+
+              <Textarea
+                label="Description (Optional)"
+                placeholder="Brief description of the meal..."
+                rows={3}
+                {...mealRecommendationForm.getInputProps('meal_description')}
+              />
+
+              <Select
+                label="Meal Category"
+                required
+                data={[
+                  { value: 'breakfast', label: 'Breakfast' },
+                  { value: 'lunch', label: 'Lunch' },
+                  { value: 'dinner', label: 'Dinner' },
+                  { value: 'snack', label: 'Snack' },
+                  { value: 'quick_eat', label: 'Quick Eat' }
+                ]}
+                {...mealRecommendationForm.getInputProps('meal_category')}
+              />
+
+              <Divider label="Nutritional Information" labelPosition="center" />
+
+              <NumberInput
+                label="Calories per Serving"
+                required
+                min={0}
+                {...mealRecommendationForm.getInputProps('calories_per_serving')}
+              />
+
+              <SimpleGrid cols={3}>
+                <NumberInput
+                  label="Protein (g)"
+                  min={0}
+                  {...mealRecommendationForm.getInputProps('protein_per_serving')}
+                />
+                <NumberInput
+                  label="Carbs (g)"
+                  min={0}
+                  {...mealRecommendationForm.getInputProps('carbs_per_serving')}
+                />
+                <NumberInput
+                  label="Fats (g)"
+                  min={0}
+                  {...mealRecommendationForm.getInputProps('fats_per_serving')}
+                />
+              </SimpleGrid>
+
+              <Select
+                label="Recommendation Type"
+                data={[
+                  { value: 'flexible', label: 'Flexible (Client can choose)' },
+                  { value: 'assigned', label: 'Assigned (Specific day/time)' },
+                  { value: 'suggested', label: 'Suggested' }
+                ]}
+                {...mealRecommendationForm.getInputProps('recommendation_type')}
+              />
+
+              <NumberInput
+                label="Priority (0-10, higher = more recommended)"
+                min={0}
+                max={10}
+                {...mealRecommendationForm.getInputProps('priority')}
+              />
+
+              <Textarea
+                label="Notes for Client (Optional)"
+                placeholder="Any special instructions or tips..."
+                rows={2}
+                {...mealRecommendationForm.getInputProps('notes')}
+              />
+
+              <Group justify="flex-end" mt="md">
+                <Button variant="light" onClick={() => {
+                  closeEditMealModal()
+                  setSelectedMealToEdit(null)
+                  mealRecommendationForm.reset()
+                }}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Update Recommendation
                 </Button>
               </Group>
             </Stack>
