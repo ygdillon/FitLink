@@ -30,7 +30,8 @@ import {
   ScrollArea,
   Avatar,
   Textarea,
-  List
+  List,
+  Checkbox
 } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -127,7 +128,27 @@ function ClientNutrition({ clientId, clientName }) {
       fats_per_serving: '',
       recommendation_type: 'flexible',
       priority: 0,
-      notes: ''
+      notes: '',
+      // Recipe fields
+      include_recipe: false,
+      total_yield: 1,
+      prep_time: '',
+      cook_time: '',
+      total_time: '',
+      difficulty_level: '',
+      ingredients: [''],
+      instructions: '',
+      equipment_needed: [],
+      prep_tips: '',
+      storage_tips: '',
+      nutrition_tips: '',
+      substitution_options: [],
+      is_vegan: false,
+      is_vegetarian: true,
+      is_gluten_free: false,
+      is_dairy_free: false,
+      is_quick_meal: false,
+      is_meal_prep_friendly: false
     },
     validate: {
       meal_name: (value) => (!value ? 'Meal name is required' : null),
@@ -408,6 +429,30 @@ function ClientNutrition({ clientId, clientName }) {
         priority: parseInt(values.priority || 0),
         notes: values.notes?.trim() || null,
         nutrition_plan_id: activePlanId
+      }
+
+      // If recipe details are provided, include them
+      if (values.include_recipe && values.ingredients && values.ingredients.length > 0 && values.ingredients[0].trim() !== '' && values.instructions && values.instructions.trim() !== '') {
+        payload.recipe = {
+          total_yield: parseInt(values.total_yield || 1),
+          prep_time: values.prep_time ? parseInt(values.prep_time) : null,
+          cook_time: values.cook_time ? parseInt(values.cook_time) : null,
+          total_time: values.total_time ? parseInt(values.total_time) : null,
+          difficulty_level: values.difficulty_level || null,
+          ingredients: values.ingredients.filter(ing => ing.trim() !== '').map(ing => ing.trim()),
+          instructions: values.instructions.trim(),
+          equipment_needed: values.equipment_needed || [],
+          prep_tips: values.prep_tips?.trim() || null,
+          storage_tips: values.storage_tips?.trim() || null,
+          nutrition_tips: values.nutrition_tips?.trim() || null,
+          substitution_options: values.substitution_options || [],
+          is_vegan: values.is_vegan || false,
+          is_vegetarian: values.is_vegetarian !== undefined ? values.is_vegetarian : true,
+          is_gluten_free: values.is_gluten_free || false,
+          is_dairy_free: values.is_dairy_free || false,
+          is_quick_meal: values.is_quick_meal || false,
+          is_meal_prep_friendly: values.is_meal_prep_friendly || false
+        }
       }
 
       await api.post('/nutrition/meals/recommendations', payload)
@@ -1939,6 +1984,136 @@ function ClientNutrition({ clientId, clientName }) {
                 rows={2}
                 {...mealRecommendationForm.getInputProps('notes')}
               />
+
+              <Divider label="Recipe Details (Optional)" labelPosition="center" />
+
+              <Checkbox
+                label="Include full recipe details (ingredients, instructions, tips)"
+                {...mealRecommendationForm.getInputProps('include_recipe', { type: 'checkbox' })}
+              />
+
+              {mealRecommendationForm.values.include_recipe && (
+                <Stack gap="md">
+                  <SimpleGrid cols={3}>
+                    <NumberInput
+                      label="Total Yield (servings)"
+                      min={1}
+                      {...mealRecommendationForm.getInputProps('total_yield')}
+                    />
+                    <NumberInput
+                      label="Prep Time (min)"
+                      min={0}
+                      {...mealRecommendationForm.getInputProps('prep_time')}
+                    />
+                    <NumberInput
+                      label="Cook Time (min)"
+                      min={0}
+                      {...mealRecommendationForm.getInputProps('cook_time')}
+                    />
+                  </SimpleGrid>
+
+                  <Select
+                    label="Difficulty Level"
+                    data={[
+                      { value: 'beginner', label: 'Beginner' },
+                      { value: 'intermediate', label: 'Intermediate' },
+                      { value: 'advanced', label: 'Advanced' }
+                    ]}
+                    {...mealRecommendationForm.getInputProps('difficulty_level')}
+                  />
+
+                  <Box>
+                    <Text size="sm" fw={500} mb="xs">Ingredients *</Text>
+                    {mealRecommendationForm.values.ingredients.map((ingredient, index) => (
+                      <Group key={index} mb="xs">
+                        <TextInput
+                          placeholder={`Ingredient ${index + 1} (e.g., 2 cups chicken breast)`}
+                          style={{ flex: 1 }}
+                          {...mealRecommendationForm.getInputProps(`ingredients.${index}`)}
+                        />
+                        {mealRecommendationForm.values.ingredients.length > 1 && (
+                          <ActionIcon
+                            color="red"
+                            variant="light"
+                            onClick={() => {
+                              const newIngredients = mealRecommendationForm.values.ingredients.filter((_, i) => i !== index)
+                              mealRecommendationForm.setFieldValue('ingredients', newIngredients)
+                            }}
+                          >
+                            <IconX size={16} />
+                          </ActionIcon>
+                        )}
+                      </Group>
+                    ))}
+                    <Button
+                      variant="light"
+                      size="xs"
+                      leftSection={<IconPlus size={14} />}
+                      onClick={() => {
+                        mealRecommendationForm.setFieldValue('ingredients', [...mealRecommendationForm.values.ingredients, ''])
+                      }}
+                    >
+                      Add Ingredient
+                    </Button>
+                  </Box>
+
+                  <Textarea
+                    label="Instructions *"
+                    placeholder="Step-by-step cooking instructions..."
+                    rows={6}
+                    required={mealRecommendationForm.values.include_recipe}
+                    {...mealRecommendationForm.getInputProps('instructions')}
+                  />
+
+                  <Textarea
+                    label="Preparation Tips (Optional)"
+                    placeholder="Tips for preparing this meal..."
+                    rows={2}
+                    {...mealRecommendationForm.getInputProps('prep_tips')}
+                  />
+
+                  <Textarea
+                    label="Storage Tips (Optional)"
+                    placeholder="How to store leftovers..."
+                    rows={2}
+                    {...mealRecommendationForm.getInputProps('storage_tips')}
+                  />
+
+                  <Textarea
+                    label="Nutrition Tips (Optional)"
+                    placeholder="Nutritional benefits or tips..."
+                    rows={2}
+                    {...mealRecommendationForm.getInputProps('nutrition_tips')}
+                  />
+
+                  <SimpleGrid cols={2}>
+                    <Checkbox
+                      label="Vegan"
+                      {...mealRecommendationForm.getInputProps('is_vegan', { type: 'checkbox' })}
+                    />
+                    <Checkbox
+                      label="Vegetarian"
+                      {...mealRecommendationForm.getInputProps('is_vegetarian', { type: 'checkbox' })}
+                    />
+                    <Checkbox
+                      label="Gluten-Free"
+                      {...mealRecommendationForm.getInputProps('is_gluten_free', { type: 'checkbox' })}
+                    />
+                    <Checkbox
+                      label="Dairy-Free"
+                      {...mealRecommendationForm.getInputProps('is_dairy_free', { type: 'checkbox' })}
+                    />
+                    <Checkbox
+                      label="Quick Meal (< 15 min)"
+                      {...mealRecommendationForm.getInputProps('is_quick_meal', { type: 'checkbox' })}
+                    />
+                    <Checkbox
+                      label="Meal Prep Friendly"
+                      {...mealRecommendationForm.getInputProps('is_meal_prep_friendly', { type: 'checkbox' })}
+                    />
+                  </SimpleGrid>
+                </Stack>
+              )}
 
               <Group justify="flex-end" mt="md">
                 <Button variant="light" onClick={closeAddMealModal}>

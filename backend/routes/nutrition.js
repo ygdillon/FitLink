@@ -961,16 +961,72 @@ router.post('/meals/recommendations', requireRole(['trainer']), async (req, res)
       return res.status(400).json({ message: 'Meal category is required' })
     }
 
-    // If recipe_id provided, get macros from recipe
+    // Check if recipe details are provided (ingredients and instructions)
+    const recipeData = req.body.recipe
+    let finalRecipeId = recipe_id
+
+    // If recipe details provided, create a recipe first
+    if (recipeData && recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0 && recipeData.instructions && recipeData.instructions.trim() !== '') {
+      const recipeResult = await pool.query(
+        `INSERT INTO recipes (
+          name, description, category, total_yield, prep_time, cook_time, total_time,
+          difficulty_level, equipment_needed, calories_per_serving, protein_per_serving,
+          carbs_per_serving, fats_per_serving, ingredients, instructions,
+          storage_instructions, substitution_options, tags, is_vegan, is_vegetarian,
+          is_gluten_free, is_dairy_free, is_nut_free, image_url, video_url,
+          nutrition_tips, prep_tips, storage_tips, serving_suggestions,
+          is_quick_meal, is_meal_prep_friendly, created_by, is_system_recipe
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
+        RETURNING id`,
+        [
+          meal_name.trim(),
+          meal_description?.trim() || recipeData.description?.trim() || null,
+          meal_category,
+          recipeData.total_yield ? parseInt(recipeData.total_yield) : 1,
+          recipeData.prep_time ? parseInt(recipeData.prep_time) : null,
+          recipeData.cook_time ? parseInt(recipeData.cook_time) : null,
+          recipeData.total_time ? parseInt(recipeData.total_time) : null,
+          recipeData.difficulty_level || null,
+          recipeData.equipment_needed ? JSON.stringify(recipeData.equipment_needed) : null,
+          calories_per_serving ? parseFloat(calories_per_serving) : null,
+          protein_per_serving ? parseFloat(protein_per_serving) : null,
+          carbs_per_serving ? parseFloat(carbs_per_serving) : null,
+          fats_per_serving ? parseFloat(fats_per_serving) : null,
+          JSON.stringify(recipeData.ingredients),
+          recipeData.instructions.trim(),
+          recipeData.storage_instructions?.trim() || recipeData.storage_tips?.trim() || null,
+          recipeData.substitution_options ? JSON.stringify(recipeData.substitution_options) : null,
+          recipeData.tags ? JSON.stringify(recipeData.tags) : null,
+          recipeData.is_vegan || false,
+          recipeData.is_vegetarian !== undefined ? recipeData.is_vegetarian : true,
+          recipeData.is_gluten_free || false,
+          recipeData.is_dairy_free || false,
+          recipeData.is_nut_free || false,
+          recipeData.image_url || null,
+          recipeData.video_url || null,
+          recipeData.nutrition_tips?.trim() || null,
+          recipeData.prep_tips?.trim() || null,
+          recipeData.storage_tips?.trim() || null,
+          recipeData.serving_suggestions?.trim() || null,
+          recipeData.is_quick_meal || false,
+          recipeData.is_meal_prep_friendly || false,
+          req.user.id,
+          false
+        ]
+      )
+      finalRecipeId = recipeResult.rows[0].id
+    }
+
+    // If recipe_id provided (or just created), get macros from recipe
     let finalCalories = calories_per_serving
     let finalProtein = protein_per_serving
     let finalCarbs = carbs_per_serving
     let finalFats = fats_per_serving
 
-    if (recipe_id) {
+    if (finalRecipeId) {
       const recipeResult = await pool.query(
         'SELECT calories_per_serving, protein_per_serving, carbs_per_serving, fats_per_serving, name FROM recipes WHERE id = $1',
-        [recipe_id]
+        [finalRecipeId]
       )
       if (recipeResult.rows.length > 0) {
         const recipe = recipeResult.rows[0]
@@ -999,7 +1055,7 @@ router.post('/meals/recommendations', requireRole(['trainer']), async (req, res)
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *`,
       [
-        req.user.id, client_id, nutrition_plan_id || null, recipe_id || null,
+        req.user.id, client_id, nutrition_plan_id || null, finalRecipeId || null,
         meal_name, meal_description || null, meal_category, meal_type || null,
         finalCalories, finalProtein, finalCarbs, finalFats,
         is_assigned || false, assigned_day_number || null, assigned_date || null,
@@ -1375,6 +1431,147 @@ router.get('/meals/weekly', requireRole(['client']), async (req, res) => {
 // ============================================
 
 // Get recipe by ID with full details
+// Create recipe (trainer)
+router.post('/recipes', requireRole(['trainer']), async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      category,
+      total_yield,
+      prep_time,
+      cook_time,
+      total_time,
+      difficulty_level,
+      equipment_needed,
+      calories_per_serving,
+      protein_per_serving,
+      carbs_per_serving,
+      fats_per_serving,
+      ingredients,
+      instructions,
+      storage_instructions,
+      substitution_options,
+      tags,
+      is_vegan,
+      is_vegetarian,
+      is_gluten_free,
+      is_dairy_free,
+      is_nut_free,
+      image_url,
+      video_url,
+      nutrition_tips,
+      prep_tips,
+      storage_tips,
+      serving_suggestions,
+      is_quick_meal,
+      is_meal_prep_friendly
+    } = req.body
+
+    // Validate required fields
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Recipe name is required' })
+    }
+    if (!category) {
+      return res.status(400).json({ message: 'Category is required' })
+    }
+    if (!total_yield || total_yield < 1) {
+      return res.status(400).json({ message: 'Total yield must be at least 1' })
+    }
+    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+      return res.status(400).json({ message: 'At least one ingredient is required' })
+    }
+    if (!instructions || instructions.trim() === '') {
+      return res.status(400).json({ message: 'Instructions are required' })
+    }
+
+    const result = await pool.query(
+      `INSERT INTO recipes (
+        name, description, category, total_yield, prep_time, cook_time, total_time,
+        difficulty_level, equipment_needed, calories_per_serving, protein_per_serving,
+        carbs_per_serving, fats_per_serving, ingredients, instructions,
+        storage_instructions, substitution_options, tags, is_vegan, is_vegetarian,
+        is_gluten_free, is_dairy_free, is_nut_free, image_url, video_url,
+        nutrition_tips, prep_tips, storage_tips, serving_suggestions,
+        is_quick_meal, is_meal_prep_friendly, created_by, is_system_recipe
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
+      RETURNING *`,
+      [
+        name.trim(),
+        description?.trim() || null,
+        category,
+        parseInt(total_yield),
+        prep_time ? parseInt(prep_time) : null,
+        cook_time ? parseInt(cook_time) : null,
+        total_time ? parseInt(total_time) : null,
+        difficulty_level || null,
+        equipment_needed ? JSON.stringify(equipment_needed) : null,
+        calories_per_serving ? parseFloat(calories_per_serving) : null,
+        protein_per_serving ? parseFloat(protein_per_serving) : null,
+        carbs_per_serving ? parseFloat(carbs_per_serving) : null,
+        fats_per_serving ? parseFloat(fats_per_serving) : null,
+        JSON.stringify(ingredients),
+        instructions.trim(),
+        storage_instructions?.trim() || null,
+        substitution_options ? JSON.stringify(substitution_options) : null,
+        tags ? JSON.stringify(tags) : null,
+        is_vegan || false,
+        is_vegetarian !== undefined ? is_vegetarian : true,
+        is_gluten_free || false,
+        is_dairy_free || false,
+        is_nut_free || false,
+        image_url || null,
+        video_url || null,
+        nutrition_tips?.trim() || null,
+        prep_tips?.trim() || null,
+        storage_tips?.trim() || null,
+        serving_suggestions?.trim() || null,
+        is_quick_meal || false,
+        is_meal_prep_friendly || false,
+        req.user.id,
+        false // Not a system recipe
+      ]
+    )
+
+    const recipe = result.rows[0]
+
+    // Parse JSONB fields for response
+    if (typeof recipe.ingredients === 'string') {
+      try {
+        recipe.ingredients = JSON.parse(recipe.ingredients)
+      } catch (e) {
+        recipe.ingredients = []
+      }
+    }
+    if (typeof recipe.equipment_needed === 'string') {
+      try {
+        recipe.equipment_needed = JSON.parse(recipe.equipment_needed)
+      } catch (e) {
+        recipe.equipment_needed = []
+      }
+    }
+    if (typeof recipe.substitution_options === 'string') {
+      try {
+        recipe.substitution_options = JSON.parse(recipe.substitution_options)
+      } catch (e) {
+        recipe.substitution_options = []
+      }
+    }
+    if (typeof recipe.tags === 'string') {
+      try {
+        recipe.tags = JSON.parse(recipe.tags)
+      } catch (e) {
+        recipe.tags = []
+      }
+    }
+
+    res.status(201).json(recipe)
+  } catch (error) {
+    console.error('Error creating recipe:', error)
+    res.status(500).json({ message: 'Failed to create recipe', error: error.message })
+  }
+})
+
 router.get('/recipes/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params
