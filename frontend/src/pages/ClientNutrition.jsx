@@ -383,9 +383,11 @@ function ClientNutrition({ clientId, clientName }) {
       fetchRecommendedMeals()
     } catch (error) {
       console.error('Error adding meal recommendation:', error)
+      console.error('Error details:', error.response?.data)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to add meal recommendation'
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to add meal recommendation',
+        message: errorMessage,
         color: 'red'
       })
     }
