@@ -409,6 +409,10 @@ function ClientNutrition({ clientId, clientName }) {
     const remaining = getRemaining(consumed, target)
     const over = getOver(consumed, target)
     const isOver = consumed > target
+    const consumedRounded = Math.round(consumed)
+    const targetRounded = Math.round(target)
+    const remainingRounded = Math.round(remaining)
+    const overRounded = Math.round(over)
 
     return (
       <Card withBorder p="md" style={{ height: '100%' }}>
@@ -424,23 +428,23 @@ function ClientNutrition({ clientId, clientName }) {
             }
           />
           <Box style={{ flex: 1 }}>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={6}>
               {label}
             </Text>
-            <Text size="xl" fw={700} mb={4}>
-              {Math.round(consumed).toFixed(0)} / {Math.round(target).toFixed(0)} {unit}
+            <Text size="xl" fw={700} mb={6} lh={1.2}>
+              {consumedRounded}/{targetRounded} {unit}
             </Text>
             {isOver ? (
-              <Text size="xs" c="red">
-                {Math.round(over).toFixed(0)} {unit} over
+              <Text size="xs" c="red" fw={500}>
+                {overRounded} {unit} over
               </Text>
             ) : (
-              <Text size="xs" c="dimmed">
-                {Math.round(remaining).toFixed(0)} {unit} remaining
+              <Text size="xs" c="dimmed" fw={500}>
+                {remainingRounded} {unit} remaining
               </Text>
             )}
             {trend && (
-              <Group gap={4} mt={4}>
+              <Group gap={4} mt={6}>
                 {trend > 0 ? (
                   <IconTrendingUp size={12} color="green" />
                 ) : (
@@ -477,7 +481,7 @@ function ClientNutrition({ clientId, clientName }) {
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
                 <Tooltip label="Basal Metabolic Rate - calories your body burns at rest">
                   <MacroStatCard
-                    label="CALORIES"
+                    label="CALORIE"
                     consumed={todayTotals.calories}
                     target={targets.calories}
                     unit="cal"
