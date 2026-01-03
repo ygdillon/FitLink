@@ -416,7 +416,7 @@ function ClientNutrition({ clientId, clientName }) {
 
     return (
       <Card withBorder p="sm" style={{ height: '100%' }}>
-        <Group gap="md" align="center" wrap="nowrap" justify="space-between">
+        <Group gap="md" align="center" wrap="nowrap">
           <Box style={{ flexShrink: 0 }}>
             <RingProgress
               size={70}
@@ -434,23 +434,23 @@ function ClientNutrition({ clientId, clientName }) {
               }
             />
           </Box>
-          <Stack gap={2} style={{ flex: 1, minWidth: 0 }} align="flex-start">
-            <Text size="xs" c="dimmed" tt="uppercase" fw={600} lh={1.2}>
+          <Box style={{ flex: 1, minWidth: 0 }}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4} lh={1.2}>
               {label}
             </Text>
-            <Text size="lg" fw={700} lh={1.2}>
-              {consumedRounded}/{targetRounded} {unit}
+            <Text size="lg" fw={700} lh={1.2} mb={4}>
+              {consumedRounded} / {targetRounded} {unit}
             </Text>
             {isOver ? (
               <Text size="xs" c="red" fw={500} lh={1.3}>
-                {overRounded} {unit} over
+                {overRounded} {unit} Over
               </Text>
             ) : (
               <Text size="xs" c="dimmed" fw={500} lh={1.3}>
-                {remainingRounded} {unit} remaining
+                {remainingRounded} {unit} Remaining
               </Text>
             )}
-          </Stack>
+          </Box>
         </Group>
       </Card>
     )
