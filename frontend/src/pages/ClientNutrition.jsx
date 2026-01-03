@@ -28,7 +28,8 @@ import {
   Flex,
   Image,
   ScrollArea,
-  Avatar
+  Avatar,
+  Textarea
 } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -75,6 +76,7 @@ function ClientNutrition({ clientId, clientName }) {
   const [weeklyMealData, setWeeklyMealData] = useState(null)
   const [recommendedMeals, setRecommendedMeals] = useState({ assigned: [], flexible: {} })
   const [viewAllModalOpened, { open: openViewAllModal, close: closeViewAllModal }] = useDisclosure(false)
+  const [addMealModalOpened, { open: openAddMealModal, close: closeAddMealModal }] = useDisclosure(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedMealSlot, setSelectedMealSlot] = useState(null)
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -101,6 +103,29 @@ function ClientNutrition({ clientId, clientName }) {
       protein: '',
       carbs: '',
       fats: ''
+    }
+  })
+
+  const mealRecommendationForm = useForm({
+    initialValues: {
+      meal_name: '',
+      meal_description: '',
+      meal_category: 'breakfast',
+      calories_per_serving: '',
+      protein_per_serving: '',
+      carbs_per_serving: '',
+      fats_per_serving: '',
+      recommendation_type: 'flexible',
+      priority: 0,
+      notes: ''
+    },
+    validate: {
+      meal_name: (value) => (!value ? 'Meal name is required' : null),
+      meal_category: (value) => (!value ? 'Category is required' : null),
+      calories_per_serving: (value) => (!value || value <= 0 ? 'Calories must be greater than 0' : null),
+      protein_per_serving: (value) => (value < 0 ? 'Protein cannot be negative' : null),
+      carbs_per_serving: (value) => (value < 0 ? 'Carbs cannot be negative' : null),
+      fats_per_serving: (value) => (value < 0 ? 'Fats cannot be negative' : null)
     }
   })
 
@@ -290,6 +315,65 @@ function ClientNutrition({ clientId, clientName }) {
       notifications.show({
         title: 'Error',
         message: 'Failed to add meal',
+        color: 'red'
+      })
+    }
+  }
+
+  const handleAddMealRecommendation = async (values) => {
+    try {
+      if (!isTrainerView || !clientId) {
+        notifications.show({
+          title: 'Error',
+          message: 'Invalid request',
+          color: 'red'
+        })
+        return
+      }
+
+      // Get client's user_id
+      const clientRes = await api.get(`/trainer/clients/${clientId}`).catch(() => ({ data: null }))
+      if (!clientRes.data?.user_id) {
+        notifications.show({
+          title: 'Error',
+          message: 'Client not found',
+          color: 'red'
+        })
+        return
+      }
+
+      const userId = clientRes.data.user_id
+      const activePlanId = nutritionPlan?.id || null
+
+      await api.post('/nutrition/meals/recommendations', {
+        client_id: userId,
+        meal_name: values.meal_name,
+        meal_description: values.meal_description || null,
+        meal_category: values.meal_category,
+        calories_per_serving: parseFloat(values.calories_per_serving),
+        protein_per_serving: parseFloat(values.protein_per_serving || 0),
+        carbs_per_serving: parseFloat(values.carbs_per_serving || 0),
+        fats_per_serving: parseFloat(values.fats_per_serving || 0),
+        recommendation_type: values.recommendation_type,
+        priority: parseInt(values.priority || 0),
+        notes: values.notes || null,
+        nutrition_plan_id: activePlanId
+      })
+
+      notifications.show({
+        title: 'Success',
+        message: 'Meal recommendation added successfully',
+        color: 'green'
+      })
+
+      closeAddMealModal()
+      mealRecommendationForm.reset()
+      fetchRecommendedMeals()
+    } catch (error) {
+      console.error('Error adding meal recommendation:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to add meal recommendation',
         color: 'red'
       })
     }
@@ -916,7 +1000,7 @@ function ClientNutrition({ clientId, clientName }) {
                   </Button>
                 )}
                 {isTrainerView && (
-                  <Button leftSection={<IconPlus size={16} />} variant="light">
+                  <Button leftSection={<IconPlus size={16} />} variant="light" onClick={openAddMealModal}>
                     Add Meal Recommendation
                   </Button>
                 )}
@@ -1554,6 +1638,107 @@ function ClientNutrition({ clientId, clientName }) {
           )}
         </ScrollArea>
       </Modal>
+
+      {/* Add Meal Recommendation Modal (Trainer Only) */}
+      {isTrainerView && (
+        <Modal
+          opened={addMealModalOpened}
+          onClose={closeAddMealModal}
+          title="Add Meal Recommendation"
+          size="lg"
+        >
+          <form onSubmit={mealRecommendationForm.onSubmit(handleAddMealRecommendation)}>
+            <Stack gap="md">
+              <TextInput
+                label="Meal Name"
+                placeholder="e.g., Grilled Chicken with Vegetables"
+                required
+                {...mealRecommendationForm.getInputProps('meal_name')}
+              />
+
+              <Textarea
+                label="Description (Optional)"
+                placeholder="Brief description of the meal..."
+                rows={3}
+                {...mealRecommendationForm.getInputProps('meal_description')}
+              />
+
+              <Select
+                label="Meal Category"
+                required
+                data={[
+                  { value: 'breakfast', label: 'Breakfast' },
+                  { value: 'lunch', label: 'Lunch' },
+                  { value: 'dinner', label: 'Dinner' },
+                  { value: 'snack', label: 'Snack' },
+                  { value: 'quick_eat', label: 'Quick Eat' }
+                ]}
+                {...mealRecommendationForm.getInputProps('meal_category')}
+              />
+
+              <Divider label="Nutritional Information" labelPosition="center" />
+
+              <NumberInput
+                label="Calories per Serving"
+                required
+                min={0}
+                {...mealRecommendationForm.getInputProps('calories_per_serving')}
+              />
+
+              <SimpleGrid cols={3}>
+                <NumberInput
+                  label="Protein (g)"
+                  min={0}
+                  {...mealRecommendationForm.getInputProps('protein_per_serving')}
+                />
+                <NumberInput
+                  label="Carbs (g)"
+                  min={0}
+                  {...mealRecommendationForm.getInputProps('carbs_per_serving')}
+                />
+                <NumberInput
+                  label="Fats (g)"
+                  min={0}
+                  {...mealRecommendationForm.getInputProps('fats_per_serving')}
+                />
+              </SimpleGrid>
+
+              <Select
+                label="Recommendation Type"
+                data={[
+                  { value: 'flexible', label: 'Flexible (Client can choose)' },
+                  { value: 'assigned', label: 'Assigned (Specific day/time)' },
+                  { value: 'suggested', label: 'Suggested' }
+                ]}
+                {...mealRecommendationForm.getInputProps('recommendation_type')}
+              />
+
+              <NumberInput
+                label="Priority (0-10, higher = more recommended)"
+                min={0}
+                max={10}
+                {...mealRecommendationForm.getInputProps('priority')}
+              />
+
+              <Textarea
+                label="Notes for Client (Optional)"
+                placeholder="Any special instructions or tips..."
+                rows={2}
+                {...mealRecommendationForm.getInputProps('notes')}
+              />
+
+              <Group justify="flex-end" mt="md">
+                <Button variant="light" onClick={closeAddMealModal}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Add Recommendation
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Modal>
+      )}
 
       {/* Floating Action Button */}
       {!isTrainerView && (
