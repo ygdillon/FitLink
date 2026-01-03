@@ -838,7 +838,7 @@ function ClientNutrition({ clientId, clientName }) {
                   }}
                   style={{ flex: 1 }}
                 >
-                  View
+                  View Recipe
                 </Button>
               )}
               {onSelect && (
@@ -856,20 +856,37 @@ function ClientNutrition({ clientId, clientName }) {
               )}
             </Group>
           )}
-          {/* Trainer Edit Action */}
-          {isTrainerView && onEdit && (
-            <Button
-              size="xs"
-              variant="light"
-              fullWidth
-              mt="xs"
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit(meal)
-              }}
-            >
-              Edit
-            </Button>
+          {/* Trainer Actions */}
+          {isTrainerView && (
+            <Stack gap="xs" mt="xs">
+              {onViewRecipe && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  fullWidth
+                  leftSection={<IconEye size={14} />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onViewRecipe(meal)
+                  }}
+                >
+                  View Recipe
+                </Button>
+              )}
+              {onEdit && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  fullWidth
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(meal)
+                  }}
+                >
+                  Edit
+                </Button>
+              )}
+            </Stack>
           )}
         </Stack>
       </Card>
@@ -1193,7 +1210,7 @@ function ClientNutrition({ clientId, clientName }) {
                 )}
                 {isTrainerView && (
                   <Button leftSection={<IconPlus size={16} />} variant="light" onClick={openAddMealModal}>
-                    Add Meal Recommendation
+                    Add Meal
                   </Button>
                 )}
               </Group>
@@ -1835,12 +1852,12 @@ function ClientNutrition({ clientId, clientName }) {
         </ScrollArea>
       </Modal>
 
-      {/* Add Meal Recommendation Modal (Trainer Only) */}
+      {/* Add Meal Modal (Trainer Only) */}
       {isTrainerView && (
         <Modal
           opened={addMealModalOpened}
           onClose={closeAddMealModal}
-          title="Add Meal Recommendation"
+          title="Add Meal"
           size="lg"
         >
           <form onSubmit={mealRecommendationForm.onSubmit(handleAddMealRecommendation)}>
