@@ -2045,6 +2045,238 @@ function ClientNutrition({ clientId, clientName }) {
         </Modal>
       )}
 
+      {/* Recipe Detail Modal */}
+      <Modal
+        opened={recipeModalOpened}
+        onClose={() => {
+          closeRecipeModal()
+          setSelectedRecipe(null)
+        }}
+        title={selectedRecipe?.name || 'Recipe Details'}
+        size="xl"
+      >
+        {recipeLoading ? (
+          <Center py="xl">
+            <Loader size="lg" />
+          </Center>
+        ) : selectedRecipe ? (
+          <ScrollArea h={600}>
+            <Stack gap="md">
+              {/* Recipe Image */}
+              {selectedRecipe.image_url && (
+                <Image
+                  src={selectedRecipe.image_url}
+                  alt={selectedRecipe.name}
+                  height={200}
+                  fit="cover"
+                  radius="sm"
+                />
+              )}
+
+              {/* Description */}
+              {selectedRecipe.description && (
+                <Text c="dimmed">{selectedRecipe.description}</Text>
+              )}
+
+              {/* Macros */}
+              <Card withBorder p="sm">
+                <Text fw={600} mb="sm">Nutritional Information (per serving)</Text>
+                <SimpleGrid cols={4} spacing="sm">
+                  <Box>
+                    <Text size="xs" c="dimmed">Calories</Text>
+                    <Text size="lg" fw={700}>{Math.round(selectedRecipe.calories_per_serving || 0)}</Text>
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="dimmed">Protein</Text>
+                    <Text size="lg" fw={700}>{Math.round(selectedRecipe.protein_per_serving || 0)}g</Text>
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="dimmed">Carbs</Text>
+                    <Text size="lg" fw={700}>{Math.round(selectedRecipe.carbs_per_serving || 0)}g</Text>
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="dimmed">Fats</Text>
+                    <Text size="lg" fw={700}>{Math.round(selectedRecipe.fats_per_serving || 0)}g</Text>
+                  </Box>
+                </SimpleGrid>
+                {selectedRecipe.total_yield && (
+                  <Text size="sm" c="dimmed" mt="xs">
+                    Serves {selectedRecipe.total_yield}
+                  </Text>
+                )}
+              </Card>
+
+              {/* Time & Difficulty */}
+              {(selectedRecipe.prep_time || selectedRecipe.cook_time || selectedRecipe.difficulty_level) && (
+                <Group gap="md">
+                  {selectedRecipe.prep_time && (
+                    <Badge leftSection={<IconClock size={14} />} variant="light">
+                      Prep: {selectedRecipe.prep_time} min
+                    </Badge>
+                  )}
+                  {selectedRecipe.cook_time && (
+                    <Badge leftSection={<IconClock size={14} />} variant="light">
+                      Cook: {selectedRecipe.cook_time} min
+                    </Badge>
+                  )}
+                  {selectedRecipe.difficulty_level && (
+                    <Badge variant="light" tt="capitalize">
+                      {selectedRecipe.difficulty_level}
+                    </Badge>
+                  )}
+                </Group>
+              )}
+
+              {/* Dietary Badges */}
+              <Group gap="xs">
+                {selectedRecipe.is_vegan && <Badge color="green" leftSection={<IconLeaf size={12} />}>Vegan</Badge>}
+                {selectedRecipe.is_vegetarian && <Badge color="teal" leftSection={<IconLeaf size={12} />}>Vegetarian</Badge>}
+                {selectedRecipe.is_gluten_free && <Badge color="orange" leftSection={<IconWheat size={12} />}>Gluten-Free</Badge>}
+                {selectedRecipe.is_dairy_free && <Badge color="blue" leftSection={<IconMilk size={12} />}>Dairy-Free</Badge>}
+                {selectedRecipe.is_quick_meal && <Badge color="yellow" leftSection={<IconClockHour4 size={12} />}>Quick</Badge>}
+                {selectedRecipe.is_meal_prep_friendly && <Badge color="grape" leftSection={<IconChefHat size={12} />}>Meal Prep</Badge>}
+              </Group>
+
+              {/* Ingredients */}
+              {selectedRecipe.ingredients && Array.isArray(selectedRecipe.ingredients) && selectedRecipe.ingredients.length > 0 && (
+                <Card withBorder p="md">
+                  <Group mb="sm">
+                    <IconChecklist size={20} />
+                    <Text fw={600}>Ingredients</Text>
+                  </Group>
+                  <List spacing="xs">
+                    {selectedRecipe.ingredients.map((ingredient, idx) => (
+                      <List.Item key={idx}>
+                        {typeof ingredient === 'string' ? (
+                          <Text size="sm">{ingredient}</Text>
+                        ) : (
+                          <Text size="sm">
+                            {ingredient.amount} {ingredient.unit} {ingredient.name || ingredient.food_name}
+                            {ingredient.notes && <Text component="span" c="dimmed" size="xs"> ({ingredient.notes})</Text>}
+                          </Text>
+                        )}
+                      </List.Item>
+                    ))}
+                  </List>
+                </Card>
+              )}
+
+              {/* Instructions */}
+              {selectedRecipe.instructions && (
+                <Card withBorder p="md">
+                  <Group mb="sm">
+                    <IconBook size={20} />
+                    <Text fw={600}>Instructions</Text>
+                  </Group>
+                  <Text size="sm" style={{ whiteSpace: 'pre-line' }}>
+                    {selectedRecipe.instructions}
+                  </Text>
+                </Card>
+              )}
+
+              {/* Tips Section */}
+              {(selectedRecipe.prep_tips || selectedRecipe.storage_tips || selectedRecipe.nutrition_tips) && (
+                <Stack gap="sm">
+                  {selectedRecipe.prep_tips && (
+                    <Card withBorder p="sm">
+                      <Group mb="xs">
+                        <IconInfoCircle size={16} />
+                        <Text fw={600} size="sm">Preparation Tips</Text>
+                      </Group>
+                      <Text size="sm" c="dimmed">{selectedRecipe.prep_tips}</Text>
+                    </Card>
+                  )}
+                  {selectedRecipe.storage_tips && (
+                    <Card withBorder p="sm">
+                      <Group mb="xs">
+                        <IconInfoCircle size={16} />
+                        <Text fw={600} size="sm">Storage Instructions</Text>
+                      </Group>
+                      <Text size="sm" c="dimmed">{selectedRecipe.storage_tips}</Text>
+                    </Card>
+                  )}
+                  {selectedRecipe.nutrition_tips && (
+                    <Card withBorder p="sm">
+                      <Group mb="xs">
+                        <IconInfoCircle size={16} />
+                        <Text fw={600} size="sm">Nutrition Tips</Text>
+                      </Group>
+                      <Text size="sm" c="dimmed">{selectedRecipe.nutrition_tips}</Text>
+                    </Card>
+                  )}
+                </Stack>
+              )}
+
+              {/* Custom Meal Notes (for meal recommendations without recipes) */}
+              {selectedRecipe.is_custom_meal && selectedRecipe.notes && (
+                <Card withBorder p="sm">
+                  <Group mb="xs">
+                    <IconInfoCircle size={16} />
+                    <Text fw={600} size="sm">Trainer Notes</Text>
+                  </Group>
+                  <Text size="sm" c="dimmed">{selectedRecipe.notes}</Text>
+                </Card>
+              )}
+
+              {/* Equipment Needed */}
+              {selectedRecipe.equipment_needed && Array.isArray(selectedRecipe.equipment_needed) && selectedRecipe.equipment_needed.length > 0 && (
+                <Card withBorder p="sm">
+                  <Group mb="xs">
+                    <IconShoppingCart size={16} />
+                    <Text fw={600} size="sm">Equipment Needed</Text>
+                  </Group>
+                  <Group gap="xs">
+                    {selectedRecipe.equipment_needed.map((equipment, idx) => (
+                      <Badge key={idx} variant="light" size="sm">
+                        {equipment}
+                      </Badge>
+                    ))}
+                  </Group>
+                </Card>
+              )}
+
+              {/* Substitution Options */}
+              {selectedRecipe.substitution_options && Array.isArray(selectedRecipe.substitution_options) && selectedRecipe.substitution_options.length > 0 && (
+                <Card withBorder p="sm">
+                  <Text fw={600} size="sm" mb="xs">Substitution Options</Text>
+                  <List spacing="xs" size="sm">
+                    {selectedRecipe.substitution_options.map((sub, idx) => (
+                      <List.Item key={idx}>
+                        <Text size="sm">
+                          {typeof sub === 'string' ? sub : `${sub.replace || sub.original} → ${sub.with || sub.replacement}`}
+                        </Text>
+                      </List.Item>
+                    ))}
+                  </List>
+                </Card>
+              )}
+
+              {/* Add to Meal Plan Button (for clients) */}
+              {!isTrainerView && !selectedRecipe.is_custom_meal && (
+                <Button
+                  leftSection={<IconPlus size={16} />}
+                  fullWidth
+                  onClick={() => {
+                    // TODO: Implement add to meal plan functionality
+                    notifications.show({
+                      title: 'Coming Soon',
+                      message: 'Add to meal plan functionality will be available soon',
+                      color: 'blue'
+                    })
+                  }}
+                >
+                  Add to Meal Plan
+                </Button>
+              )}
+            </Stack>
+          </ScrollArea>
+        ) : (
+          <Text c="dimmed" ta="center" py="xl">
+            No recipe details available
+          </Text>
+        )}
+      </Modal>
+
       {/* Floating Action Button */}
       {!isTrainerView && (
         <Button
