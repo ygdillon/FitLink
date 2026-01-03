@@ -54,9 +54,13 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
     console.log(`[Schedule API] Fetching client sessions for user_id: ${req.user.id}, email: ${req.user.email}`)
     const result = await pool.query(
       `SELECT s.*, 
-              u.name as trainer_name
+              u.name as trainer_name,
+              pw.workout_name,
+              p.name as program_name
        FROM sessions s
        JOIN users u ON s.trainer_id = u.id
+       LEFT JOIN program_workouts pw ON s.program_workout_id = pw.id
+       LEFT JOIN programs p ON s.program_id = p.id
        WHERE s.client_id = $1
          AND s.status IN ('scheduled', 'confirmed')
          AND s.session_date >= CURRENT_DATE
@@ -70,7 +74,9 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
         id: result.rows[0].id,
         session_date: result.rows[0].session_date,
         session_time: result.rows[0].session_time,
-        status: result.rows[0].status
+        status: result.rows[0].status,
+        program_workout_id: result.rows[0].program_workout_id,
+        workout_name: result.rows[0].workout_name
       })
     }
     res.json(result.rows)
