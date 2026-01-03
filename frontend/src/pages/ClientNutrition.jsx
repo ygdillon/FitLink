@@ -25,7 +25,10 @@ import {
   Tooltip,
   Center,
   Box,
-  Flex
+  Flex,
+  Image,
+  ScrollArea,
+  Avatar
 } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -42,7 +45,14 @@ import {
   IconTrendingDown,
   IconCalendar,
   IconSearch,
-  IconClock
+  IconClock,
+  IconEye,
+  IconLeaf,
+  IconWheat,
+  IconMilk,
+  IconClockHour4,
+  IconChefHat,
+  IconX
 } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'

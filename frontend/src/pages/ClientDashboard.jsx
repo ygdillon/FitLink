@@ -616,7 +616,18 @@ function ClientDashboard() {
 
             {/* Sessions Widget - Bottom Right */}
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Paper 
+                p="sm" 
+                shadow="sm" 
+                withBorder 
+                style={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden',
+                  border: '1px solid var(--mantine-color-gray-4)'
+                }}
+              >
                 <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
                   <Title order={3} style={{ fontSize: '1.1rem' }}>
                     Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
@@ -628,7 +639,18 @@ function ClientDashboard() {
                     <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                   </Stack>
                 ) : (
-                  <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+                  <ScrollArea 
+                    style={{ flex: 1, minHeight: 0 }}
+                    styles={{
+                      viewport: {
+                        paddingRight: '0.5rem',
+                        paddingBottom: '0.5rem'
+                      },
+                      scrollbar: {
+                        marginBottom: '0.5rem'
+                      }
+                    }}
+                  >
                     <Stack gap="xs">
                       {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
