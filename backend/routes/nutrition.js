@@ -1174,6 +1174,7 @@ router.get('/meals/recommended', requireRole(['client']), async (req, res) => {
 
     let query = `
       SELECT tmr.*, 
+             r.id as recipe_id,
              r.name as recipe_name,
              r.description as recipe_description,
              r.image_url,
@@ -1189,9 +1190,14 @@ router.get('/meals/recommended', requireRole(['client']), async (req, res) => {
              r.prep_time,
              r.cook_time,
              r.total_time,
+             r.total_yield,
+             r.difficulty_level,
+             r.equipment_needed,
+             r.substitution_options,
              r.nutrition_tips,
              r.prep_tips,
-             r.storage_tips
+             r.storage_tips,
+             r.storage_instructions
       FROM trainer_meal_recommendations tmr
       LEFT JOIN recipes r ON tmr.recipe_id = r.id
       WHERE tmr.client_id = $1 AND tmr.is_active = true
@@ -1213,9 +1219,38 @@ router.get('/meals/recommended', requireRole(['client']), async (req, res) => {
 
     const result = await pool.query(query, params)
 
+    // Parse JSONB fields for each meal recommendation
+    const parsedRows = result.rows.map(row => {
+      // Parse ingredients if it's a string
+      if (row.ingredients && typeof row.ingredients === 'string') {
+        try {
+          row.ingredients = JSON.parse(row.ingredients)
+        } catch (e) {
+          row.ingredients = []
+        }
+      }
+      // Parse equipment_needed if it's a string
+      if (row.equipment_needed && typeof row.equipment_needed === 'string') {
+        try {
+          row.equipment_needed = JSON.parse(row.equipment_needed)
+        } catch (e) {
+          row.equipment_needed = []
+        }
+      }
+      // Parse substitution_options if it's a string
+      if (row.substitution_options && typeof row.substitution_options === 'string') {
+        try {
+          row.substitution_options = JSON.parse(row.substitution_options)
+        } catch (e) {
+          row.substitution_options = []
+        }
+      }
+      return row
+    })
+
     // Separate assigned and flexible recommendations
-    const assigned = result.rows.filter(r => r.is_assigned)
-    const flexible = result.rows.filter(r => !r.is_assigned)
+    const assigned = parsedRows.filter(r => r.is_assigned)
+    const flexible = parsedRows.filter(r => !r.is_assigned)
 
     // Group flexible by category
     const flexibleByCategory = flexible.reduce((acc, meal) => {

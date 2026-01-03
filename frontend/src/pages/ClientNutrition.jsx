@@ -556,6 +556,74 @@ function ClientNutrition({ clientId, clientName }) {
       setRecipeLoading(true)
       const recipeId = meal.recipe_id
       
+      // Check if meal already has recipe data from the JOIN (client endpoint includes this)
+      const hasRecipeData = meal.ingredients || meal.instructions || meal.prep_tips || meal.storage_tips || meal.nutrition_tips
+      
+      if (hasRecipeData && recipeId) {
+        // Parse JSONB fields if they're strings (from database)
+        let ingredients = meal.ingredients
+        if (typeof ingredients === 'string') {
+          try {
+            ingredients = JSON.parse(ingredients)
+          } catch (e) {
+            ingredients = []
+          }
+        }
+        
+        let equipment_needed = meal.equipment_needed
+        if (typeof equipment_needed === 'string') {
+          try {
+            equipment_needed = JSON.parse(equipment_needed)
+          } catch (e) {
+            equipment_needed = []
+          }
+        }
+        
+        let substitution_options = meal.substitution_options
+        if (typeof substitution_options === 'string') {
+          try {
+            substitution_options = JSON.parse(substitution_options)
+          } catch (e) {
+            substitution_options = []
+          }
+        }
+        
+        // Use recipe data already in the meal object (from JOIN)
+        setSelectedRecipe({
+          id: recipeId,
+          name: meal.recipe_name || meal.meal_name,
+          description: meal.recipe_description || meal.meal_description,
+          category: meal.meal_category,
+          calories_per_serving: meal.calories_per_serving,
+          protein_per_serving: meal.protein_per_serving,
+          carbs_per_serving: meal.carbs_per_serving,
+          fats_per_serving: meal.fats_per_serving,
+          image_url: meal.image_url,
+          ingredients: ingredients,
+          instructions: meal.instructions,
+          prep_time: meal.prep_time,
+          cook_time: meal.cook_time,
+          total_time: meal.total_time,
+          total_yield: meal.total_yield,
+          difficulty_level: meal.difficulty_level,
+          equipment_needed: equipment_needed,
+          substitution_options: substitution_options,
+          prep_tips: meal.prep_tips,
+          storage_tips: meal.storage_tips,
+          storage_instructions: meal.storage_instructions,
+          nutrition_tips: meal.nutrition_tips,
+          is_vegan: meal.is_vegan,
+          is_vegetarian: meal.is_vegetarian,
+          is_gluten_free: meal.is_gluten_free,
+          is_dairy_free: meal.is_dairy_free,
+          is_quick_meal: meal.is_quick_meal,
+          is_meal_prep_friendly: meal.is_meal_prep_friendly,
+          notes: meal.notes
+        })
+        openRecipeModal()
+        return
+      }
+      
       if (!recipeId) {
         // If no recipe_id, show meal recommendation details instead
         setSelectedRecipe({
@@ -577,6 +645,7 @@ function ClientNutrition({ clientId, clientName }) {
         return
       }
 
+      // If recipe data not in meal object, fetch from API
       const result = await api.get(`/nutrition/recipes/${recipeId}`).catch(() => ({ data: null }))
       
       if (result.data) {
