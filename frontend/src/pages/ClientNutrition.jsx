@@ -415,12 +415,12 @@ function ClientNutrition({ clientId, clientName }) {
     const overRounded = Math.round(over)
 
     return (
-      <Card withBorder p="md" style={{ height: '100%' }}>
-        <Group gap="md" align="center" wrap="nowrap">
+      <Card withBorder p="sm" style={{ height: '100%' }}>
+        <Group gap="sm" align="center" wrap="nowrap">
           <Box style={{ flexShrink: 0 }}>
             <RingProgress
-              size={80}
-              thickness={8}
+              size={70}
+              thickness={7}
               sections={[{ value: percentage, color: color }]}
               styles={{
                 root: {
@@ -429,24 +429,24 @@ function ClientNutrition({ clientId, clientName }) {
               }}
               label={
                 <Center>
-                  <Icon size={22} color={color} />
+                  <Icon size={20} color={color} />
                 </Center>
               }
             />
           </Box>
-          <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+          <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} lh={1.2}>
               {label}
             </Text>
-            <Text size="xl" fw={700} lh={1.2}>
+            <Text size="lg" fw={700} lh={1.2}>
               {consumedRounded}/{targetRounded} {unit}
             </Text>
             {isOver ? (
-              <Text size="xs" c="red" fw={500}>
+              <Text size="xs" c="red" fw={500} lh={1.3}>
                 {overRounded} {unit} over
               </Text>
             ) : (
-              <Text size="xs" c="dimmed" fw={500}>
+              <Text size="xs" c="dimmed" fw={500} lh={1.3}>
                 {remainingRounded} {unit} remaining
               </Text>
             )}
@@ -473,7 +473,7 @@ function ClientNutrition({ clientId, clientName }) {
           <Tabs.Panel value="dashboard" pt="xl">
             <Stack gap="xl">
               {/* Ring Progress Stats */}
-              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="sm">
                 <Tooltip label="Basal Metabolic Rate - calories your body burns at rest">
                   <MacroStatCard
                     label="CALORIE"
