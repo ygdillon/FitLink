@@ -353,10 +353,50 @@ function ClientDashboard() {
                         color: 'var(--mantine-color-gray-6)',
                       },
                     }}
-                    size="sm"
-                    fullWidth
-                  />
-                </div>
+                      size="sm"
+                      fullWidth
+                    />
+                  </div>
+                  
+                  {/* Show upcoming sessions list below calendar */}
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', flexShrink: 0 }}>
+                    <Stack gap="xs">
+                      {upcomingSessions.slice(0, 5).map(session => {
+                        const sessionDate = session.session_date ? new Date(session.session_date) : null
+                        return (
+                          <Card key={session.id} p="xs" withBorder>
+                            <Group justify="space-between" gap="xs">
+                              <Stack gap={2} style={{ flex: 1 }}>
+                                <Text size="sm" fw={500}>
+                                  {sessionDate ? sessionDate.toLocaleDateString('en-US', { 
+                                    weekday: 'short', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  }) : 'Date TBD'}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {session.session_time ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit' 
+                                  }) : ''} 
+                                  {session.workout_name && ` • ${session.workout_name}`}
+                                </Text>
+                              </Stack>
+                              <Badge size="sm" color={session.status === 'confirmed' ? 'blue' : 'gray'}>
+                                {session.status || 'scheduled'}
+                              </Badge>
+                            </Group>
+                          </Card>
+                        )
+                      })}
+                      {upcomingSessions.length > 5 && (
+                        <Text size="xs" c="dimmed" ta="center">
+                          +{upcomingSessions.length - 5} more sessions
+                        </Text>
+                      )}
+                    </Stack>
+                  </div>
+                </Stack>
               )}
             </Paper>
           </Grid.Col>
