@@ -425,7 +425,20 @@ function ClientDashboard() {
 
             {/* My Programs */}
             {programs.length > 0 && (
-              <Paper p="sm" shadow="sm" withBorder style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+              <Paper 
+                p="sm" 
+                shadow="sm" 
+                withBorder 
+                style={{ 
+                  flex: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden', 
+                  minHeight: 0,
+                  border: '1px solid var(--mantine-color-gray-4)',
+                  borderRadius: 'var(--mantine-radius-md)'
+                }}
+              >
                 <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
                   <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
                   <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
@@ -433,8 +446,15 @@ function ClientDashboard() {
                   </Button>
                 </Group>
                 
-                <ScrollArea style={{ flex: 1, minHeight: 0 }}>
-                  <SimpleGrid cols={1} spacing="sm">
+                <ScrollArea 
+                  style={{ flex: 1, minHeight: 0 }}
+                  styles={{
+                    viewport: {
+                      paddingBottom: '0.5rem'
+                    }
+                  }}
+                >
+                  <SimpleGrid cols={1} spacing="sm" style={{ paddingRight: '0.5rem' }}>
                     {programs.slice(0, 4).map(program => {
                       const stats = getProgramStats(program)
                       return (
@@ -499,7 +519,7 @@ function ClientDashboard() {
                     <Text c="dimmed" size="sm">No upcoming sessions</Text>
                   </Stack>
                 ) : (
-                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                     <Calendar
                       value={null}
                       month={displayedMonth}
@@ -529,8 +549,9 @@ function ClientDashboard() {
                               cursor: 'pointer',
                               position: 'relative',
                               ...(hasSessions ? {
-                                border: '2px solid rgba(34, 197, 94, 0.6)',
-                                borderRadius: '4px'
+                                border: '2px solid rgba(34, 197, 94, 0.8)',
+                                borderRadius: '4px',
+                                backgroundColor: 'rgba(34, 197, 94, 0.1)'
                               } : {})
                             }
                           }
@@ -540,21 +561,36 @@ function ClientDashboard() {
                         }
                       }}
                       styles={{
-                        calendar: { width: '100%' },
-                        month: { width: '100%' },
-                        monthCell: { width: '100%' },
+                        calendar: { 
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        },
+                        month: { 
+                          width: '100%',
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column'
+                        },
+                        monthCell: { 
+                          width: '100%',
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column'
+                        },
                         weekday: {
                           fontWeight: 600,
-                          fontSize: '0.875rem',
-                          paddingBottom: '0.75rem',
-                          paddingTop: '0.5rem',
+                          fontSize: '0.75rem',
+                          paddingBottom: '0.5rem',
+                          paddingTop: '0.25rem',
                           textAlign: 'center',
                           color: 'var(--mantine-color-gray-6)',
                         },
                         day: {
-                          fontSize: '0.95rem',
-                          height: '5.5rem',
-                          minHeight: '5.5rem',
+                          fontSize: '0.85rem',
+                          height: '4.5rem',
+                          minHeight: '4.5rem',
                           width: '100%',
                           borderRadius: 0,
                           border: 'none',
@@ -563,7 +599,7 @@ function ClientDashboard() {
                           flexDirection: 'column',
                           alignItems: 'flex-start',
                           justifyContent: 'flex-start',
-                          padding: '0.3rem',
+                          padding: '0.25rem',
                         },
                       }}
                       size="sm"
