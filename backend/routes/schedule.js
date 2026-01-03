@@ -52,6 +52,26 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
 router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
   try {
     console.log(`[Schedule API] Fetching client sessions for user_id: ${req.user.id}, email: ${req.user.email}`)
+    
+    // First, let's check if there are ANY sessions for this client (for debugging)
+    const allSessionsCheck = await pool.query(
+      `SELECT id, client_id, session_date, status, program_workout_id 
+       FROM sessions 
+       WHERE client_id = $1 
+       LIMIT 5`,
+      [req.user.id]
+    )
+    console.log(`[Schedule API] Total sessions for client ${req.user.id} (any status/date):`, allSessionsCheck.rows.length)
+    if (allSessionsCheck.rows.length > 0) {
+      console.log(`[Schedule API] Sample sessions:`, allSessionsCheck.rows.map(s => ({
+        id: s.id,
+        client_id: s.client_id,
+        session_date: s.session_date,
+        status: s.status,
+        program_workout_id: s.program_workout_id
+      })))
+    }
+    
     const result = await pool.query(
       `SELECT s.*, 
               u.name as trainer_name,
@@ -68,7 +88,7 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
        LIMIT 20`,
       [req.user.id]
     )
-    console.log(`[Schedule API] Found ${result.rows.length} sessions for client ${req.user.id}`)
+    console.log(`[Schedule API] Found ${result.rows.length} upcoming sessions for client ${req.user.id}`)
     if (result.rows.length > 0) {
       console.log(`[Schedule API] First session:`, {
         id: result.rows[0].id,
@@ -76,13 +96,29 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
         session_time: result.rows[0].session_time,
         status: result.rows[0].status,
         program_workout_id: result.rows[0].program_workout_id,
-        workout_name: result.rows[0].workout_name
+        workout_name: result.rows[0].workout_name,
+        program_name: result.rows[0].program_name
       })
+    } else {
+      console.log(`[Schedule API] No upcoming sessions found. Checking why...`)
+      // Check if sessions exist but are filtered out
+      const filteredCheck = await pool.query(
+        `SELECT id, session_date, status, 
+                CASE WHEN status NOT IN ('scheduled', 'confirmed') THEN 'wrong_status' ELSE 'ok' END as status_check,
+                CASE WHEN session_date < CURRENT_DATE THEN 'past_date' ELSE 'ok' END as date_check
+         FROM sessions 
+         WHERE client_id = $1 
+         LIMIT 5`,
+        [req.user.id]
+      )
+      if (filteredCheck.rows.length > 0) {
+        console.log(`[Schedule API] Sessions exist but filtered:`, filteredCheck.rows)
+      }
     }
     res.json(result.rows)
   } catch (error) {
     console.error('Error fetching client sessions:', error)
-    res.status(500).json({ message: 'Failed to fetch sessions' })
+    res.status(500).json({ message: 'Failed to fetch sessions', error: error.message })
   }
 })
 
