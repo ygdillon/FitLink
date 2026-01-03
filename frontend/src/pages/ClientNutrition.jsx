@@ -416,7 +416,7 @@ function ClientNutrition({ clientId, clientName }) {
 
     return (
       <Card withBorder p="sm" style={{ height: '100%' }}>
-        <Group gap="sm" align="center" wrap="nowrap">
+        <Group gap="md" align="center" wrap="nowrap" justify="space-between">
           <Box style={{ flexShrink: 0 }}>
             <RingProgress
               size={70}
@@ -434,7 +434,7 @@ function ClientNutrition({ clientId, clientName }) {
               }
             />
           </Box>
-          <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+          <Stack gap={2} style={{ flex: 1, minWidth: 0 }} align="flex-start">
             <Text size="xs" c="dimmed" tt="uppercase" fw={600} lh={1.2}>
               {label}
             </Text>
