@@ -25,3 +25,4 @@ CREATE INDEX IF NOT EXISTS idx_trainer_alerts_alert_type ON trainer_alerts(alert
 
 
 
+

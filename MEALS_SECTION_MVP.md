@@ -868,3 +868,4 @@ Meals Tab
 
 This MVP provides a comprehensive foundation for a robust meals system that combines structure with flexibility, teaching clients correct eating habits while maintaining adherence to their nutrition goals.
 
+

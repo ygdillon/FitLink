@@ -709,3 +709,4 @@ Each workout card should display:
 - Provide clear context and guidance
 - Make recommendations feel helpful, not pushy
 
+

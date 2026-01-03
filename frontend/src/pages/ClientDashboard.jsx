@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal, Grid } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal, Grid, ScrollArea } from '@mantine/core'
 import { useNavigate } from 'react-router-dom'
 import { Calendar } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'

@@ -16,3 +16,4 @@ CREATE TABLE IF NOT EXISTS program_weeks (
 CREATE INDEX IF NOT EXISTS idx_program_weeks_program_id ON program_weeks(program_id);
 CREATE INDEX IF NOT EXISTS idx_program_weeks_week_number ON program_weeks(week_number);
 
+
