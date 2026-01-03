@@ -434,8 +434,7 @@ function ClientDashboard() {
                   display: 'flex', 
                   flexDirection: 'column', 
                   overflow: 'hidden', 
-                  minHeight: 0,
-                  border: '1px solid var(--mantine-color-gray-4)'
+                  minHeight: 0
                 }}
               >
                 <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
@@ -451,9 +450,6 @@ function ClientDashboard() {
                     viewport: {
                       paddingRight: '0.5rem',
                       paddingBottom: '0.5rem'
-                    },
-                    scrollbar: {
-                      marginBottom: '0.5rem'
                     }
                   }}
                 >
@@ -519,8 +515,7 @@ function ClientDashboard() {
                   height: '100%', 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  overflow: 'hidden',
-                  border: '1px solid var(--mantine-color-gray-4)'
+                  overflow: 'hidden'
                 }}
               >
                 <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
@@ -533,7 +528,7 @@ function ClientDashboard() {
                     <Text c="dimmed" size="sm">No upcoming sessions</Text>
                   </Stack>
                 ) : (
-                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto', paddingBottom: '0.5rem' }}>
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto', marginBottom: '0.5rem' }}>
                     <Calendar
                       value={null}
                       month={displayedMonth}
@@ -624,8 +619,7 @@ function ClientDashboard() {
                   height: '100%', 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  overflow: 'hidden',
-                  border: '1px solid var(--mantine-color-gray-4)'
+                  overflow: 'hidden'
                 }}
               >
                 <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
@@ -645,9 +639,6 @@ function ClientDashboard() {
                       viewport: {
                         paddingRight: '0.5rem',
                         paddingBottom: '0.5rem'
-                      },
-                      scrollbar: {
-                        marginBottom: '0.5rem'
                       }
                     }}
                   >
