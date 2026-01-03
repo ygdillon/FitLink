@@ -74,6 +74,9 @@ function ClientNutrition({ clientId, clientName }) {
   const [recentFoods, setRecentFoods] = useState([])
   const [weeklyMealData, setWeeklyMealData] = useState(null)
   const [recommendedMeals, setRecommendedMeals] = useState({ assigned: [], flexible: {} })
+  const [viewAllModalOpened, { open: openViewAllModal, close: closeViewAllModal }] = useDisclosure(false)
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedMealSlot, setSelectedMealSlot] = useState(null)
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date()
     const dayOfWeek = today.getDay()
@@ -466,6 +469,168 @@ function ClientNutrition({ clientId, clientName }) {
     )
   }
 
+  // Enhanced Meal Card Component
+  const MealCard = ({ meal, onSelect, onViewRecipe, mealSlot, showActions = true }) => {
+    const mealName = meal.recipe_name || meal.meal_name || 'Meal'
+    const imageUrl = meal.image_url
+    const calories = Math.round(meal.calories_per_serving || meal.actual_calories || 0)
+    const protein = Math.round(meal.protein_per_serving || meal.actual_protein || 0)
+    const carbs = Math.round(meal.carbs_per_serving || meal.actual_carbs || 0)
+    const fats = Math.round(meal.fats_per_serving || meal.actual_fats || 0)
+
+    // Dietary badges
+    const dietaryBadges = []
+    if (meal.is_vegan) dietaryBadges.push({ label: 'Vegan', color: 'green', icon: IconLeaf })
+    if (meal.is_vegetarian) dietaryBadges.push({ label: 'Vegetarian', color: 'teal', icon: IconLeaf })
+    if (meal.is_gluten_free) dietaryBadges.push({ label: 'Gluten-Free', color: 'orange', icon: IconWheat })
+    if (meal.is_dairy_free) dietaryBadges.push({ label: 'Dairy-Free', color: 'blue', icon: IconMilk })
+    if (meal.is_quick_meal) dietaryBadges.push({ label: 'Quick', color: 'yellow', icon: IconClockHour4 })
+    if (meal.is_meal_prep_friendly) dietaryBadges.push({ label: 'Meal Prep', color: 'grape', icon: IconChefHat })
+
+    return (
+      <Card withBorder p={0} style={{ overflow: 'hidden', cursor: showActions ? 'pointer' : 'default' }}>
+        {/* Image Section */}
+        <Box style={{ position: 'relative', height: 120, backgroundColor: 'var(--mantine-color-dark-7)' }}>
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={mealName}
+              height={120}
+              fit="cover"
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <Center style={{ height: '100%' }}>
+              <IconMeat size={40} color="var(--mantine-color-dimmed)" />
+            </Center>
+          )}
+          {/* Dietary Badges Overlay */}
+          {dietaryBadges.length > 0 && (
+            <Group gap={4} style={{ position: 'absolute', top: 8, right: 8 }}>
+              {dietaryBadges.slice(0, 2).map((badge, idx) => (
+                <Badge
+                  key={idx}
+                  size="xs"
+                  variant="filled"
+                  color={badge.color}
+                  leftSection={<badge.icon size={12} />}
+                >
+                  {badge.label}
+                </Badge>
+              ))}
+            </Group>
+          )}
+        </Box>
+
+        {/* Content Section */}
+        <Stack gap="xs" p="sm">
+          <Text fw={600} size="sm" lineClamp={2} style={{ minHeight: 40 }}>
+            {mealName}
+          </Text>
+
+          {/* Macros */}
+          <Group gap={4} wrap="nowrap">
+            <Badge size="xs" variant="light" color="red">
+              {calories} cal
+            </Badge>
+            <Text size="xs" c="dimmed">P:{protein}g</Text>
+            <Text size="xs" c="dimmed">C:{carbs}g</Text>
+            <Text size="xs" c="dimmed">F:{fats}g</Text>
+          </Group>
+
+          {/* Actions */}
+          {showActions && !isTrainerView && (
+            <Group gap="xs" mt="xs">
+              {onViewRecipe && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<IconEye size={14} />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onViewRecipe(meal)
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  View
+                </Button>
+              )}
+              {onSelect && (
+                <Button
+                  size="xs"
+                  leftSection={<IconPlus size={14} />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelect(meal, mealSlot)
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  Add
+                </Button>
+              )}
+            </Group>
+          )}
+        </Stack>
+      </Card>
+    )
+  }
+
+  // Meal Category Section Component
+  const MealCategorySection = ({ category, meals, assignedMeal, onSelect, onViewAll, mealSlot }) => {
+    const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1)
+    const displayMeals = meals.slice(0, 3) // Show first 3 meals
+    const hasMore = meals.length > 3
+
+    return (
+      <Box>
+        <Group justify="space-between" mb="sm">
+          <Text fw={600} tt="capitalize">{categoryLabel}</Text>
+          {hasMore && (
+            <Button
+              size="xs"
+              variant="subtle"
+              onClick={() => {
+                setSelectedCategory(category)
+                setSelectedMealSlot(mealSlot)
+                openViewAllModal()
+              }}
+            >
+              View All ({meals.length})
+            </Button>
+          )}
+        </Group>
+
+        {assignedMeal ? (
+          <MealCard
+            meal={assignedMeal}
+            onSelect={onSelect}
+            mealSlot={mealSlot}
+            showActions={false}
+          />
+        ) : (
+          <SimpleGrid cols={displayMeals.length > 1 ? displayMeals.length : 1} spacing="sm">
+            {displayMeals.map(meal => (
+              <MealCard
+                key={meal.id}
+                meal={meal}
+                onSelect={onSelect}
+                mealSlot={mealSlot}
+                showActions={true}
+              />
+            ))}
+            {meals.length === 0 && (
+              <Card withBorder p="md">
+                <Text size="sm" c="dimmed" ta="center">
+                  No recommendations available
+                </Text>
+              </Card>
+            )}
+          </SimpleGrid>
+        )}
+      </Box>
+    )
+  }
+
   return (
     <Container size="xl" py="xl">
       {!isTrainerView && <Title order={1} mb="xl">My Nutrition</Title>}
@@ -750,67 +915,94 @@ function ClientNutrition({ clientId, clientName }) {
                     // Get flexible recommendations for this category
                     const flexibleMeals = recommendedMeals.flexible[mealSlot] || []
 
+                    // Prepare meal data for MealCard
+                    const currentMeal = selectedMeal ? {
+                      ...selectedMeal,
+                      recipe_name: selectedMeal.recipe_name,
+                      meal_name: selectedMeal.recipe_name,
+                      calories_per_serving: selectedMeal.actual_calories,
+                      protein_per_serving: selectedMeal.actual_protein,
+                      carbs_per_serving: selectedMeal.actual_carbs,
+                      fats_per_serving: selectedMeal.actual_fats
+                    } : assignedMeal ? {
+                      ...assignedMeal,
+                      meal_name: assignedMeal.meal_name,
+                      calories_per_serving: assignedMeal.target_calories,
+                      protein_per_serving: assignedMeal.target_protein,
+                      carbs_per_serving: assignedMeal.target_carbs,
+                      fats_per_serving: assignedMeal.target_fats
+                    } : null
+
                     return (
-                      <Card key={mealSlot} withBorder p="md">
-                        <Text fw={600} mb="sm" tt="capitalize">{mealSlot}</Text>
+                      <Box key={mealSlot}>
+                        <Text fw={600} mb="sm" tt="capitalize" size="sm">{mealSlot}</Text>
                         
                         {/* Show assigned or selected meal */}
-                        {(assignedMeal || selectedMeal) ? (
-                          <Box>
-                            {selectedMeal?.recipe_name && (
-                              <>
-                                <Text size="sm" fw={500} mb="xs">{selectedMeal.recipe_name}</Text>
-                                <Group gap="xs" mb="xs">
-                                  <Badge size="sm" variant="light">
-                                    {Math.round(selectedMeal.actual_calories || 0)} cal
-                                  </Badge>
-                                  <Text size="xs" c="dimmed">
-                                    P:{Math.round(selectedMeal.actual_protein || 0)}g C:{Math.round(selectedMeal.actual_carbs || 0)}g F:{Math.round(selectedMeal.actual_fats || 0)}g
-                                  </Text>
-                                </Group>
-                              </>
-                            )}
-                            {assignedMeal && !selectedMeal && (
-                              <>
-                                <Text size="sm" fw={500} mb="xs">{assignedMeal.meal_name}</Text>
-                                <Group gap="xs">
-                                  <Badge size="sm" variant="light">
-                                    {Math.round(assignedMeal.target_calories || 0)} cal
-                                  </Badge>
-                                  <Text size="xs" c="dimmed">
-                                    P:{Math.round(assignedMeal.target_protein || 0)}g C:{Math.round(assignedMeal.target_carbs || 0)}g F:{Math.round(assignedMeal.target_fats || 0)}g
-                                  </Text>
-                                </Group>
-                              </>
-                            )}
+                        {currentMeal ? (
+                          <Stack gap="xs">
+                            <MealCard
+                              meal={currentMeal}
+                              onSelect={null}
+                              mealSlot={mealSlot}
+                              showActions={false}
+                            />
                             {!isTrainerView && (
-                              <Button size="xs" variant="light" mt="xs" fullWidth>
+                              <Button 
+                                size="xs" 
+                                variant="light" 
+                                fullWidth
+                                onClick={() => {
+                                  // TODO: Implement meal swap in Phase 4
+                                  notifications.show({
+                                    title: 'Coming Soon',
+                                    message: 'Meal swap functionality will be available soon',
+                                    color: 'blue'
+                                  })
+                                }}
+                              >
                                 Swap Meal
                               </Button>
                             )}
-                          </Box>
+                          </Stack>
                         ) : (
-                          <Box>
-                            <Text size="sm" c="dimmed" mb="sm">No meal assigned</Text>
-                            {flexibleMeals.length > 0 && !isTrainerView && (
-                              <Stack gap="xs">
-                                <Text size="xs" fw={500}>Recommended:</Text>
-                                {flexibleMeals.slice(0, 2).map(meal => (
-                                  <Card key={meal.id} p="xs" withBorder style={{ cursor: 'pointer' }} onClick={() => handleSelectMeal(meal, mealSlot)}>
-                                    <Text size="xs" fw={500}>{meal.recipe_name || meal.meal_name}</Text>
-                                    <Text size="xs" c="dimmed">
-                                      {Math.round(meal.calories_per_serving || 0)} cal
-                                    </Text>
-                                  </Card>
-                                ))}
-                                {flexibleMeals.length > 2 && (
-                                  <Text size="xs" c="dimmed" ta="center">+{flexibleMeals.length - 2} more</Text>
-                                )}
-                              </Stack>
-                            )}
-                          </Box>
+                          <Stack gap="sm">
+                            <Card withBorder p="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+                              <Text size="sm" c="dimmed" ta="center" mb="sm">No meal assigned</Text>
+                              {flexibleMeals.length > 0 && !isTrainerView && (
+                                <>
+                                  <Text size="xs" fw={500} mb="xs">Recommended:</Text>
+                                  <SimpleGrid cols={flexibleMeals.length > 1 ? 2 : 1} spacing="xs">
+                                    {flexibleMeals.slice(0, 2).map(meal => (
+                                      <MealCard
+                                        key={meal.id}
+                                        meal={meal}
+                                        onSelect={handleSelectMeal}
+                                        mealSlot={mealSlot}
+                                        showActions={true}
+                                      />
+                                    ))}
+                                  </SimpleGrid>
+                                  {flexibleMeals.length > 2 && (
+                                    <Button
+                                      size="xs"
+                                      variant="subtle"
+                                      fullWidth
+                                      mt="xs"
+                                      onClick={() => {
+                                        setSelectedCategory(mealSlot)
+                                        setSelectedMealSlot(mealSlot)
+                                        openViewAllModal()
+                                      }}
+                                    >
+                                      View All ({flexibleMeals.length} options)
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </Card>
+                          </Stack>
                         )}
-                      </Card>
+                      </Box>
                     )
                   })}
                 </SimpleGrid>
@@ -1263,6 +1455,39 @@ function ClientNutrition({ clientId, clientName }) {
             Log Food
           </Button>
         </Group>
+      </Modal>
+
+      {/* View All Meals Modal */}
+      <Modal
+        opened={viewAllModalOpened}
+        onClose={closeViewAllModal}
+        title={`All ${selectedCategory ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1) : ''} Recommendations`}
+        size="xl"
+      >
+        <ScrollArea h={500}>
+          {selectedCategory && recommendedMeals.flexible[selectedCategory]?.length > 0 ? (
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+              {recommendedMeals.flexible[selectedCategory].map(meal => (
+                <MealCard
+                  key={meal.id}
+                  meal={meal}
+                  onSelect={handleSelectMeal}
+                  mealSlot={selectedMealSlot}
+                  showActions={true}
+                />
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Center py="xl">
+              <Stack gap="xs" align="center">
+                <Text c="dimmed">No recommendations available for this category</Text>
+                <Text size="sm" c="dimmed">
+                  Your trainer will add meal recommendations soon
+                </Text>
+              </Stack>
+            </Center>
+          )}
+        </ScrollArea>
       </Modal>
 
       {/* Floating Action Button */}
