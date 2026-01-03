@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal, Grid } from '@mantine/core'
 import { useNavigate } from 'react-router-dom'
 import { Calendar } from '@mantine/dates'
@@ -174,18 +174,118 @@ function ClientDashboard() {
     return grouped
   }, [upcomingSessions])
 
+  // Format date key from Date object
+  const getDateKey = useCallback((date) => {
+      if (!date) return null
+      
+      // Ensure date is a Date object
+      let dateObj = date
+      if (!(date instanceof Date)) {
+        // Try to convert if it's a string or number
+        if (typeof date === 'string' || typeof date === 'number') {
+          dateObj = new Date(date)
+        } else {
+          return null
+        }
+      }
+      
+      // Validate the date
+      if (isNaN(dateObj.getTime())) {
+        return null
+      }
+      
+      const year = dateObj.getFullYear()
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+      const day = String(dateObj.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+  }, [])
+
   const getSessionsForDate = (date) => {
     if (!date) return []
     try {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const dateKey = `${year}-${month}-${day}`
+      const dateKey = getDateKey(date)
+      if (!dateKey) return []
       return sessionsByDate.get(dateKey) || []
     } catch (error) {
       return []
     }
   }
+  
+  // Render custom day content to show session times
+  const renderDay = useCallback((date) => {
+      // Ensure date is a Date object
+      let dateObj = date
+      if (!(date instanceof Date)) {
+        if (typeof date === 'string' || typeof date === 'number') {
+          dateObj = new Date(date)
+        } else {
+          return null
+        }
+      }
+      
+      if (isNaN(dateObj.getTime())) {
+        return null
+      }
+      
+      const dateKey = getDateKey(dateObj)
+      if (!dateKey) {
+        // Fallback: just return the day number
+        return dateObj.getDate()
+      }
+
+      const sessions = sessionsByDate.get(dateKey) || []
+      const hasSessions = sessions.length > 0
+      
+      // Format session times for display
+      const sessionTimes = sessions.map(session => {
+        if (session.session_time) {
+          const [hours, minutes] = session.session_time.split(':')
+          const hour = parseInt(hours)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour % 12 || 12
+          return `${displayHour}:${minutes.padStart(2, '0')} ${ampm}`
+        }
+        return null
+      }).filter(Boolean).slice(0, 2)
+      
+      const sessionTimesStr = sessionTimes.join(', ')
+      const extraCount = sessions.length > 2 ? sessions.length - 2 : 0
+      
+      return (
+        <div 
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'flex-start', 
+            justifyContent: 'flex-start',
+            width: '100%',
+            height: '100%',
+            padding: '0.3rem'
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.2rem', pointerEvents: 'none' }}>
+            {dateObj.getDate()}
+          </div>
+          {hasSessions && (
+            <div className="session-times" style={{
+              fontSize: '0.65rem',
+              lineHeight: 1.2,
+              color: 'rgba(34, 197, 94, 0.95)',
+              fontWeight: 500,
+              marginTop: '0.15rem',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              width: '100%',
+              pointerEvents: 'none'
+            }}>
+              {sessionTimesStr}
+              {extraCount > 0 && ` +${extraCount} more`}
+            </div>
+          )}
+        </div>
+      )
+  }, [sessionsByDate, getDateKey])
 
   const handleDateClick = (date) => {
     if (!date) return
@@ -322,23 +422,30 @@ function ClientDashboard() {
                         }
                         
                         try {
-                          const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-                          const hasSessions = sessionsByDate.has(dateKey)
-                          if (hasSessions) {
-                            console.log('[ClientDashboard] Date has sessions:', dateKey, sessionsByDate.get(dateKey).length)
-                          }
+                          const dateKey = getDateKey(date)
+                          if (!dateKey) return { style: { cursor: 'pointer' } }
+                          
+                          const sessions = sessionsByDate.get(dateKey) || []
+                          const hasSessions = sessions.length > 0
+                          
                           return {
-                            style: hasSessions ? {
-                              backgroundColor: 'var(--mantine-color-green-9)',
-                              color: 'white',
-                              fontWeight: 600,
-                              borderRadius: '4px'
-                            } : {},
-                            onClick: () => handleDateClick(date)
+                            onClick: (e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleDateClick(date)
+                            },
+                            style: {
+                              cursor: 'pointer',
+                              position: 'relative',
+                              ...(hasSessions ? {
+                                border: '2px solid rgba(34, 197, 94, 0.6)',
+                                borderRadius: '4px'
+                              } : {})
+                            }
                           }
                         } catch (error) {
                           console.error('[ClientDashboard] Error in getDayProps:', error, date)
-                          return {}
+                          return { style: { cursor: 'pointer' } }
                         }
                       }}
                     styles={{
