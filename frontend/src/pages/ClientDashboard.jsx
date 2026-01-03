@@ -50,6 +50,7 @@ function ClientDashboard() {
           console.log('[ClientDashboard] No sessions returned from API')
         } else {
           console.log('[ClientDashboard] Sample session:', sessions[0])
+          console.log('[ClientDashboard] Sample session date:', sessions[0].session_date, 'type:', typeof sessions[0].session_date)
         }
         setUpcomingSessions(sessions)
       } catch (error) {
@@ -116,7 +117,8 @@ function ClientDashboard() {
   // Group sessions by date for calendar display
   const sessionsByDate = useMemo(() => {
     const grouped = new Map()
-    upcomingSessions.forEach(session => {
+    console.log('[ClientDashboard] Grouping sessions, total:', upcomingSessions.length)
+    upcomingSessions.forEach((session, index) => {
       if (session.session_date) {
         try {
           let dateKey
@@ -139,7 +141,7 @@ function ClientDashboard() {
               if (!isNaN(date.getTime())) {
                 dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
               } else {
-                console.warn('Invalid date format:', session.session_date)
+                console.warn('[ClientDashboard] Invalid date format:', session.session_date)
                 return
               }
             }
@@ -147,7 +149,7 @@ function ClientDashboard() {
             // If it's a Date object, use UTC methods
             const date = new Date(session.session_date)
             if (isNaN(date.getTime())) {
-              console.warn('Invalid date object:', session.session_date)
+              console.warn('[ClientDashboard] Invalid date object:', session.session_date)
               return
             }
             dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
@@ -157,11 +159,18 @@ function ClientDashboard() {
             grouped.set(dateKey, [])
           }
           grouped.get(dateKey).push(session)
+          
+          if (index === 0) {
+            console.log('[ClientDashboard] First session grouped - dateKey:', dateKey, 'session_date:', session.session_date)
+          }
         } catch (error) {
-          console.error('Error processing session date:', session.session_date, error)
+          console.error('[ClientDashboard] Error processing session date:', session.session_date, error)
         }
+      } else {
+        console.warn('[ClientDashboard] Session missing session_date:', session)
       }
     })
+    console.log('[ClientDashboard] Grouped sessions into', grouped.size, 'dates:', Array.from(grouped.keys()))
     return grouped
   }, [upcomingSessions])
 
