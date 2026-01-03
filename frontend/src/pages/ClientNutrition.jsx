@@ -556,110 +556,53 @@ function ClientNutrition({ clientId, clientName }) {
       setRecipeLoading(true)
       const recipeId = meal.recipe_id
       
-      // Check if meal already has recipe data from the JOIN (client endpoint includes this)
-      const hasRecipeData = meal.ingredients || meal.instructions || meal.prep_tips || meal.storage_tips || meal.nutrition_tips
-      
-      if (hasRecipeData && recipeId) {
-        // Parse JSONB fields if they're strings (from database)
-        let ingredients = meal.ingredients
-        if (typeof ingredients === 'string') {
-          try {
-            ingredients = JSON.parse(ingredients)
-          } catch (e) {
-            ingredients = []
+      // For client view: Always fetch full recipe from API if recipe_id exists
+      // This ensures we get complete recipe data (ingredients, instructions, tips, etc.)
+      if (recipeId) {
+        try {
+          const result = await api.get(`/nutrition/recipes/${recipeId}`)
+          
+          if (result.data) {
+            // Merge meal-specific data (like notes from meal recommendation) with recipe data
+            setSelectedRecipe({
+              ...result.data,
+              // Preserve meal recommendation notes if available
+              notes: meal.notes || result.data.notes,
+              // Use meal macros if recipe doesn't have them
+              calories_per_serving: result.data.calories_per_serving || meal.calories_per_serving,
+              protein_per_serving: result.data.protein_per_serving || meal.protein_per_serving,
+              carbs_per_serving: result.data.carbs_per_serving || meal.carbs_per_serving,
+              fats_per_serving: result.data.fats_per_serving || meal.fats_per_serving
+            })
+            openRecipeModal()
+            return
           }
+        } catch (apiError) {
+          console.error('Error fetching recipe from API:', apiError)
+          // Fall through to show basic meal info if API fails
         }
-        
-        let equipment_needed = meal.equipment_needed
-        if (typeof equipment_needed === 'string') {
-          try {
-            equipment_needed = JSON.parse(equipment_needed)
-          } catch (e) {
-            equipment_needed = []
-          }
-        }
-        
-        let substitution_options = meal.substitution_options
-        if (typeof substitution_options === 'string') {
-          try {
-            substitution_options = JSON.parse(substitution_options)
-          } catch (e) {
-            substitution_options = []
-          }
-        }
-        
-        // Use recipe data already in the meal object (from JOIN)
-        setSelectedRecipe({
-          id: recipeId,
-          name: meal.recipe_name || meal.meal_name,
-          description: meal.recipe_description || meal.meal_description,
-          category: meal.meal_category,
-          calories_per_serving: meal.calories_per_serving,
-          protein_per_serving: meal.protein_per_serving,
-          carbs_per_serving: meal.carbs_per_serving,
-          fats_per_serving: meal.fats_per_serving,
-          image_url: meal.image_url,
-          ingredients: ingredients,
-          instructions: meal.instructions,
-          prep_time: meal.prep_time,
-          cook_time: meal.cook_time,
-          total_time: meal.total_time,
-          total_yield: meal.total_yield,
-          difficulty_level: meal.difficulty_level,
-          equipment_needed: equipment_needed,
-          substitution_options: substitution_options,
-          prep_tips: meal.prep_tips,
-          storage_tips: meal.storage_tips,
-          storage_instructions: meal.storage_instructions,
-          nutrition_tips: meal.nutrition_tips,
-          is_vegan: meal.is_vegan,
-          is_vegetarian: meal.is_vegetarian,
-          is_gluten_free: meal.is_gluten_free,
-          is_dairy_free: meal.is_dairy_free,
-          is_quick_meal: meal.is_quick_meal,
-          is_meal_prep_friendly: meal.is_meal_prep_friendly,
-          notes: meal.notes
-        })
-        openRecipeModal()
-        return
       }
       
-      if (!recipeId) {
-        // If no recipe_id, show meal recommendation details instead
-        setSelectedRecipe({
-          name: meal.recipe_name || meal.meal_name,
-          description: meal.meal_description || meal.recipe_description,
-          calories_per_serving: meal.calories_per_serving,
-          protein_per_serving: meal.protein_per_serving,
-          carbs_per_serving: meal.carbs_per_serving,
-          fats_per_serving: meal.fats_per_serving,
-          image_url: meal.image_url,
-          is_vegan: meal.is_vegan,
-          is_vegetarian: meal.is_vegetarian,
-          is_gluten_free: meal.is_gluten_free,
-          is_dairy_free: meal.is_dairy_free,
-          notes: meal.notes,
-          is_custom_meal: true // Flag to indicate this is a custom meal, not a full recipe
-        })
-        openRecipeModal()
-        return
-      }
-
-      // If recipe data not in meal object, fetch from API
-      const result = await api.get(`/nutrition/recipes/${recipeId}`).catch(() => ({ data: null }))
-      
-      if (result.data) {
-        setSelectedRecipe(result.data)
-        openRecipeModal()
-      } else {
-        notifications.show({
-          title: 'Error',
-          message: 'Recipe details not available',
-          color: 'red'
-        })
-      }
+      // If no recipe_id or API fetch failed, show meal recommendation details
+      // This is a fallback for meals without full recipes
+      setSelectedRecipe({
+        name: meal.recipe_name || meal.meal_name,
+        description: meal.meal_description || meal.recipe_description,
+        calories_per_serving: meal.calories_per_serving,
+        protein_per_serving: meal.protein_per_serving,
+        carbs_per_serving: meal.carbs_per_serving,
+        fats_per_serving: meal.fats_per_serving,
+        image_url: meal.image_url,
+        is_vegan: meal.is_vegan,
+        is_vegetarian: meal.is_vegetarian,
+        is_gluten_free: meal.is_gluten_free,
+        is_dairy_free: meal.is_dairy_free,
+        notes: meal.notes,
+        is_custom_meal: true // Flag to indicate this is a custom meal, not a full recipe
+      })
+      openRecipeModal()
     } catch (error) {
-      console.error('Error fetching recipe:', error)
+      console.error('Error in handleViewRecipe:', error)
       notifications.show({
         title: 'Error',
         message: 'Failed to load recipe details',
@@ -2365,7 +2308,7 @@ function ClientNutrition({ clientId, clientName }) {
 
               {/* Macros */}
               <Card withBorder p="sm">
-                <Text fw={600} mb="sm">Nutritional Information (per serving)</Text>
+                <Text fw={600} mb="sm" size="md">Nutritional Information (per serving)</Text>
                 <SimpleGrid cols={4} spacing="sm">
                   <Box>
                     <Text size="xs" c="dimmed">Calories</Text>
