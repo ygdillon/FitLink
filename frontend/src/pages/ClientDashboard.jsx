@@ -431,9 +431,12 @@ function ClientDashboard() {
                 flexDirection: 'column', 
                 overflow: 'hidden', 
                 minHeight: 0,
+                height: '100%',
+                position: 'relative',
                 border: '1px solid var(--mantine-color-gray-4)',
                 borderRadius: 'var(--mantine-radius-sm)',
-                backgroundColor: 'var(--mantine-color-dark-7)'
+                backgroundColor: 'var(--mantine-color-dark-7)',
+                boxSizing: 'border-box'
               }}>
                 <Paper 
                   p="sm" 
@@ -445,9 +448,13 @@ function ClientDashboard() {
                     flexDirection: 'column', 
                     overflow: 'hidden', 
                     minHeight: 0,
+                    height: '100%',
+                    width: '100%',
                     border: 'none',
                     borderRadius: 0,
-                    boxShadow: 'none'
+                    boxShadow: 'none',
+                    boxSizing: 'border-box',
+                    position: 'relative'
                   }}
                 >
                   <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
@@ -525,25 +532,31 @@ function ClientDashboard() {
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <div style={{ 
                 height: '100%', 
+                position: 'relative',
                 display: 'flex', 
                 flexDirection: 'column', 
                 overflow: 'hidden',
                 border: '1px solid var(--mantine-color-gray-4)',
                 borderRadius: 'var(--mantine-radius-sm)',
-                backgroundColor: 'var(--mantine-color-dark-7)'
+                backgroundColor: 'var(--mantine-color-dark-7)',
+                boxSizing: 'border-box'
               }}>
                 <Paper 
                   p="sm" 
                   shadow="sm" 
                   withBorder={false}
                   style={{ 
-                    height: '100%', 
+                    height: '100%',
+                    width: '100%',
                     display: 'flex', 
                     flexDirection: 'column', 
                     overflow: 'hidden',
+                    minHeight: 0,
                     border: 'none',
                     borderRadius: 0,
-                    boxShadow: 'none'
+                    boxShadow: 'none',
+                    boxSizing: 'border-box',
+                    position: 'relative'
                   }}
                 >
                   <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
@@ -642,25 +655,31 @@ function ClientDashboard() {
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <div style={{ 
                 height: '100%', 
+                position: 'relative',
                 display: 'flex', 
                 flexDirection: 'column', 
                 overflow: 'hidden',
                 border: '1px solid var(--mantine-color-gray-4)',
                 borderRadius: 'var(--mantine-radius-sm)',
-                backgroundColor: 'var(--mantine-color-dark-7)'
+                backgroundColor: 'var(--mantine-color-dark-7)',
+                boxSizing: 'border-box'
               }}>
                 <Paper 
                   p="sm" 
                   shadow="sm" 
                   withBorder={false}
                   style={{ 
-                    height: '100%', 
+                    height: '100%',
+                    width: '100%',
                     display: 'flex', 
                     flexDirection: 'column', 
                     overflow: 'hidden',
+                    minHeight: 0,
                     border: 'none',
                     borderRadius: 0,
-                    boxShadow: 'none'
+                    boxShadow: 'none',
+                    boxSizing: 'border-box',
+                    position: 'relative'
                   }}
                 >
                   <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
