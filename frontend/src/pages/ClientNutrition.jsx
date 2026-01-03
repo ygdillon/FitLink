@@ -1382,19 +1382,42 @@ function ClientNutrition({ clientId, clientName }) {
                     // Prepare meal data for MealCard
                     const currentMeal = selectedMeal ? {
                       ...selectedMeal,
-                      recipe_name: selectedMeal.recipe_name,
-                      meal_name: selectedMeal.recipe_name,
+                      recipe_name: selectedMeal.recipe_name || selectedMeal.meal_name,
+                      meal_name: selectedMeal.recipe_name || selectedMeal.meal_name,
                       calories_per_serving: selectedMeal.actual_calories,
                       protein_per_serving: selectedMeal.actual_protein,
                       carbs_per_serving: selectedMeal.actual_carbs,
-                      fats_per_serving: selectedMeal.actual_fats
+                      fats_per_serving: selectedMeal.actual_fats,
+                      // Include all recipe data from the JOIN
+                      recipe_id: selectedMeal.recipe_id,
+                      recipe_description: selectedMeal.recipe_description,
+                      ingredients: selectedMeal.ingredients,
+                      instructions: selectedMeal.instructions,
+                      prep_time: selectedMeal.prep_time,
+                      cook_time: selectedMeal.cook_time,
+                      total_time: selectedMeal.total_time,
+                      total_yield: selectedMeal.total_yield,
+                      difficulty_level: selectedMeal.difficulty_level,
+                      equipment_needed: selectedMeal.equipment_needed,
+                      substitution_options: selectedMeal.substitution_options,
+                      prep_tips: selectedMeal.prep_tips,
+                      storage_tips: selectedMeal.storage_tips,
+                      storage_instructions: selectedMeal.storage_instructions,
+                      nutrition_tips: selectedMeal.nutrition_tips,
+                      is_vegan: selectedMeal.is_vegan,
+                      is_vegetarian: selectedMeal.is_vegetarian,
+                      is_gluten_free: selectedMeal.is_gluten_free,
+                      is_dairy_free: selectedMeal.is_dairy_free,
+                      is_quick_meal: selectedMeal.is_quick_meal,
+                      is_meal_prep_friendly: selectedMeal.is_meal_prep_friendly
                     } : assignedMeal ? {
                       ...assignedMeal,
                       meal_name: assignedMeal.meal_name,
                       calories_per_serving: assignedMeal.target_calories,
                       protein_per_serving: assignedMeal.target_protein,
                       carbs_per_serving: assignedMeal.target_carbs,
-                      fats_per_serving: assignedMeal.target_fats
+                      fats_per_serving: assignedMeal.target_fats,
+                      recipe_id: assignedMeal.recipe_id
                     } : null
 
                     return (
@@ -1407,6 +1430,7 @@ function ClientNutrition({ clientId, clientName }) {
                             <MealCard
                               meal={currentMeal}
                               onSelect={null}
+                              onViewRecipe={handleViewRecipe}
                               mealSlot={mealSlot}
                               showActions={false}
                             />

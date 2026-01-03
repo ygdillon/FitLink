@@ -1415,12 +1415,29 @@ router.get('/meals/weekly', requireRole(['client']), async (req, res) => {
     // Get client meal selections for the week
     const selectionsResult = await pool.query(
       `SELECT cms.*, 
-              r.name as recipe_name,
-              r.image_url,
-              r.is_vegan,
-              r.is_vegetarian,
-              r.is_gluten_free,
-              r.is_dairy_free
+             r.id as recipe_id,
+             r.name as recipe_name,
+             r.description as recipe_description,
+             r.image_url,
+             r.ingredients,
+             r.instructions,
+             r.is_vegan,
+             r.is_vegetarian,
+             r.is_gluten_free,
+             r.is_dairy_free,
+             r.is_quick_meal,
+             r.is_meal_prep_friendly,
+             r.prep_time,
+             r.cook_time,
+             r.total_time,
+             r.total_yield,
+             r.difficulty_level,
+             r.equipment_needed,
+             r.substitution_options,
+             r.nutrition_tips,
+             r.prep_tips,
+             r.storage_tips,
+             r.storage_instructions
        FROM client_meal_selections cms
        LEFT JOIN recipes r ON cms.recipe_id = r.id
        WHERE cms.client_id = $1 
@@ -1430,8 +1447,37 @@ router.get('/meals/weekly', requireRole(['client']), async (req, res) => {
       [clientId, weekDates[0], weekDates[6]]
     )
 
+    // Parse JSONB fields for client selections
+    const parsedSelections = selectionsResult.rows.map(selection => {
+      // Parse ingredients if it's a string
+      if (selection.ingredients && typeof selection.ingredients === 'string') {
+        try {
+          selection.ingredients = JSON.parse(selection.ingredients)
+        } catch (e) {
+          selection.ingredients = []
+        }
+      }
+      // Parse equipment_needed if it's a string
+      if (selection.equipment_needed && typeof selection.equipment_needed === 'string') {
+        try {
+          selection.equipment_needed = JSON.parse(selection.equipment_needed)
+        } catch (e) {
+          selection.equipment_needed = []
+        }
+      }
+      // Parse substitution_options if it's a string
+      if (selection.substitution_options && typeof selection.substitution_options === 'string') {
+        try {
+          selection.substitution_options = JSON.parse(selection.substitution_options)
+        } catch (e) {
+          selection.substitution_options = []
+        }
+      }
+      return selection
+    })
+
     // Calculate weekly averages
-    const weeklyTotals = selectionsResult.rows.reduce((acc, selection) => ({
+    const weeklyTotals = parsedSelections.reduce((acc, selection) => ({
       calories: acc.calories + parseFloat(selection.actual_calories || 0),
       protein: acc.protein + parseFloat(selection.actual_protein || 0),
       carbs: acc.carbs + parseFloat(selection.actual_carbs || 0),
@@ -1452,7 +1498,7 @@ router.get('/meals/weekly', requireRole(['client']), async (req, res) => {
       week_start: weekDates[0],
       week_end: weekDates[6],
       assigned_meals: planResult.rows[0]?.meals || [],
-      client_selections: selectionsResult.rows,
+      client_selections: parsedSelections,
       weekly_averages: weeklyAverages
     })
   } catch (error) {
