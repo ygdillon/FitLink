@@ -148,15 +148,40 @@ function ClientNutrition({ clientId, clientName }) {
       }
 
       // Fetch nutrition logs
-      const logsRes = await api.get('/nutrition/logs').catch(() => ({ data: [] }))
-      setNutritionLogs(logsRes.data || [])
-      
-      // Fetch recent foods (last 10 unique foods logged)
-      const recent = logsRes.data
-        ?.map(log => log.food_name)
-        .filter((name, index, self) => self.indexOf(name) === index)
-        .slice(0, 10) || []
-      setRecentFoods(recent)
+      if (isTrainerView && clientId) {
+        try {
+          const clientRes = await api.get(`/trainer/clients/${clientId}`).catch(() => ({ data: null }))
+          if (clientRes.data?.user_id) {
+            const userId = clientRes.data.user_id
+            const logsRes = await api.get(`/trainer/clients/${userId}/nutrition/logs`).catch(() => ({ data: [] }))
+            setNutritionLogs(logsRes.data || [])
+            
+            // Fetch recent foods (last 10 unique foods logged)
+            const recent = logsRes.data
+              ?.map(log => log.food_name)
+              .filter((name, index, self) => self.indexOf(name) === index)
+              .slice(0, 10) || []
+            setRecentFoods(recent)
+          } else {
+            setNutritionLogs([])
+            setRecentFoods([])
+          }
+        } catch (error) {
+          console.error('Error fetching client nutrition logs:', error)
+          setNutritionLogs([])
+          setRecentFoods([])
+        }
+      } else {
+        const logsRes = await api.get('/nutrition/logs').catch(() => ({ data: [] }))
+        setNutritionLogs(logsRes.data || [])
+        
+        // Fetch recent foods (last 10 unique foods logged)
+        const recent = logsRes.data
+          ?.map(log => log.food_name)
+          .filter((name, index, self) => self.indexOf(name) === index)
+          .slice(0, 10) || []
+        setRecentFoods(recent)
+      }
     } catch (error) {
       console.error('Error fetching nutrition data:', error)
     } finally {
