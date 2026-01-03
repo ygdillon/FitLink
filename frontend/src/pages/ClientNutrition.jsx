@@ -638,9 +638,9 @@ function ClientNutrition({ clientId, clientName }) {
       {targets ? (
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List>
-            <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
+            <Tabs.Tab value="dashboard">{isTrainerView ? 'Overview' : 'Dashboard'}</Tabs.Tab>
             <Tabs.Tab value="meals">Meals</Tabs.Tab>
-            <Tabs.Tab value="log">Food Log</Tabs.Tab>
+            {!isTrainerView && <Tabs.Tab value="log">Food Log</Tabs.Tab>}
             <Tabs.Tab value="history">Progress</Tabs.Tab>
           </Tabs.List>
 
@@ -648,8 +648,13 @@ function ClientNutrition({ clientId, clientName }) {
           <Tabs.Panel value="dashboard" pt="xl">
             <Stack gap="xl">
               {/* Ring Progress Stats */}
+              {isTrainerView && (
+                <Text size="sm" c="dimmed" mb="md">
+                  Viewing {clientName || 'client'}'s nutrition progress for today
+                </Text>
+              )}
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="sm">
-                <Tooltip label="Basal Metabolic Rate - calories your body burns at rest">
+                <Tooltip label={isTrainerView ? "Client's calorie consumption vs target" : "Basal Metabolic Rate - calories your body burns at rest"}>
                   <MacroStatCard
                     label="CALORIES"
                     consumed={todayTotals.calories}
@@ -659,7 +664,7 @@ function ClientNutrition({ clientId, clientName }) {
                     icon={IconFlame}
                   />
                 </Tooltip>
-                <Tooltip label="Essential for muscle repair and growth">
+                <Tooltip label={isTrainerView ? "Client's protein consumption vs target" : "Essential for muscle repair and growth"}>
                   <MacroStatCard
                     label="PROTEIN"
                     consumed={todayTotals.protein}
@@ -669,7 +674,7 @@ function ClientNutrition({ clientId, clientName }) {
                     icon={IconMeat}
                   />
                 </Tooltip>
-                <Tooltip label="Primary energy source for your body">
+                <Tooltip label={isTrainerView ? "Client's carb consumption vs target" : "Primary energy source for your body"}>
                   <MacroStatCard
                     label="CARBS"
                     consumed={todayTotals.carbs}
@@ -679,7 +684,7 @@ function ClientNutrition({ clientId, clientName }) {
                     icon={IconBread}
                   />
                 </Tooltip>
-                <Tooltip label="Important for hormone production and nutrient absorption">
+                <Tooltip label={isTrainerView ? "Client's fat consumption vs target" : "Important for hormone production and nutrient absorption"}>
                   <MacroStatCard
                     label="FATS"
                     consumed={todayTotals.fats}
@@ -694,7 +699,7 @@ function ClientNutrition({ clientId, clientName }) {
               {/* Today's Meals Breakdown */}
               <Paper p="md" withBorder>
                 <Group justify="space-between" mb="md">
-                  <Title order={3}>Today's Meals</Title>
+                  <Title order={3}>{isTrainerView ? "Client's Meals Today" : "Today's Meals"}</Title>
                   {!isTrainerView && (
                     <Button 
                       leftSection={<IconPlus size={16} />} 
@@ -732,7 +737,7 @@ function ClientNutrition({ clientId, clientName }) {
                         </Group>
                         {mealLogs.length === 0 ? (
                           <Text size="sm" c="dimmed" py="sm">
-                            No foods logged yet. Click "Add Food" to get started.
+                            {isTrainerView ? 'No foods logged yet.' : 'No foods logged yet. Click "Add Food" to get started.'}
                           </Text>
                         ) : (
                           <Stack gap="xs">
@@ -770,43 +775,65 @@ function ClientNutrition({ clientId, clientName }) {
               </Paper>
 
               {/* Quick Actions & Insights */}
-              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-                <Card withBorder p="md" style={{ cursor: 'pointer' }} onClick={openLogModal}>
-                  <Stack gap="xs" align="center">
-                    <IconPlus size={32} />
-                    <Text fw={600}>Quick Log Food</Text>
-                    <Text size="sm" c="dimmed" ta="center">
-                      Log a meal in seconds
-                    </Text>
-                  </Stack>
-                </Card>
+              {!isTrainerView ? (
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                  <Card withBorder p="md" style={{ cursor: 'pointer' }} onClick={openLogModal}>
+                    <Stack gap="xs" align="center">
+                      <IconPlus size={32} />
+                      <Text fw={600}>Quick Log Food</Text>
+                      <Text size="sm" c="dimmed" ta="center">
+                        Log a meal in seconds
+                      </Text>
+                    </Stack>
+                  </Card>
 
-                {weeklySummary && (
+                  {weeklySummary && (
+                    <Card withBorder p="md">
+                      <Text fw={600} mb="sm">This Week</Text>
+                      <Stack gap="xs">
+                        <Text size="sm">
+                          Avg: {weeklySummary.avgCalories.toFixed(0)} cal/day
+                        </Text>
+                        <Text size="sm">
+                          {weeklySummary.daysLogged}/7 days logged
+                        </Text>
+                        <Progress 
+                          value={(weeklySummary.daysLogged / 7) * 100} 
+                          size="sm" 
+                          mt="xs"
+                        />
+                      </Stack>
+                    </Card>
+                  )}
+
                   <Card withBorder p="md">
-                    <Text fw={600} mb="sm">This Week</Text>
+                    <Text fw={600} mb="sm">Today's Tip</Text>
+                    <Text size="sm" c="dimmed">
+                      {nutritionPlan?.notes || 'Stay hydrated and aim to hit your protein target!'}
+                    </Text>
+                  </Card>
+                </SimpleGrid>
+              ) : (
+                weeklySummary && (
+                  <Card withBorder p="md">
+                    <Text fw={600} mb="sm">Client's Weekly Summary</Text>
                     <Stack gap="xs">
                       <Text size="sm">
-                        Avg: {weeklySummary.avgCalories.toFixed(0)} cal/day
+                        Average Daily Calories: {weeklySummary.avgCalories.toFixed(0)} cal
                       </Text>
                       <Text size="sm">
-                        {weeklySummary.daysLogged}/7 days logged
+                        Days Logged: {weeklySummary.daysLogged}/7
                       </Text>
                       <Progress 
                         value={(weeklySummary.daysLogged / 7) * 100} 
                         size="sm" 
                         mt="xs"
+                        label={`${Math.round((weeklySummary.daysLogged / 7) * 100)}%`}
                       />
                     </Stack>
                   </Card>
-                )}
-
-                <Card withBorder p="md">
-                  <Text fw={600} mb="sm">Today's Tip</Text>
-                  <Text size="sm" c="dimmed">
-                    {nutritionPlan?.notes || 'Stay hydrated and aim to hit your protein target!'}
-                  </Text>
-                </Card>
-              </SimpleGrid>
+                )
+              )}
             </Stack>
           </Tabs.Panel>
 
@@ -863,6 +890,11 @@ function ClientNutrition({ clientId, clientName }) {
                     Shopping List
                   </Button>
                 )}
+                {isTrainerView && (
+                  <Button leftSection={<IconPlus size={16} />} variant="light">
+                    Add Meal Recommendation
+                  </Button>
+                )}
               </Group>
 
               {/* Weekly Nutrition Averages */}
@@ -895,7 +927,7 @@ function ClientNutrition({ clientId, clientName }) {
 
               {/* Today's Meals Section */}
               <Paper p="md" withBorder>
-                <Title order={3} mb="md">Today</Title>
+                <Title order={3} mb="md">{isTrainerView ? "Client's Meals Today" : "Today"}</Title>
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
                   {['breakfast', 'lunch', 'dinner', 'snack'].map(mealSlot => {
                     // Get assigned meal for today
@@ -968,17 +1000,19 @@ function ClientNutrition({ clientId, clientName }) {
                           <Stack gap="sm">
                             <Card withBorder p="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
                               <Text size="sm" c="dimmed" ta="center" mb="sm">No meal assigned</Text>
-                              {flexibleMeals.length > 0 && !isTrainerView && (
+                              {flexibleMeals.length > 0 && (
                                 <>
-                                  <Text size="xs" fw={500} mb="xs">Recommended:</Text>
+                                  <Text size="xs" fw={500} mb="xs">
+                                    {isTrainerView ? 'Available Recommendations:' : 'Recommended:'}
+                                  </Text>
                                   <SimpleGrid cols={flexibleMeals.length > 1 ? 2 : 1} spacing="xs">
                                     {flexibleMeals.slice(0, 2).map(meal => (
                                       <MealCard
                                         key={meal.id}
                                         meal={meal}
-                                        onSelect={handleSelectMeal}
+                                        onSelect={isTrainerView ? null : handleSelectMeal}
                                         mealSlot={mealSlot}
-                                        showActions={true}
+                                        showActions={!isTrainerView}
                                       />
                                     ))}
                                   </SimpleGrid>
@@ -1010,7 +1044,7 @@ function ClientNutrition({ clientId, clientName }) {
 
               {/* Weekly View */}
               <Paper p="md" withBorder>
-                <Title order={3} mb="md">This Week</Title>
+                <Title order={3} mb="md">{isTrainerView ? "Client's Weekly Meal Plan" : "This Week"}</Title>
                 <Stack gap="lg">
                   {[1, 2, 3, 4, 5, 6, 7].map(dayNum => {
                     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayNum - 1]
@@ -1465,15 +1499,15 @@ function ClientNutrition({ clientId, clientName }) {
         size="xl"
       >
         <ScrollArea h={500}>
-          {selectedCategory && recommendedMeals.flexible[selectedCategory]?.length > 0 ? (
+              {selectedCategory && recommendedMeals.flexible[selectedCategory]?.length > 0 ? (
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
               {recommendedMeals.flexible[selectedCategory].map(meal => (
                 <MealCard
                   key={meal.id}
                   meal={meal}
-                  onSelect={handleSelectMeal}
+                  onSelect={isTrainerView ? null : handleSelectMeal}
                   mealSlot={selectedMealSlot}
-                  showActions={true}
+                  showActions={!isTrainerView}
                 />
               ))}
             </SimpleGrid>

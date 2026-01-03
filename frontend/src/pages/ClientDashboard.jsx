@@ -426,14 +426,13 @@ function ClientDashboard() {
             {/* My Programs */}
             {programs.length > 0 && (
               <Box
+                className="border-box-wrapper"
                 style={{
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
                   overflow: 'hidden',
                   minHeight: 0,
-                  border: '1px solid var(--mantine-color-gray-4)',
-                  borderRadius: 'var(--mantine-radius-sm)',
                   backgroundColor: 'var(--mantine-color-dark-7)'
                 }}
               >
@@ -525,13 +524,12 @@ function ClientDashboard() {
             {/* Calendar - Top Right */}
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <Box
+                className="border-box-wrapper"
                 style={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   overflow: 'hidden',
-                  border: '1px solid var(--mantine-color-gray-4)',
-                  borderRadius: 'var(--mantine-radius-sm)',
                   backgroundColor: 'var(--mantine-color-dark-7)'
                 }}
               >
@@ -645,13 +643,12 @@ function ClientDashboard() {
             {/* Sessions Widget - Bottom Right */}
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <Box
+                className="border-box-wrapper"
                 style={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   overflow: 'hidden',
-                  border: '1px solid var(--mantine-color-gray-4)',
-                  borderRadius: 'var(--mantine-radius-sm)',
                   backgroundColor: 'var(--mantine-color-dark-7)'
                 }}
               >
