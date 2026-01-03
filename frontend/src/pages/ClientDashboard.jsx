@@ -521,12 +521,11 @@ function ClientDashboard() {
                     <Text c="dimmed" size="sm">No upcoming sessions</Text>
                   </Stack>
                 ) : (
-                  <ScrollArea style={{ flex: 1, minHeight: 0 }}>
-                    <div className="client-calendar-wrapper" style={{ paddingBottom: '0.5rem' }}>
-                      <Calendar
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <Calendar
                       value={null}
                       month={displayedMonth}
-                      onMonthChange={setDisplayedMonth}
+                      onMonthSelect={setDisplayedMonth}
                       onChange={handleDateClick}
                       renderDay={renderDay}
                       getDayProps={(date) => {
@@ -595,11 +594,9 @@ function ClientDashboard() {
                           padding: '0.3rem',
                         },
                       }}
-                          size="sm"
-                          fullWidth
-                        />
-                      </div>
-                    </ScrollArea>
+                      size="sm"
+                    />
+                  </div>
                   )}
                 </Paper>
             </Grid.Col>
@@ -629,7 +626,7 @@ function ClientDashboard() {
                     <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                   </Stack>
                 ) : (
-                  <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+                  <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                     <Stack gap="xs">
                       {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
@@ -705,7 +702,7 @@ function ClientDashboard() {
                         )
                       })}
                     </Stack>
-                  </ScrollArea>
+                  </div>
                 )}
               </Paper>
             </Grid.Col>
