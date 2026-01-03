@@ -646,7 +646,7 @@ function ClientDashboard() {
                       }}
                     >
                       <Stack gap="xs">
-                      {upcomingSessions.map(session => {
+                        {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
                         const isNextSession = nextSession && session.id === nextSession.id
                         const [hours, minutes] = session.session_time ? session.session_time.split(':') : ['0', '0']
