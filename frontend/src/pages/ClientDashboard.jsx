@@ -434,9 +434,7 @@ function ClientDashboard() {
                   display: 'flex', 
                   flexDirection: 'column', 
                   overflow: 'hidden', 
-                  minHeight: 0,
-                  border: '1px solid var(--mantine-color-gray-4)',
-                  borderRadius: 'var(--mantine-radius-md)'
+                  minHeight: 0
                 }}
               >
                 <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
@@ -446,57 +444,52 @@ function ClientDashboard() {
                   </Button>
                 </Group>
                 
-                <ScrollArea 
-                  style={{ flex: 1, minHeight: 0 }}
-                  styles={{
-                    viewport: {
-                      paddingBottom: '0.5rem'
-                    }
-                  }}
-                >
-                  <SimpleGrid cols={1} spacing="sm" style={{ paddingRight: '0.5rem' }}>
-                    {programs.slice(0, 4).map(program => {
-                      const stats = getProgramStats(program)
-                      return (
-                        <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
-                          <Stack gap="sm">
-                            <Group justify="space-between">
-                              <Title order={4} lineClamp={1}>{program.name}</Title>
-                              {program.split_type && (
-                                <Badge size="sm" variant="outline">{program.split_type}</Badge>
-                              )}
-                            </Group>
-                            
-                            {program.description && (
-                              <Text size="sm" c="dimmed" lineClamp={2}>
-                                {program.description}
-                              </Text>
-                            )}
-                            
-                            <Stack gap="xs">
+                <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+                  <div style={{ paddingRight: '0.5rem', paddingBottom: '0.5rem' }}>
+                    <SimpleGrid cols={1} spacing="sm">
+                      {programs.slice(0, 4).map(program => {
+                        const stats = getProgramStats(program)
+                        return (
+                          <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
+                            <Stack gap="sm">
                               <Group justify="space-between">
-                                <Text size="xs" c="dimmed">Progress</Text>
-                                <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
+                                <Title order={4} lineClamp={1}>{program.name}</Title>
+                                {program.split_type && (
+                                  <Badge size="sm" variant="outline">{program.split_type}</Badge>
+                                )}
                               </Group>
-                              <Progress value={stats.percentage} size="sm" color="green" />
+                              
+                              {program.description && (
+                                <Text size="sm" c="dimmed" lineClamp={2}>
+                                  {program.description}
+                                </Text>
+                              )}
+                              
+                              <Stack gap="xs">
+                                <Group justify="space-between">
+                                  <Text size="xs" c="dimmed">Progress</Text>
+                                  <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
+                                </Group>
+                                <Progress value={stats.percentage} size="sm" color="green" />
+                              </Stack>
+                              
+                              <Group gap="xs">
+                                <Button
+                                  variant="light"
+                                  color="green"
+                                  size="sm"
+                                  fullWidth
+                                  onClick={() => handleViewProgram(program.id)}
+                                >
+                                  View Program
+                                </Button>
+                              </Group>
                             </Stack>
-                            
-                            <Group gap="xs">
-                              <Button
-                                variant="light"
-                                color="green"
-                                size="sm"
-                                fullWidth
-                                onClick={() => handleViewProgram(program.id)}
-                              >
-                                View Program
-                              </Button>
-                            </Group>
-                          </Stack>
-                        </Card>
-                      )
-                    })}
-                  </SimpleGrid>
+                          </Card>
+                        )
+                      })}
+                    </SimpleGrid>
+                  </div>
                 </ScrollArea>
               </Paper>
             )}
@@ -519,7 +512,7 @@ function ClientDashboard() {
                     <Text c="dimmed" size="sm">No upcoming sessions</Text>
                   </Stack>
                 ) : (
-                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                     <Calendar
                       value={null}
                       month={displayedMonth}
@@ -549,9 +542,8 @@ function ClientDashboard() {
                               cursor: 'pointer',
                               position: 'relative',
                               ...(hasSessions ? {
-                                border: '2px solid rgba(34, 197, 94, 0.8)',
-                                borderRadius: '4px',
-                                backgroundColor: 'rgba(34, 197, 94, 0.1)'
+                                border: '2px solid rgba(34, 197, 94, 0.6)',
+                                borderRadius: '4px'
                               } : {})
                             }
                           }
@@ -561,36 +553,27 @@ function ClientDashboard() {
                         }
                       }}
                       styles={{
-                        calendar: { 
+                        calendar: {
                           width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column'
                         },
-                        month: { 
+                        month: {
                           width: '100%',
-                          flex: 1,
-                          display: 'flex',
-                          flexDirection: 'column'
                         },
-                        monthCell: { 
+                        monthCell: {
                           width: '100%',
-                          flex: 1,
-                          display: 'flex',
-                          flexDirection: 'column'
                         },
                         weekday: {
                           fontWeight: 600,
-                          fontSize: '0.75rem',
-                          paddingBottom: '0.5rem',
-                          paddingTop: '0.25rem',
+                          fontSize: '0.875rem',
+                          paddingBottom: '0.75rem',
+                          paddingTop: '0.5rem',
                           textAlign: 'center',
                           color: 'var(--mantine-color-gray-6)',
                         },
                         day: {
-                          fontSize: '0.85rem',
-                          height: '4.5rem',
-                          minHeight: '4.5rem',
+                          fontSize: '0.95rem',
+                          height: '5.5rem',
+                          minHeight: '5.5rem',
                           width: '100%',
                           borderRadius: 0,
                           border: 'none',
@@ -599,7 +582,7 @@ function ClientDashboard() {
                           flexDirection: 'column',
                           alignItems: 'flex-start',
                           justifyContent: 'flex-start',
-                          padding: '0.25rem',
+                          padding: '0.3rem',
                         },
                       }}
                       size="sm"
