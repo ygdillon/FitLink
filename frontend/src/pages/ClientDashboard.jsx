@@ -425,33 +425,18 @@ function ClientDashboard() {
 
             {/* My Programs */}
             {programs.length > 0 && (
-              <Box
-                className="border-box-wrapper"
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  minHeight: 0,
-                  backgroundColor: 'var(--mantine-color-dark-7)'
+              <Paper 
+                p="sm" 
+                shadow="sm" 
+                withBorder
+                style={{ 
+                  flex: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden', 
+                  minHeight: 0
                 }}
               >
-                <Paper 
-                  p="sm" 
-                  shadow="sm" 
-                  withBorder={false}
-                  style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden', 
-                    minHeight: 0,
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none',
-                    marginBottom: 0
-                  }}
-                >
                   <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
                     <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
                     <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
@@ -513,7 +498,6 @@ function ClientDashboard() {
                     </SimpleGrid>
                   </ScrollArea>
                 </Paper>
-              </Box>
             )}
           </Stack>
         </Grid.Col>
@@ -523,31 +507,17 @@ function ClientDashboard() {
           <Grid gutter="sm" style={{ height: '100%', flex: 1, minHeight: 0 }}>
             {/* Calendar - Top Right */}
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <Box
-                className="border-box-wrapper"
-                style={{
+              <Paper 
+                p="sm" 
+                shadow="sm" 
+                withBorder
+                style={{ 
                   height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  backgroundColor: 'var(--mantine-color-dark-7)'
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden'
                 }}
               >
-                <Paper 
-                  p="sm" 
-                  shadow="sm" 
-                  withBorder={false}
-                  style={{ 
-                    height: '100%',
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden',
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none',
-                    marginBottom: 0
-                  }}
-                >
                   <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
                     <Title order={3} style={{ fontSize: '1.1rem' }}>
                       Calendar
@@ -637,36 +607,21 @@ function ClientDashboard() {
                     </div>
                   )}
                 </Paper>
-              </Box>
             </Grid.Col>
 
             {/* Sessions Widget - Bottom Right */}
             <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <Box
-                className="border-box-wrapper"
-                style={{
+              <Paper 
+                p="sm" 
+                shadow="sm" 
+                withBorder
+                style={{ 
                   height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  backgroundColor: 'var(--mantine-color-dark-7)'
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden'
                 }}
               >
-                <Paper 
-                  p="sm" 
-                  shadow="sm" 
-                  withBorder={false}
-                  style={{ 
-                    height: '100%',
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden',
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none',
-                    marginBottom: 0
-                  }}
-                >
                   <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
                     <Title order={3} style={{ fontSize: '1.1rem' }}>
                       Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
@@ -765,7 +720,6 @@ function ClientDashboard() {
                     </ScrollArea>
                   )}
                 </Paper>
-              </Box>
             </Grid.Col>
           </Grid>
         </Grid.Col>
