@@ -291,16 +291,26 @@ function ClientDashboard() {
                     onMonthChange={setDisplayedMonth}
                     onChange={handleDateClick}
                     getDayProps={(date) => {
-                      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-                      const hasSessions = sessionsByDate.has(dateKey)
-                      return {
-                        style: hasSessions ? {
-                          backgroundColor: 'var(--mantine-color-green-9)',
-                          color: 'white',
-                          fontWeight: 600,
-                          borderRadius: '4px'
-                        } : {},
-                        onClick: () => handleDateClick(date)
+                      // Ensure date is a valid Date object
+                      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                        return {}
+                      }
+                      
+                      try {
+                        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                        const hasSessions = sessionsByDate.has(dateKey)
+                        return {
+                          style: hasSessions ? {
+                            backgroundColor: 'var(--mantine-color-green-9)',
+                            color: 'white',
+                            fontWeight: 600,
+                            borderRadius: '4px'
+                          } : {},
+                          onClick: () => handleDateClick(date)
+                        }
+                      } catch (error) {
+                        console.error('Error in getDayProps:', error, date)
+                        return {}
                       }
                     }}
                     styles={{
