@@ -457,7 +457,13 @@ function ClientDashboard() {
                     </Button>
                   </Group>
                   
-                  <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                  <div style={{ 
+                    flex: 1, 
+                    minHeight: 0, 
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: '0.5rem'
+                  }}>
                     <SimpleGrid cols={1} spacing="sm">
                       {programs.slice(0, 4).map(program => {
                         const stats = getProgramStats(program)
@@ -520,7 +526,8 @@ function ClientDashboard() {
                 borderRadius: 'var(--mantine-radius-sm)', 
                 overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                boxSizing: 'border-box'
               }}>
                 <Paper 
                   p="sm" 
@@ -637,7 +644,8 @@ function ClientDashboard() {
                 borderRadius: 'var(--mantine-radius-sm)', 
                 overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                boxSizing: 'border-box'
               }}>
                 <Paper 
                   p="sm" 
@@ -665,7 +673,13 @@ function ClientDashboard() {
                       <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                     </Stack>
                   ) : (
-                    <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <div style={{ 
+                      flex: 1, 
+                      minHeight: 0, 
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      paddingRight: '0.5rem'
+                    }}>
                       <Stack gap="xs">
                         {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
