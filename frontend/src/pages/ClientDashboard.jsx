@@ -452,13 +452,28 @@ function ClientDashboard() {
                     styles={{
                       calendar: { width: '100%' },
                       month: { width: '100%' },
+                      monthCell: { width: '100%' },
                       weekday: {
                         fontWeight: 600,
-                        fontSize: '0.75rem',
-                        paddingBottom: '0.4rem',
-                        paddingTop: '0.2rem',
+                        fontSize: '0.875rem',
+                        paddingBottom: '0.75rem',
+                        paddingTop: '0.5rem',
                         textAlign: 'center',
                         color: 'var(--mantine-color-gray-6)',
+                      },
+                      day: {
+                        fontSize: '0.95rem',
+                        height: '5.5rem',
+                        minHeight: '5.5rem',
+                        width: '100%',
+                        borderRadius: 0,
+                        border: 'none',
+                        margin: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        justifyContent: 'flex-start',
+                        padding: '0.3rem',
                       },
                     }}
                       size="sm"
