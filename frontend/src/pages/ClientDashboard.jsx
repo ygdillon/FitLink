@@ -297,42 +297,50 @@ function ClientDashboard() {
           {/* Upcoming Sessions Calendar - Left Side */}
           <Grid.Col span={{ base: 12, md: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <Paper p="sm" shadow="sm" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <Title order={3} mb="sm" style={{ flexShrink: 0, fontSize: '1.1rem' }}>Upcoming Sessions</Title>
+              <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                <Title order={3} style={{ fontSize: '1.1rem' }}>
+                  Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
+                </Title>
+              </Group>
               {upcomingSessions.length === 0 ? (
                 <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
                   <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
                   <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                 </Stack>
               ) : (
-                <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                  <Calendar
-                    value={null}
-                    month={displayedMonth}
-                    onMonthChange={setDisplayedMonth}
-                    onChange={handleDateClick}
-                    getDayProps={(date) => {
-                      // Ensure date is a valid Date object
-                      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-                        return {}
-                      }
-                      
-                      try {
-                        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-                        const hasSessions = sessionsByDate.has(dateKey)
-                        return {
-                          style: hasSessions ? {
-                            backgroundColor: 'var(--mantine-color-green-9)',
-                            color: 'white',
-                            fontWeight: 600,
-                            borderRadius: '4px'
-                          } : {},
-                          onClick: () => handleDateClick(date)
+                <Stack gap="sm" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                    <Calendar
+                      value={null}
+                      month={displayedMonth}
+                      onMonthChange={setDisplayedMonth}
+                      onChange={handleDateClick}
+                      getDayProps={(date) => {
+                        // Ensure date is a valid Date object
+                        if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                          return {}
                         }
-                      } catch (error) {
-                        console.error('Error in getDayProps:', error, date)
-                        return {}
-                      }
-                    }}
+                        
+                        try {
+                          const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                          const hasSessions = sessionsByDate.has(dateKey)
+                          if (hasSessions) {
+                            console.log('[ClientDashboard] Date has sessions:', dateKey, sessionsByDate.get(dateKey).length)
+                          }
+                          return {
+                            style: hasSessions ? {
+                              backgroundColor: 'var(--mantine-color-green-9)',
+                              color: 'white',
+                              fontWeight: 600,
+                              borderRadius: '4px'
+                            } : {},
+                            onClick: () => handleDateClick(date)
+                          }
+                        } catch (error) {
+                          console.error('[ClientDashboard] Error in getDayProps:', error, date)
+                          return {}
+                        }
+                      }}
                     styles={{
                       calendar: { width: '100%' },
                       month: { width: '100%' },
