@@ -415,6 +415,7 @@ function ClientDashboard() {
                       month={displayedMonth}
                       onMonthChange={setDisplayedMonth}
                       onChange={handleDateClick}
+                      renderDay={renderDay}
                       getDayProps={(date) => {
                         // Ensure date is a valid Date object
                         if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
