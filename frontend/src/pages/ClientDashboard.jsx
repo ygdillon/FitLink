@@ -433,6 +433,7 @@ function ClientDashboard() {
                   flex: 1, 
                   display: 'flex', 
                   flexDirection: 'column', 
+                  overflow: 'hidden',
                   minHeight: 0
                 }}
               >
@@ -443,14 +444,7 @@ function ClientDashboard() {
                   </Button>
                 </Group>
                 
-                <ScrollArea 
-                  style={{ flex: 1, minHeight: 0 }}
-                  styles={{
-                    viewport: {
-                      paddingRight: '0.5rem'
-                    }
-                  }}
-                >
+                <ScrollArea style={{ flex: 1, minHeight: 0 }}>
                   <SimpleGrid cols={1} spacing="sm">
                     {programs.slice(0, 4).map(program => {
                       const stats = getProgramStats(program)
@@ -513,6 +507,7 @@ function ClientDashboard() {
                   height: '100%',
                   display: 'flex', 
                   flexDirection: 'column', 
+                  overflow: 'hidden',
                   minHeight: 0
                 }}
               >
@@ -526,8 +521,9 @@ function ClientDashboard() {
                     <Text c="dimmed" size="sm">No upcoming sessions</Text>
                   </Stack>
                 ) : (
-                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-                    <Calendar
+                  <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+                    <div className="client-calendar-wrapper" style={{ paddingBottom: '0.5rem' }}>
+                      <Calendar
                       value={null}
                       month={displayedMonth}
                       onMonthChange={setDisplayedMonth}
@@ -599,10 +595,11 @@ function ClientDashboard() {
                           padding: '0.3rem',
                         },
                       }}
-                        size="sm"
-                        fullWidth
-                      />
-                    </div>
+                          size="sm"
+                          fullWidth
+                        />
+                      </div>
+                    </ScrollArea>
                   )}
                 </Paper>
             </Grid.Col>
@@ -617,6 +614,7 @@ function ClientDashboard() {
                   height: '100%',
                   display: 'flex', 
                   flexDirection: 'column', 
+                  overflow: 'hidden',
                   minHeight: 0
                 }}
               >
@@ -631,17 +629,7 @@ function ClientDashboard() {
                     <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                   </Stack>
                 ) : (
-                  <ScrollArea 
-                    style={{ flex: 1, minHeight: 0 }}
-                    styles={{
-                      root: {
-                        height: '100%'
-                      },
-                      viewport: {
-                        paddingRight: '0.5rem'
-                      }
-                    }}
-                  >
+                  <ScrollArea style={{ flex: 1, minHeight: 0 }}>
                     <Stack gap="xs">
                       {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
