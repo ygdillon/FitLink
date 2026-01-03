@@ -415,50 +415,43 @@ function ClientNutrition({ clientId, clientName }) {
     const overRounded = Math.round(over)
 
     return (
-      <Card withBorder p="lg" style={{ height: '100%' }}>
-        <Flex gap="lg" align="center" wrap="nowrap">
+      <Card withBorder p="md" style={{ height: '100%' }}>
+        <Group gap="md" align="center" wrap="nowrap">
           <Box style={{ flexShrink: 0 }}>
             <RingProgress
-              size={90}
-              thickness={10}
-              sections={[{ value: percentage, color }]}
+              size={80}
+              thickness={8}
+              sections={[{ value: percentage, color: color }]}
+              styles={{
+                root: {
+                  '--rp-color': color,
+                }
+              }}
               label={
                 <Center>
-                  <Icon size={28} color={color} />
+                  <Icon size={22} color={color} />
                 </Center>
               }
             />
           </Box>
-          <Box style={{ flex: 1, minWidth: 0 }}>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb={8} lh={1.2}>
+          <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
               {label}
             </Text>
-            <Text size="xl" fw={700} mb={8} lh={1.3} style={{ wordBreak: 'break-word' }}>
+            <Text size="xl" fw={700} lh={1.2}>
               {consumedRounded}/{targetRounded} {unit}
             </Text>
             {isOver ? (
-              <Text size="xs" c="red" fw={500} lh={1.4}>
+              <Text size="xs" c="red" fw={500}>
                 {overRounded} {unit} over
               </Text>
             ) : (
-              <Text size="xs" c="dimmed" fw={500} lh={1.4}>
+              <Text size="xs" c="dimmed" fw={500}>
                 {remainingRounded} {unit} remaining
               </Text>
             )}
-            {trend && (
-              <Group gap={4} mt={8}>
-                {trend > 0 ? (
-                  <IconTrendingUp size={12} color="green" />
-                ) : (
-                  <IconTrendingDown size={12} color="red" />
-                )}
-                <Text size="xs" c={trend > 0 ? 'green' : 'red'}>
-                  {Math.abs(trend).toFixed(1)}% vs yesterday
-                </Text>
-              </Group>
-            )}
-          </Box>
-        </Flex>
+          </Stack>
+        </Group>
       </Card>
     )
   }
@@ -480,7 +473,7 @@ function ClientNutrition({ clientId, clientName }) {
           <Tabs.Panel value="dashboard" pt="xl">
             <Stack gap="xl">
               {/* Ring Progress Stats */}
-              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
                 <Tooltip label="Basal Metabolic Rate - calories your body burns at rest">
                   <MacroStatCard
                     label="CALORIE"
