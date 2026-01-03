@@ -433,71 +433,69 @@ function ClientDashboard() {
                   flex: 1, 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  overflow: 'hidden', 
                   minHeight: 0
                 }}
               >
-                  <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                    <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
-                    <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
-                      View All
-                    </Button>
-                  </Group>
-                  
-                  <ScrollArea 
-                    style={{ flex: 1, minHeight: 0 }}
-                    styles={{
-                      viewport: {
-                        paddingRight: '0.5rem',
-                        paddingBottom: '0.5rem'
-                      }
-                    }}
-                  >
-                    <SimpleGrid cols={1} spacing="sm">
-                      {programs.slice(0, 4).map(program => {
-                        const stats = getProgramStats(program)
-                        return (
-                          <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
-                            <Stack gap="sm">
-                              <Group justify="space-between">
-                                <Title order={4} lineClamp={1}>{program.name}</Title>
-                                {program.split_type && (
-                                  <Badge size="sm" variant="outline">{program.split_type}</Badge>
-                                )}
-                              </Group>
-                              
-                              {program.description && (
-                                <Text size="sm" c="dimmed" lineClamp={2}>
-                                  {program.description}
-                                </Text>
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
+                  <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
+                    View All
+                  </Button>
+                </Group>
+                
+                <ScrollArea 
+                  style={{ flex: 1, minHeight: 0 }}
+                  styles={{
+                    viewport: {
+                      paddingRight: '0.5rem'
+                    }
+                  }}
+                >
+                  <SimpleGrid cols={1} spacing="sm">
+                    {programs.slice(0, 4).map(program => {
+                      const stats = getProgramStats(program)
+                      return (
+                        <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
+                          <Stack gap="sm">
+                            <Group justify="space-between">
+                              <Title order={4} lineClamp={1}>{program.name}</Title>
+                              {program.split_type && (
+                                <Badge size="sm" variant="outline">{program.split_type}</Badge>
                               )}
-                              
-                              <Stack gap="xs">
-                                <Group justify="space-between">
-                                  <Text size="xs" c="dimmed">Progress</Text>
-                                  <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
-                                </Group>
-                                <Progress value={stats.percentage} size="sm" color="green" />
-                              </Stack>
-                              
-                              <Group gap="xs">
-                                <Button
-                                  variant="light"
-                                  color="green"
-                                  size="sm"
-                                  fullWidth
-                                  onClick={() => handleViewProgram(program.id)}
-                                >
-                                  View Program
-                                </Button>
+                            </Group>
+                            
+                            {program.description && (
+                              <Text size="sm" c="dimmed" lineClamp={2}>
+                                {program.description}
+                              </Text>
+                            )}
+                            
+                            <Stack gap="xs">
+                              <Group justify="space-between">
+                                <Text size="xs" c="dimmed">Progress</Text>
+                                <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
                               </Group>
+                              <Progress value={stats.percentage} size="sm" color="green" />
                             </Stack>
-                          </Card>
-                        )
-                      })}
-                    </SimpleGrid>
-                  </ScrollArea>
-                </Paper>
+                            
+                            <Group gap="xs">
+                              <Button
+                                variant="light"
+                                color="green"
+                                size="sm"
+                                fullWidth
+                                onClick={() => handleViewProgram(program.id)}
+                              >
+                                View Program
+                              </Button>
+                            </Group>
+                          </Stack>
+                        </Card>
+                      )
+                    })}
+                  </SimpleGrid>
+                </ScrollArea>
+              </Paper>
             )}
           </Stack>
         </Grid.Col>
@@ -515,21 +513,21 @@ function ClientDashboard() {
                   height: '100%',
                   display: 'flex', 
                   flexDirection: 'column', 
-                  overflow: 'hidden'
+                  minHeight: 0
                 }}
               >
-                  <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                    <Title order={3} style={{ fontSize: '1.1rem' }}>
-                      Calendar
-                    </Title>
-                  </Group>
-                  {upcomingSessions.length === 0 ? (
-                    <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
-                      <Text c="dimmed" size="sm">No upcoming sessions</Text>
-                    </Stack>
-                  ) : (
-                    <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto', paddingBottom: '0.5rem' }}>
-                      <Calendar
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>
+                    Calendar
+                  </Title>
+                </Group>
+                {upcomingSessions.length === 0 ? (
+                  <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
+                    <Text c="dimmed" size="sm">No upcoming sessions</Text>
+                  </Stack>
+                ) : (
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <Calendar
                       value={null}
                       month={displayedMonth}
                       onMonthChange={setDisplayedMonth}
@@ -619,31 +617,33 @@ function ClientDashboard() {
                   height: '100%',
                   display: 'flex', 
                   flexDirection: 'column', 
-                  overflow: 'hidden'
+                  minHeight: 0
                 }}
               >
-                  <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                    <Title order={3} style={{ fontSize: '1.1rem' }}>
-                      Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
-                    </Title>
-                  </Group>
-                  {upcomingSessions.length === 0 ? (
-                    <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
-                      <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
-                      <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
-                    </Stack>
-                  ) : (
-                    <ScrollArea 
-                      style={{ flex: 1, minHeight: 0 }}
-                      styles={{
-                        viewport: {
-                          paddingRight: '0.5rem',
-                          paddingBottom: '0.5rem'
-                        }
-                      }}
-                    >
-                      <Stack gap="xs">
-                        {upcomingSessions.map(session => {
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>
+                    Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
+                  </Title>
+                </Group>
+                {upcomingSessions.length === 0 ? (
+                  <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
+                    <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
+                    <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
+                  </Stack>
+                ) : (
+                  <ScrollArea 
+                    style={{ flex: 1, minHeight: 0 }}
+                    styles={{
+                      root: {
+                        height: '100%'
+                      },
+                      viewport: {
+                        paddingRight: '0.5rem'
+                      }
+                    }}
+                  >
+                    <Stack gap="xs">
+                      {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
                         const isNextSession = nextSession && session.id === nextSession.id
                         const [hours, minutes] = session.session_time ? session.session_time.split(':') : ['0', '0']
@@ -715,11 +715,11 @@ function ClientDashboard() {
                             </Stack>
                           </Card>
                         )
-                        })}
-                      </Stack>
-                    </ScrollArea>
-                  )}
-                </Paper>
+                      })}
+                    </Stack>
+                  </ScrollArea>
+                )}
+              </Paper>
             </Grid.Col>
           </Grid>
         </Grid.Col>
