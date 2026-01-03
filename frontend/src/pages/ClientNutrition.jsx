@@ -1202,7 +1202,9 @@ function ClientNutrition({ clientId, clientName }) {
               {/* Logged Foods */}
               {selectedDateLogs.length === 0 ? (
                 <Text c="dimmed" ta="center" py="xl">
-                  No foods logged for this date. Start logging to track your nutrition!
+                  {isTrainerView 
+                    ? `No foods logged for this date.` 
+                    : "No foods logged for this date. Start logging to track your nutrition!"}
                 </Text>
               ) : (
                 <Table>
@@ -1265,17 +1267,21 @@ function ClientNutrition({ clientId, clientName }) {
           <Tabs.Panel value="history" pt="xl">
             <Stack gap="xl">
               <Paper p="md" withBorder>
-                <Title order={3} mb="md">Nutrition Progress</Title>
+                <Title order={3} mb="md">{isTrainerView ? "Client's Nutrition Progress" : "Nutrition Progress"}</Title>
                 
                 {historyData.length === 0 ? (
                   <Text c="dimmed" ta="center" py="xl">
-                    No history data available. Start logging to see your progress!
+                    {isTrainerView 
+                      ? "No nutrition history data available for this client yet." 
+                      : "No history data available. Start logging to see your progress!"}
                   </Text>
                 ) : (
                   <Stack gap="lg">
                     {/* Calorie Trend */}
                     <Box>
-                      <Text fw={600} mb="sm">Calorie Trend (Last 30 Days)</Text>
+                      <Text fw={600} mb="sm">
+                        {isTrainerView ? "Client's Calorie Trend (Last 30 Days)" : "Calorie Trend (Last 30 Days)"}
+                      </Text>
                       <SimpleGrid cols={historyData.length > 7 ? 7 : historyData.length} spacing="xs">
                         {historyData.slice(-7).map((day, idx) => {
                           const percentage = getPercentage(day.total_calories, targets.calories)
