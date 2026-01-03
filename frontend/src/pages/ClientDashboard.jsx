@@ -444,16 +444,17 @@ function ClientDashboard() {
                   </Button>
                 </Group>
                 
-                <ScrollArea 
-                  style={{ flex: 1, minHeight: 0 }}
-                  styles={{
-                    viewport: {
-                      paddingRight: '0.5rem',
-                      paddingBottom: '0.5rem'
-                    }
-                  }}
-                >
-                  <SimpleGrid cols={1} spacing="sm">
+                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <ScrollArea 
+                    style={{ flex: 1, minHeight: 0 }}
+                    styles={{
+                      viewport: {
+                        paddingRight: '0.5rem',
+                        paddingBottom: '0.5rem'
+                      }
+                    }}
+                  >
+                    <SimpleGrid cols={1} spacing="sm">
                     {programs.slice(0, 4).map(program => {
                       const stats = getProgramStats(program)
                       return (
@@ -495,8 +496,9 @@ function ClientDashboard() {
                         </Card>
                       )
                     })}
-                  </SimpleGrid>
-                </ScrollArea>
+                    </SimpleGrid>
+                  </ScrollArea>
+                </div>
               </Paper>
             )}
           </Stack>
@@ -528,7 +530,7 @@ function ClientDashboard() {
                     <Text c="dimmed" size="sm">No upcoming sessions</Text>
                   </Stack>
                 ) : (
-                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto', marginBottom: '0.5rem' }}>
+                  <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto', paddingBottom: '0.5rem' }}>
                     <Calendar
                       value={null}
                       month={displayedMonth}
@@ -633,16 +635,17 @@ function ClientDashboard() {
                     <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
                   </Stack>
                 ) : (
-                  <ScrollArea 
-                    style={{ flex: 1, minHeight: 0 }}
-                    styles={{
-                      viewport: {
-                        paddingRight: '0.5rem',
-                        paddingBottom: '0.5rem'
-                      }
-                    }}
-                  >
-                    <Stack gap="xs">
+                  <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <ScrollArea 
+                      style={{ flex: 1, minHeight: 0 }}
+                      styles={{
+                        viewport: {
+                          paddingRight: '0.5rem',
+                          paddingBottom: '0.5rem'
+                        }
+                      }}
+                    >
+                      <Stack gap="xs">
                       {upcomingSessions.map(session => {
                         const sessionDate = session.session_date ? new Date(session.session_date) : null
                         const isNextSession = nextSession && session.id === nextSession.id
