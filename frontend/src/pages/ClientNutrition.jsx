@@ -283,10 +283,40 @@ function ClientNutrition({ clientId, clientName }) {
 
   const fetchRecommendedMeals = async () => {
     try {
-      const result = await api.get('/nutrition/meals/recommended').catch(() => ({ data: { assigned: [], flexible: {} } }))
-      setRecommendedMeals(result.data)
+      if (isTrainerView && clientId) {
+        // For trainers, get recommendations for the client
+        try {
+          const clientRes = await api.get(`/trainer/clients/${clientId}`).catch(() => ({ data: null }))
+          if (clientRes.data?.user_id) {
+            const userId = clientRes.data.user_id
+            const result = await api.get(`/nutrition/meals/recommendations/${userId}`).catch(() => ({ data: [] }))
+            // Transform trainer endpoint response to match client endpoint format
+            const recommendations = result.data || []
+            const assigned = recommendations.filter(r => r.is_assigned)
+            const flexible = recommendations.filter(r => !r.is_assigned)
+            const flexibleByCategory = flexible.reduce((acc, meal) => {
+              if (!acc[meal.meal_category]) {
+                acc[meal.meal_category] = []
+              }
+              acc[meal.meal_category].push(meal)
+              return acc
+            }, {})
+            setRecommendedMeals({ assigned, flexible: flexibleByCategory })
+          } else {
+            setRecommendedMeals({ assigned: [], flexible: {} })
+          }
+        } catch (error) {
+          console.error('Error fetching client meal recommendations:', error)
+          setRecommendedMeals({ assigned: [], flexible: {} })
+        }
+      } else {
+        // For clients, use the client endpoint
+        const result = await api.get('/nutrition/meals/recommended').catch(() => ({ data: { assigned: [], flexible: {} } }))
+        setRecommendedMeals(result.data)
+      }
     } catch (error) {
       console.error('Error fetching recommended meals:', error)
+      setRecommendedMeals({ assigned: [], flexible: {} })
     }
   }
 
