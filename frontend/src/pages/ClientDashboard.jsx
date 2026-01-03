@@ -105,13 +105,48 @@ function ClientDashboard() {
     const grouped = new Map()
     upcomingSessions.forEach(session => {
       if (session.session_date) {
-        const dateStr = session.session_date.trim()
-        const dateKey = dateStr.split('T')[0].split(' ')[0]
-        
-        if (!grouped.has(dateKey)) {
-          grouped.set(dateKey, [])
+        try {
+          let dateKey
+          if (typeof session.session_date === 'string') {
+            // Handle string dates
+            const dateStr = session.session_date.trim()
+            // Extract just the date part (YYYY-MM-DD)
+            if (dateStr.includes('T')) {
+              dateKey = dateStr.split('T')[0]
+            } else if (dateStr.includes(' ')) {
+              dateKey = dateStr.split(' ')[0]
+            } else {
+              dateKey = dateStr
+            }
+            
+            // Validate format
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+              // Fallback: parse as Date
+              const date = new Date(session.session_date)
+              if (!isNaN(date.getTime())) {
+                dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+              } else {
+                console.warn('Invalid date format:', session.session_date)
+                return
+              }
+            }
+          } else {
+            // If it's a Date object, use UTC methods
+            const date = new Date(session.session_date)
+            if (isNaN(date.getTime())) {
+              console.warn('Invalid date object:', session.session_date)
+              return
+            }
+            dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+          }
+          
+          if (!grouped.has(dateKey)) {
+            grouped.set(dateKey, [])
+          }
+          grouped.get(dateKey).push(session)
+        } catch (error) {
+          console.error('Error processing session date:', session.session_date, error)
         }
-        grouped.get(dateKey).push(session)
       }
     })
     return grouped
@@ -253,6 +288,19 @@ function ClientDashboard() {
                     month={displayedMonth}
                     onMonthChange={setDisplayedMonth}
                     onChange={handleDateClick}
+                    getDayProps={(date) => {
+                      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                      const hasSessions = sessionsByDate.has(dateKey)
+                      return {
+                        style: hasSessions ? {
+                          backgroundColor: 'var(--mantine-color-green-9)',
+                          color: 'white',
+                          fontWeight: 600,
+                          borderRadius: '4px'
+                        } : {},
+                        onClick: () => handleDateClick(date)
+                      }
+                    }}
                     styles={{
                       calendar: { width: '100%' },
                       month: { width: '100%' },
