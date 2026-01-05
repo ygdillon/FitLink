@@ -126,11 +126,31 @@ function TrainerDashboard() {
   }
 
   const markAlertAsRead = async (alertId) => {
+    if (!alertId) return
+    
+    // Update local state immediately for better UX
+    setAlertsData(prev => ({
+      ...prev,
+      items: prev.items.map(item => 
+        item.id === alertId 
+          ? { ...item, is_read: true, read_at: new Date().toISOString() }
+          : item
+      ),
+      counts: {
+        ...prev.counts,
+        alerts: Math.max(0, prev.counts.alerts - (prev.items.find(item => item.id === alertId && !item.is_read && item.type === 'alert') ? 1 : 0)),
+        total: Math.max(0, prev.counts.total - (prev.items.find(item => item.id === alertId && !item.is_read) ? 1 : 0))
+      }
+    }))
+    
     try {
       await api.put(`/trainer/alerts/${alertId}/read`)
+      // Refresh from server to ensure consistency
       fetchAlertsWidget()
     } catch (error) {
       console.error('Error marking alert as read:', error)
+      // Revert state on error
+      fetchAlertsWidget()
     }
   }
 
