@@ -168,15 +168,16 @@ function TrainerDashboard() {
   }
 
   const handleAlertItemClick = (item) => {
+    // Mark alert as read if it's unread
+    if (!item.is_read && item.id) {
+      markAlertAsRead(item.id)
+    }
+    
+    // Navigate based on alert type
     if (item.type === 'request') {
       navigate('/trainer/requests')
-    } else if (item.type === 'checkin') {
+    } else if (item.type === 'checkin' || item.type === 'alert') {
       navigate(`/trainer/clients/${item.client_id}`)
-    } else if (item.type === 'alert') {
-      navigate(`/trainer/clients/${item.client_id}`)
-      if (!item.is_read) {
-        markAlertAsRead(item.id)
-      }
     }
   }
 
