@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Container, Grid, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider, useMantineTheme, ScrollArea, ActionIcon, useMantineColorScheme } from '@mantine/core'
+import { Container, Grid, Paper, Card, Title, Text, Stack, Group, Badge, Loader, Button, Anchor, Modal, Divider, useMantineTheme, ScrollArea, ActionIcon, useMantineColorScheme } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import api from '../services/api'
