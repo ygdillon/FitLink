@@ -252,41 +252,86 @@ function ClientProfile() {
                   <Title order={2} mb="md">Daily Check-ins</Title>
                   {client.check_ins && client.check_ins.length > 0 ? (
                     <Stack gap="sm">
-                      {client.check_ins.map(checkIn => (
-                        <Card key={checkIn.id} withBorder>
-                          <Group justify="space-between" mb="xs">
-                            <Text fw={500}>{new Date(checkIn.check_in_date).toLocaleDateString()}</Text>
-                            <Badge color={checkIn.status === 'completed' ? 'green' : 'yellow'}>
-                              {checkIn.status}
-                            </Badge>
-                          </Group>
-                          <Stack gap="xs">
-                            {checkIn.workout_completed !== null && (
-                              <Text size="sm">
-                                <Text span fw={500}>Workout:</Text> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
-                                {checkIn.workout_rating && (
-                                  <Badge size="sm" ml="xs" variant="light">
-                                    Rating: {checkIn.workout_rating}/10
-                                  </Badge>
+                      {client.check_ins.map(checkIn => {
+                        // Format check-in date safely
+                        let checkInDateStr = 'Invalid Date'
+                        try {
+                          if (checkIn.date || checkIn.check_in_date) {
+                            const date = new Date(checkIn.date || checkIn.check_in_date)
+                            if (!isNaN(date.getTime())) {
+                              checkInDateStr = date.toLocaleDateString('en-US', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })
+                            }
+                          }
+                        } catch (e) {
+                          console.error('Error formatting check-in date:', e)
+                        }
+
+                        // Format workout date if available
+                        let workoutDateStr = null
+                        try {
+                          if (checkIn.workout_date) {
+                            const workoutDate = new Date(checkIn.workout_date)
+                            if (!isNaN(workoutDate.getTime())) {
+                              workoutDateStr = workoutDate.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })
+                            }
+                          }
+                        } catch (e) {
+                          console.error('Error formatting workout date:', e)
+                        }
+
+                        return (
+                          <Card key={checkIn.id} withBorder>
+                            <Group justify="space-between" mb="xs">
+                              <Stack gap={2}>
+                                <Text fw={500}>Check-in Date: {checkInDateStr}</Text>
+                                {workoutDateStr && checkIn.workout_name && (
+                                  <Text size="sm" c="dimmed">
+                                    Workout: {checkIn.workout_name} ({workoutDateStr})
+                                    {checkIn.program_name && ` • ${checkIn.program_name}`}
+                                  </Text>
                                 )}
-                              </Text>
-                            )}
-                            {checkIn.diet_stuck_to !== null && (
-                              <Text size="sm">
-                                <Text span fw={500}>Diet:</Text> {checkIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
-                              </Text>
-                            )}
-                            {checkIn.notes && (
-                              <Text size="sm" c="dimmed"><Text span fw={500}>Notes:</Text> {checkIn.notes}</Text>
-                            )}
-                            {checkIn.trainer_response && (
-                              <Alert color="blue" title="Your Response">
-                                {checkIn.trainer_response}
-                              </Alert>
-                            )}
-                          </Stack>
-                        </Card>
-                      ))}
+                              </Stack>
+                              <Badge color={checkIn.status === 'completed' ? 'green' : 'yellow'}>
+                                {checkIn.status || 'completed'}
+                              </Badge>
+                            </Group>
+                            <Stack gap="xs">
+                              {checkIn.workout_completed !== null && (
+                                <Text size="sm">
+                                  <Text span fw={500}>Workout:</Text> {checkIn.workout_completed ? '✓ Completed' : '✗ Not completed'}
+                                  {checkIn.workout_rating && (
+                                    <Badge size="sm" ml="xs" variant="light" color="green">
+                                      Rating: {checkIn.workout_rating}/10
+                                    </Badge>
+                                  )}
+                                </Text>
+                              )}
+                              {checkIn.diet_stuck_to !== null && (
+                                <Text size="sm">
+                                  <Text span fw={500}>Diet:</Text> {checkIn.diet_stuck_to ? '✓ Stuck to plan' : '✗ Did not stick to plan'}
+                                </Text>
+                              )}
+                              {checkIn.notes && (
+                                <Text size="sm" c="dimmed"><Text span fw={500}>Notes:</Text> {checkIn.notes}</Text>
+                              )}
+                              {checkIn.trainer_response && (
+                                <Alert color="blue" title="Your Response">
+                                  {checkIn.trainer_response}
+                                </Alert>
+                              )}
+                            </Stack>
+                          </Card>
+                        )
+                      })}
                     </Stack>
                   ) : (
                     <Text c="dimmed">No check-ins yet</Text>

@@ -93,28 +93,37 @@ router.get('/clients/:clientId', async (req, res) => {
       [client.user_id]
     )
 
-    // Get check-ins
+    // Get check-ins (with workout info if session_id exists)
     const checkInsResult = await pool.query(
       `SELECT 
-         id,
-         check_in_date as date,
-         workout_completed,
-         diet_stuck_to,
-         workout_rating,
-         workout_duration,
-         sleep_hours,
-         sleep_quality,
-         energy_level,
-         pain_experienced,
-         pain_location,
-         pain_intensity,
-         progress_photo as photos,
-         notes,
-         trainer_response,
-         'checkin' as entry_type,
-         created_at
-       FROM daily_check_ins 
-       WHERE client_id = $1 AND status = 'completed'`,
+         dci.id,
+         dci.check_in_date as date,
+         dci.check_in_date,
+         dci.workout_completed,
+         dci.diet_stuck_to,
+         dci.workout_rating,
+         dci.workout_duration,
+         dci.sleep_hours,
+         dci.sleep_quality,
+         dci.energy_level,
+         dci.pain_experienced,
+         dci.pain_location,
+         dci.pain_intensity,
+         dci.progress_photo as photos,
+         dci.notes,
+         dci.trainer_response,
+         dci.status,
+         dci.created_at,
+         COALESCE(s.session_date, dci.check_in_date) as workout_date,
+         pw.workout_name,
+         p.name as program_name,
+         'checkin' as entry_type
+       FROM daily_check_ins dci
+       LEFT JOIN sessions s ON s.id = dci.session_id
+       LEFT JOIN program_workouts pw ON pw.id = COALESCE(s.program_workout_id, NULL)
+       LEFT JOIN programs p ON p.id = COALESCE(s.program_id, NULL)
+       WHERE dci.client_id = $1 AND dci.status = 'completed'
+       ORDER BY dci.check_in_date DESC`,
       [client.user_id]
     )
 

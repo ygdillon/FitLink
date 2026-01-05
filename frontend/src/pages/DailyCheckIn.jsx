@@ -492,13 +492,27 @@ function DailyCheckIn() {
               <Stack gap="md" mt="md">
                 <Title order={4}>Pain & Discomfort</Title>
                 
-                <Checkbox
-                  label="Did you experience any pain or discomfort during your workout?"
-                  checked={formData.pain_experienced}
-                  onChange={(e) => setFormData({ ...formData, pain_experienced: e.target.checked, pain_location: '', pain_intensity: null })}
-                />
+                <Radio.Group
+                  label="Did you experience pain or discomfort?"
+                  value={formData.pain_experienced?.toString()}
+                  onChange={(value) => {
+                    const painValue = value === 'true'
+                    setFormData({ 
+                      ...formData, 
+                      pain_experienced: painValue,
+                      pain_location: painValue ? formData.pain_location : '',
+                      pain_intensity: painValue ? formData.pain_intensity : null
+                    })
+                  }}
+                  required
+                >
+                  <Group mt="xs">
+                    <Radio value="true" label="Yes" />
+                    <Radio value="false" label="No" />
+                  </Group>
+                </Radio.Group>
 
-                {formData.pain_experienced && (
+                {formData.pain_experienced === true && (
                   <>
                     <TextInput
                       label="Pain Location *"
