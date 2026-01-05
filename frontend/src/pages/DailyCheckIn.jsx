@@ -374,26 +374,31 @@ function DailyCheckIn() {
                       How difficult was this workout for you? This helps your trainer adjust your program.
                     </Text>
                     <Box mt="md">
-                      <Group gap="xs" mb="xs" wrap="wrap">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(rating => (
-                          <Radio
-                            key={rating}
-                            value={rating.toString()}
-                            checked={formData.workout_rating === rating}
-                            onChange={() => setFormData({ ...formData, workout_rating: rating })}
-                            styles={{ radio: { display: 'none' } }}
-                          >
-                            <Button
-                              variant={formData.workout_rating === rating ? 'filled' : 'outline'}
-                              color={formData.workout_rating === rating ? 'green' : 'gray'}
-                              size="sm"
-                              style={{ minWidth: 45, flex: '0 0 auto' }}
-                            >
-                              {rating}
-                            </Button>
-                          </Radio>
-                        ))}
-                      </Group>
+                      <Radio.Group
+                        value={formData.workout_rating?.toString() || ''}
+                        onChange={(value) => setFormData({ ...formData, workout_rating: parseInt(value) })}
+                      >
+                        <Group gap="xs" mb="xs" wrap="wrap">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(rating => (
+                            <Radio
+                              key={rating}
+                              value={rating.toString()}
+                              styles={{ radio: { display: 'none' } }}
+                              label={
+                                <Button
+                                  variant={formData.workout_rating === rating ? 'filled' : 'outline'}
+                                  color={formData.workout_rating === rating ? 'green' : 'gray'}
+                                  size="sm"
+                                  style={{ minWidth: 45, flex: '0 0 auto' }}
+                                  component="span"
+                                >
+                                  {rating}
+                                </Button>
+                              }
+                            />
+                          ))}
+                        </Group>
+                      </Radio.Group>
                       <Group justify="space-between" mb="xs">
                         <Text size="xs" c="dimmed">Very Easy</Text>
                         <Text size="xs" c="dimmed">Very Hard</Text>
