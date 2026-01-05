@@ -164,6 +164,12 @@ function ClientWorkouts() {
     }
   }
 
+  // Helper function to get day name
+  const getDayName = (dayNumber) => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    return days[dayNumber - 1] || `Day ${dayNumber}`
+  }
+
   // Get today's workout
   const getTodaysWorkout = useMemo(() => {
     const today = new Date()
@@ -214,11 +220,6 @@ function ClientWorkouts() {
     
     return upcoming.sort((a, b) => a.day_number - b.day_number).slice(0, 5)
   }, [programs])
-
-  const getDayName = (dayNumber) => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    return days[dayNumber - 1] || `Day ${dayNumber}`
-  }
 
   // Filter explore workouts
   const filteredExploreWorkouts = useMemo(() => {
