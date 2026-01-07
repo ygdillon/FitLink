@@ -69,27 +69,63 @@ function ClientDashboard() {
       }
 
       // Fetch today's nutrition metrics
+      // IMPORTANT: Fetch all logs and filter by created_at to get actual today's logs
+      // This ensures we don't show yesterday's logs that were stored with today's date
       try {
-        const today = new Date()
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-        const nutritionRes = await api.get(`/nutrition/logs/totals?start_date=${todayStr}&end_date=${todayStr}`)
-        const totals = nutritionRes.data || []
-        if (totals.length > 0) {
-          const todayTotal = totals[0]
-          setNutritionMetrics({
-            calories: parseFloat(todayTotal.total_calories) || 0,
-            protein: parseFloat(todayTotal.total_protein) || 0,
-            carbs: parseFloat(todayTotal.total_carbs) || 0,
-            fats: parseFloat(todayTotal.total_fats) || 0
-          })
-        } else {
-          setNutritionMetrics({
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fats: 0
-          })
+        // Helper to get today's date in local timezone
+        const getTodayLocalDate = () => {
+          const today = new Date()
+          const year = today.getFullYear()
+          const month = String(today.getMonth() + 1).padStart(2, '0')
+          const day = String(today.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
         }
+        
+        const todayLocalDate = getTodayLocalDate()
+        
+        // Fetch all logs (we'll filter on the frontend using created_at)
+        const nutritionRes = await api.get('/nutrition/logs').catch(() => ({ data: [] }))
+        const allLogs = nutritionRes.data || []
+        
+        // Filter logs that were actually created today (using created_at in local time)
+        const todayLogs = allLogs.filter(log => {
+          if (!log.created_at) return false
+          
+          try {
+            const createdDate = new Date(log.created_at)
+            const createdYear = createdDate.getFullYear()
+            const createdMonth = String(createdDate.getMonth() + 1).padStart(2, '0')
+            const createdDay = String(createdDate.getDate()).padStart(2, '0')
+            const createdLocalDate = `${createdYear}-${createdMonth}-${createdDay}`
+            
+            return createdLocalDate === todayLocalDate
+          } catch (e) {
+            console.warn('Error parsing created_at in dashboard:', log.created_at, e)
+            return false
+          }
+        })
+        
+        // Calculate totals from today's logs
+        const totals = todayLogs.reduce((acc, log) => ({
+          calories: acc.calories + (parseFloat(log.calories) || 0),
+          protein: acc.protein + (parseFloat(log.protein) || 0),
+          carbs: acc.carbs + (parseFloat(log.carbs) || 0),
+          fats: acc.fats + (parseFloat(log.fats) || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fats: 0 })
+        
+        console.log('[ClientDashboard] Nutrition metrics:', {
+          todayLocalDate,
+          totalLogs: allLogs.length,
+          todayLogsCount: todayLogs.length,
+          totals
+        })
+        
+        setNutritionMetrics({
+          calories: totals.calories,
+          protein: totals.protein,
+          carbs: totals.carbs,
+          fats: totals.fats
+        })
       } catch (error) {
         console.error('[ClientDashboard] Error fetching nutrition metrics:', error)
         setNutritionMetrics({
