@@ -1652,54 +1652,91 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
               const sessionDate = calculateSessionDate(currentProgram.start_date, weekNumber, dayNumber)
               const clientIds = assignedClients.map(c => c.client_id || c.id).filter(Boolean)
               
-              // Calculate duration from exercises
+              // Calculate duration from exercises (same logic as in modal)
               const calculateDuration = () => {
                 const exercises = values.exercises || []
                 if (exercises.length === 0) return 60
 
-                let totalMinutes = 0
+                let totalSeconds = 0
                 const validExercises = exercises.filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '')
 
                 validExercises.forEach((exercise, index) => {
-                  // Parse duration per set
-                  let durationPerSet = 0
+                  // Parse duration - check if it's in minutes or seconds
+                  let durationPerSetSeconds = 0
                   if (exercise.duration) {
-                    if (typeof exercise.duration === 'string') {
-                      const timeParts = exercise.duration.split(':')
-                      if (timeParts.length === 2) {
-                        durationPerSet = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1])
-                      } else {
-                        durationPerSet = parseFloat(exercise.duration) * 60
+                    const durationStr = String(exercise.duration).toLowerCase().trim()
+                    
+                    // Check if it contains "second" or "sec" (indicating seconds)
+                    if (durationStr.includes('second') || durationStr.includes('sec')) {
+                      const match = durationStr.match(/(\d+\.?\d*)/)
+                      if (match) {
+                        durationPerSetSeconds = parseFloat(match[1])
                       }
-                    } else {
-                      durationPerSet = parseFloat(exercise.duration) * 60
+                    }
+                    // Check if it contains "minute" or "min" (indicating minutes)
+                    else if (durationStr.includes('minute') || durationStr.includes('min')) {
+                      const match = durationStr.match(/(\d+\.?\d*)/)
+                      if (match) {
+                        durationPerSetSeconds = parseFloat(match[1]) * 60
+                      }
+                    }
+                    // Try to parse as MM:SS format
+                    else if (durationStr.includes(':')) {
+                      const timeParts = durationStr.split(':')
+                      if (timeParts.length === 2) {
+                        const minutes = parseInt(timeParts[0]) || 0
+                        const seconds = parseInt(timeParts[1]) || 0
+                        durationPerSetSeconds = minutes * 60 + seconds
+                      }
+                    }
+                    // Try to parse as just a number (assume minutes)
+                    else {
+                      const match = durationStr.match(/(\d+\.?\d*)/)
+                      if (match) {
+                        durationPerSetSeconds = parseFloat(match[1]) * 60
+                      }
                     }
                   }
 
-                  // Parse rest time
-                  let restMinutes = 0
+                  // Parse rest time - check if it's in minutes or seconds
+                  let restSeconds = 0
                   if (exercise.rest) {
-                    if (typeof exercise.rest === 'string') {
-                      const restMatch = exercise.rest.match(/(\d+\.?\d*)/)
-                      if (restMatch) {
-                        restMinutes = parseFloat(restMatch[1])
+                    const restStr = String(exercise.rest).toLowerCase().trim()
+                    
+                    // Check if it contains "second" or "sec" (indicating seconds)
+                    if (restStr.includes('second') || restStr.includes('sec')) {
+                      const match = restStr.match(/(\d+\.?\d*)/)
+                      if (match) {
+                        restSeconds = parseFloat(match[1])
                       }
-                    } else {
-                      restMinutes = parseFloat(exercise.rest)
+                    }
+                    // Check if it contains "minute" or "min" (indicating minutes)
+                    else if (restStr.includes('minute') || restStr.includes('min')) {
+                      const match = restStr.match(/(\d+\.?\d*)/)
+                      if (match) {
+                        restSeconds = parseFloat(match[1]) * 60
+                      }
+                    }
+                    // Try to parse as just a number (assume minutes)
+                    else {
+                      const match = restStr.match(/(\d+\.?\d*)/)
+                      if (match) {
+                        restSeconds = parseFloat(match[1]) * 60
+                      }
                     }
                   }
 
                   const sets = exercise.sets ? parseInt(exercise.sets) : 1
-                  const exerciseDuration = (durationPerSet + (restMinutes * 60)) * sets
-                  totalMinutes += exerciseDuration
+                  const exerciseDurationSeconds = (durationPerSetSeconds + restSeconds) * sets
+                  totalSeconds += exerciseDurationSeconds
 
                   // Add 2 minute buffer between exercises
                   if (index < validExercises.length - 1) {
-                    totalMinutes += 2 * 60
+                    totalSeconds += 2 * 60
                   }
                 })
 
-                return Math.ceil(totalMinutes / 60) || 60
+                return Math.ceil(totalSeconds / 60) || 60
               }
 
               const calculatedDuration = calculateDuration()
@@ -2331,38 +2368,78 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
     const exercises = form.values.exercises || []
     if (exercises.length === 0) return 0
 
-    let totalMinutes = 0
+    let totalSeconds = 0
     const validExercises = exercises.filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '')
 
     validExercises.forEach((exercise, index) => {
-      // Parse duration (format: "MM:SS" or just minutes as number)
-      let durationPerSet = 0
+      // Parse duration - check if it's in minutes or seconds
+      let durationPerSetSeconds = 0
       if (exercise.duration) {
-        if (typeof exercise.duration === 'string') {
-          // Try to parse as MM:SS format
-          const timeParts = exercise.duration.split(':')
-          if (timeParts.length === 2) {
-            durationPerSet = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1])
-          } else {
-            // Try to parse as just a number (minutes)
-            durationPerSet = parseFloat(exercise.duration) * 60
+        const durationStr = String(exercise.duration).toLowerCase().trim()
+        
+        // Check if it contains "second" or "sec" (indicating seconds)
+        if (durationStr.includes('second') || durationStr.includes('sec')) {
+          // Extract number and treat as seconds
+          const match = durationStr.match(/(\d+\.?\d*)/)
+          if (match) {
+            durationPerSetSeconds = parseFloat(match[1])
           }
-        } else {
-          durationPerSet = parseFloat(exercise.duration) * 60
+        }
+        // Check if it contains "minute" or "min" (indicating minutes)
+        else if (durationStr.includes('minute') || durationStr.includes('min')) {
+          // Extract number and convert to seconds
+          const match = durationStr.match(/(\d+\.?\d*)/)
+          if (match) {
+            durationPerSetSeconds = parseFloat(match[1]) * 60
+          }
+        }
+        // Try to parse as MM:SS format (e.g., "10:00" = 10 minutes 0 seconds)
+        else if (durationStr.includes(':')) {
+          const timeParts = durationStr.split(':')
+          if (timeParts.length === 2) {
+            const minutes = parseInt(timeParts[0]) || 0
+            const seconds = parseInt(timeParts[1]) || 0
+            durationPerSetSeconds = minutes * 60 + seconds
+          }
+        }
+        // Try to parse as just a number (assume minutes if no unit specified)
+        else {
+          const match = durationStr.match(/(\d+\.?\d*)/)
+          if (match) {
+            // Default to minutes if no unit specified
+            durationPerSetSeconds = parseFloat(match[1]) * 60
+          }
         }
       }
 
-      // Parse rest time (format: "X Minute" or just a number)
-      let restMinutes = 0
+      // Parse rest time - check if it's in minutes or seconds
+      let restSeconds = 0
       if (exercise.rest) {
-        if (typeof exercise.rest === 'string') {
-          // Extract number from strings like "1 Minute between sets" or "1 min"
-          const restMatch = exercise.rest.match(/(\d+\.?\d*)/)
-          if (restMatch) {
-            restMinutes = parseFloat(restMatch[1])
+        const restStr = String(exercise.rest).toLowerCase().trim()
+        
+        // Check if it contains "second" or "sec" (indicating seconds)
+        if (restStr.includes('second') || restStr.includes('sec')) {
+          // Extract number and treat as seconds
+          const match = restStr.match(/(\d+\.?\d*)/)
+          if (match) {
+            restSeconds = parseFloat(match[1])
           }
-        } else {
-          restMinutes = parseFloat(exercise.rest)
+        }
+        // Check if it contains "minute" or "min" (indicating minutes)
+        else if (restStr.includes('minute') || restStr.includes('min')) {
+          // Extract number and convert to seconds
+          const match = restStr.match(/(\d+\.?\d*)/)
+          if (match) {
+            restSeconds = parseFloat(match[1]) * 60
+          }
+        }
+        // Try to parse as just a number (assume minutes if no unit specified)
+        else {
+          const match = restStr.match(/(\d+\.?\d*)/)
+          if (match) {
+            // Default to minutes if no unit specified
+            restSeconds = parseFloat(match[1]) * 60
+          }
         }
       }
 
@@ -2370,16 +2447,16 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
       const sets = exercise.sets ? parseInt(exercise.sets) : 1
 
       // Calculate: (duration_per_set + rest) * sets
-      const exerciseDuration = (durationPerSet + (restMinutes * 60)) * sets
-      totalMinutes += exerciseDuration
+      const exerciseDurationSeconds = (durationPerSetSeconds + restSeconds) * sets
+      totalSeconds += exerciseDurationSeconds
 
       // Add 2 minute buffer between exercises (except after the last one)
       if (index < validExercises.length - 1) {
-        totalMinutes += 2 * 60 // 2 minutes in seconds
+        totalSeconds += 2 * 60 // 2 minutes in seconds
       }
     })
 
-    return Math.ceil(totalMinutes / 60) // Return in minutes, rounded up
+    return Math.ceil(totalSeconds / 60) // Return in minutes, rounded up
   }, [form.values.exercises])
 
   // Calculate estimated end time (memoized)

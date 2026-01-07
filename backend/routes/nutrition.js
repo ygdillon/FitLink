@@ -2147,12 +2147,38 @@ CRITICAL: Double-check your calculations. Values must be realistic and match sta
 
     const aiResponse = JSON.parse(completion.choices[0].message.content)
 
-    // Validate and structure the response
-    let calories = Math.round(parseFloat(aiResponse.calories_per_serving) || 0)
-    // Fix: Multiply by 10, round, then divide by 10 to get 1 decimal place
-    let protein = Math.round(parseFloat(aiResponse.protein_per_serving || 0) * 10) / 10
-    let carbs = Math.round(parseFloat(aiResponse.carbs_per_serving || 0) * 10) / 10
-    let fats = Math.round(parseFloat(aiResponse.fats_per_serving || 0) * 10) / 10
+    // CRITICAL FIX: Use breakdown totals and calculate per-serving ourselves
+    // The AI sometimes calculates per-serving incorrectly, but breakdown totals are usually correct
+    let calories, protein, carbs, fats
+    
+    if (aiResponse.breakdown && aiResponse.breakdown.total_calories) {
+      // Use breakdown totals (more reliable) and calculate per-serving
+      const totalCalories = parseFloat(aiResponse.breakdown.total_calories)
+      const totalProtein = parseFloat(aiResponse.breakdown.total_protein)
+      const totalCarbs = parseFloat(aiResponse.breakdown.total_carbs)
+      const totalFats = parseFloat(aiResponse.breakdown.total_fats)
+      
+      calories = Math.round(totalCalories / servings)
+      protein = Math.round((totalProtein / servings) * 10) / 10
+      carbs = Math.round((totalCarbs / servings) * 10) / 10
+      fats = Math.round((totalFats / servings) * 10) / 10
+      
+      console.log('✅ Using breakdown totals to calculate per-serving:', {
+        breakdown: { totalCalories, totalProtein, totalCarbs, totalFats },
+        servings: servings,
+        calculated: { calories, protein, carbs, fats }
+      })
+    } else {
+      // Fallback to per-serving values if breakdown not available
+      calories = Math.round(parseFloat(aiResponse.calories_per_serving) || 0)
+      protein = Math.round(parseFloat(aiResponse.protein_per_serving || 0) * 10) / 10
+      carbs = Math.round(parseFloat(aiResponse.carbs_per_serving || 0) * 10) / 10
+      fats = Math.round(parseFloat(aiResponse.fats_per_serving || 0) * 10) / 10
+      
+      console.warn('⚠️ No breakdown found, using per-serving values directly:', {
+        calories, protein, carbs, fats
+      })
+    }
 
     // Validation: Check if values seem reasonable
     // Calories should roughly equal: (protein × 4) + (carbs × 4) + (fats × 9)
@@ -2213,7 +2239,12 @@ CRITICAL: Double-check your calculations. Values must be realistic and match sta
       protein_per_serving: protein,
       carbs_per_serving: carbs,
       fats_per_serving: fats,
-      breakdown: aiResponse.breakdown || {},
+      breakdown: {
+        total_calories: calories * servings,
+        total_protein: protein * servings,
+        total_carbs: carbs * servings,
+        total_fats: fats * servings
+      },
       notes: aiResponse.notes || 'Calculated using AI based on provided ingredients and preparation methods.'
     }
 
