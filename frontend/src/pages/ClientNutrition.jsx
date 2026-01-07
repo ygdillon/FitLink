@@ -1079,7 +1079,12 @@ function ClientNutrition({ clientId, clientName }) {
 
   // Get today's date in local timezone (not UTC) - use getTodayLocalDate for consistency
   // IMPORTANT: This should match the user's actual calendar date, not UTC date
+  // Note: We recalculate this in the filter to ensure it's always current
   const today = getTodayLocalDate()
+  
+  // IMPORTANT: If the user says these are yesterday's logs but they match today's date,
+  // it means the logs were stored with the wrong date due to timezone issues.
+  // The backend fix will prevent this for NEW logs, but existing logs may have wrong dates.
   
   // Debug: Log what "today" actually is
   const actualNow = new Date()
@@ -1141,7 +1146,31 @@ function ClientNutrition({ clientId, clientName }) {
     
     // Compare against the actual today's date (recalculated to ensure freshness)
     const actualTodayForComparison = getTodayLocalDate()
-    const matches = logDateStr === actualTodayForComparison
+    const dateMatches = logDateStr === actualTodayForComparison
+    
+    // ADDITIONAL CHECK: If the log was created more than 24 hours ago, it's definitely not from today
+    // This helps catch logs that were stored with the wrong date due to timezone issues
+    let createdRecently = true
+    if (log.created_at) {
+      const createdDate = new Date(log.created_at)
+      const now = new Date()
+      const hoursAgo = (now - createdDate) / (1000 * 60 * 60) // Convert to hours
+      createdRecently = hoursAgo < 24
+      
+      // If created more than 24 hours ago, it's definitely not from today
+      if (hoursAgo >= 24) {
+        console.log('⏰ Log created more than 24 hours ago - filtering out:', {
+          food: log.food_name,
+          created_at: log.created_at,
+          hoursAgo: hoursAgo.toFixed(1),
+          logDate: logDateStr,
+          today: actualTodayForComparison
+        })
+        return false
+      }
+    }
+    
+    const matches = dateMatches && createdRecently
     
     // Debug logging - show detailed date comparison
     const logDateObj = log.log_date ? new Date(log.log_date) : null

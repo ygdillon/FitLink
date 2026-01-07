@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal, Grid, ScrollArea, Box } from '@mantine/core'
+import { Container, Paper, Title, Text, Stack, Group, Badge, Loader, Button, Card, SimpleGrid, Progress, Divider, Modal, Grid, ScrollArea, Box, ActionIcon } from '@mantine/core'
 import { useNavigate } from 'react-router-dom'
 import { Calendar } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
@@ -14,6 +14,7 @@ function ClientDashboard() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
   const [displayedMonth, setDisplayedMonth] = useState(new Date())
+  const [nutritionMetrics, setNutritionMetrics] = useState(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -65,6 +66,38 @@ function ClientDashboard() {
       } catch (error) {
         console.error('[ClientDashboard] Error fetching upcoming sessions:', error.response?.data || error.message)
         setUpcomingSessions([])
+      }
+
+      // Fetch today's nutrition metrics
+      try {
+        const today = new Date()
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+        const nutritionRes = await api.get(`/nutrition/logs/totals?start_date=${todayStr}&end_date=${todayStr}`)
+        const totals = nutritionRes.data || []
+        if (totals.length > 0) {
+          const todayTotal = totals[0]
+          setNutritionMetrics({
+            calories: parseFloat(todayTotal.total_calories) || 0,
+            protein: parseFloat(todayTotal.total_protein) || 0,
+            carbs: parseFloat(todayTotal.total_carbs) || 0,
+            fats: parseFloat(todayTotal.total_fats) || 0
+          })
+        } else {
+          setNutritionMetrics({
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fats: 0
+          })
+        }
+      } catch (error) {
+        console.error('[ClientDashboard] Error fetching nutrition metrics:', error)
+        setNutritionMetrics({
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fats: 0
+        })
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -504,94 +537,172 @@ function ClientDashboard() {
               </Card>
             )}
 
-            {/* My Programs */}
-            {programs.length > 0 && (
-              <div style={{ 
-                flex: '0 0 auto',
-                position: 'relative', 
-                border: '1px solid var(--mantine-color-gray-4)', 
-                borderRadius: 'var(--mantine-radius-sm)', 
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                maxHeight: '40%'
-              }}>
-                <Paper 
-                  p="sm" 
-                  shadow="sm" 
-                  withBorder={false}
-                  style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden',
-                    minHeight: 0,
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none'
-                  }}
-                >
-                  <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                    <Title order={3} style={{ fontSize: '1.1rem' }}>My Programs</Title>
-                    <Button variant="light" size="xs" onClick={() => navigate('/programs')}>
-                      View All
-                    </Button>
-                  </Group>
-                  
-                  <div style={{ 
-                    flex: 1, 
-                    minHeight: 0, 
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    paddingRight: '0.5rem'
-                  }}>
-                    <SimpleGrid cols={1} spacing="sm">
-                      {programs.slice(0, 2).map(program => {
-                        const stats = getProgramStats(program)
+            {/* Daily Food Metrics */}
+            <Card 
+              shadow="md" 
+              padding="lg" 
+              radius="md" 
+              withBorder
+              style={{ 
+                flexShrink: 0,
+                backgroundColor: 'var(--mantine-color-dark-6)',
+                borderColor: 'var(--mantine-color-dark-4)'
+              }}
+            >
+              <Stack gap="md">
+                <Group justify="space-between" align="flex-start">
+                  <Stack gap={4}>
+                    <Text size="sm" c="dimmed">Calories consumed today</Text>
+                    <Group gap="xs" align="baseline">
+                      <Title order={2} c="white" style={{ fontSize: '2rem', lineHeight: 1 }}>
+                        {nutritionMetrics ? Math.round(nutritionMetrics.calories).toLocaleString() : '0'}
+                      </Title>
+                      {nutritionMetrics && nutritionMetrics.calories > 0 && (
+                        <Badge size="sm" color="green" variant="light">
+                          kcal
+                        </Badge>
+                      )}
+                    </Group>
+                  </Stack>
+                  <ActionIcon 
+                    variant="subtle" 
+                    color="gray"
+                    onClick={() => navigate('/client/nutrition')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    📊
+                  </ActionIcon>
+                </Group>
+
+                {nutritionMetrics && nutritionMetrics.calories > 0 && (
+                  <>
+                    {/* Macro Breakdown Bar */}
+                    <div style={{ 
+                      height: '8px', 
+                      borderRadius: '4px', 
+                      overflow: 'hidden',
+                      display: 'flex',
+                      backgroundColor: 'var(--mantine-color-dark-5)'
+                    }}>
+                      {(() => {
+                        const totalMacroCals = (nutritionMetrics.protein * 4) + (nutritionMetrics.carbs * 4) + (nutritionMetrics.fats * 9)
+                        const proteinPercent = totalMacroCals > 0 ? (nutritionMetrics.protein * 4 / totalMacroCals) * 100 : 0
+                        const carbsPercent = totalMacroCals > 0 ? (nutritionMetrics.carbs * 4 / totalMacroCals) * 100 : 0
+                        const fatsPercent = totalMacroCals > 0 ? (nutritionMetrics.fats * 9 / totalMacroCals) * 100 : 0
+                        
                         return (
-                          <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
-                            <Stack gap="sm">
-                              <Group justify="space-between">
-                                <Title order={4} lineClamp={1}>{program.name}</Title>
-                                {program.split_type && (
-                                  <Badge size="sm" variant="outline">{program.split_type}</Badge>
-                                )}
-                              </Group>
-                              
-                              {program.description && (
-                                <Text size="sm" c="dimmed" lineClamp={2}>
-                                  {program.description}
-                                </Text>
-                              )}
-                              
-                              <Stack gap="xs">
-                                <Group justify="space-between">
-                                  <Text size="xs" c="dimmed">Progress</Text>
-                                  <Text size="xs" fw={600}>{stats.completed}/{stats.total} workouts</Text>
-                                </Group>
-                                <Progress value={stats.percentage} size="sm" color="green" />
-                              </Stack>
-                              
-                              <Group gap="xs">
-                                <Button
-                                  variant="light"
-                                  color="green"
-                                  size="sm"
-                                  fullWidth
-                                  onClick={() => handleViewProgram(program.id)}
-                                >
-                                  View Program
-                                </Button>
-                              </Group>
-                            </Stack>
-                          </Card>
+                          <>
+                            {proteinPercent > 0 && (
+                              <div 
+                                style={{ 
+                                  width: `${proteinPercent}%`, 
+                                  backgroundColor: 'var(--mantine-color-green-6)',
+                                  height: '100%'
+                                }} 
+                              />
+                            )}
+                            {carbsPercent > 0 && (
+                              <div 
+                                style={{ 
+                                  width: `${carbsPercent}%`, 
+                                  backgroundColor: 'var(--mantine-color-blue-6)',
+                                  height: '100%'
+                                }} 
+                              />
+                            )}
+                            {fatsPercent > 0 && (
+                              <div 
+                                style={{ 
+                                  width: `${fatsPercent}%`, 
+                                  backgroundColor: 'var(--mantine-color-yellow-6)',
+                                  height: '100%'
+                                }} 
+                              />
+                            )}
+                          </>
                         )
-                      })}
-                    </SimpleGrid>
-                  </div>
-                </Paper>
-              </div>
-            )}
+                      })()}
+                    </div>
+
+                    {/* Macro Breakdown Details */}
+                    <Stack gap="xs">
+                      {(() => {
+                        const totalMacroCals = (nutritionMetrics.protein * 4) + (nutritionMetrics.carbs * 4) + (nutritionMetrics.fats * 9)
+                        const proteinPercent = totalMacroCals > 0 ? Math.round((nutritionMetrics.protein * 4 / totalMacroCals) * 100) : 0
+                        const carbsPercent = totalMacroCals > 0 ? Math.round((nutritionMetrics.carbs * 4 / totalMacroCals) * 100) : 0
+                        const fatsPercent = totalMacroCals > 0 ? Math.round((nutritionMetrics.fats * 9 / totalMacroCals) * 100) : 0
+                        
+                        return (
+                          <>
+                            <Group justify="space-between">
+                              <Group gap="xs">
+                                <div style={{ 
+                                  width: '12px', 
+                                  height: '12px', 
+                                  borderRadius: '2px',
+                                  backgroundColor: 'var(--mantine-color-green-6)'
+                                }} />
+                                <Text size="sm" fw={500} c="white">PROTEIN</Text>
+                              </Group>
+                              <Group gap="xs">
+                                <Text size="sm" c="white">{Math.round(nutritionMetrics.protein)}g</Text>
+                                <Text size="sm" c="dimmed">{proteinPercent}%</Text>
+                              </Group>
+                            </Group>
+                            <Group justify="space-between">
+                              <Group gap="xs">
+                                <div style={{ 
+                                  width: '12px', 
+                                  height: '12px', 
+                                  borderRadius: '2px',
+                                  backgroundColor: 'var(--mantine-color-blue-6)'
+                                }} />
+                                <Text size="sm" fw={500} c="white">CARBS</Text>
+                              </Group>
+                              <Group gap="xs">
+                                <Text size="sm" c="white">{Math.round(nutritionMetrics.carbs)}g</Text>
+                                <Text size="sm" c="dimmed">{carbsPercent}%</Text>
+                              </Group>
+                            </Group>
+                            <Group justify="space-between">
+                              <Group gap="xs">
+                                <div style={{ 
+                                  width: '12px', 
+                                  height: '12px', 
+                                  borderRadius: '2px',
+                                  backgroundColor: 'var(--mantine-color-yellow-6)'
+                                }} />
+                                <Text size="sm" fw={500} c="white">FATS</Text>
+                              </Group>
+                              <Group gap="xs">
+                                <Text size="sm" c="white">{Math.round(nutritionMetrics.fats)}g</Text>
+                                <Text size="sm" c="dimmed">{fatsPercent}%</Text>
+                              </Group>
+                            </Group>
+                          </>
+                        )
+                      })()}
+                    </Stack>
+                  </>
+                )}
+
+                {(!nutritionMetrics || nutritionMetrics.calories === 0) && (
+                  <Stack gap="xs" align="center" py="md">
+                    <Text size="sm" c="dimmed" ta="center">
+                      No food logged today
+                    </Text>
+                    <Button 
+                      variant="light" 
+                      color="green" 
+                      size="sm"
+                      onClick={() => navigate('/client/nutrition')}
+                    >
+                      Log Food
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </Card>
 
             {/* Upcoming Sessions Widget */}
             <div style={{ 
