@@ -608,9 +608,15 @@ function ClientNutrition({ clientId, clientName }) {
           is_quick_meal: values.is_quick_meal || false,
           is_meal_prep_friendly: values.is_meal_prep_friendly || false
         }
+        console.log('Sending recipe data with update:', {
+          ingredients: payload.recipe.ingredients.length,
+          hasInstructions: !!payload.recipe.instructions,
+          hasTips: !!(payload.recipe.prep_tips || payload.recipe.storage_tips || payload.recipe.nutrition_tips)
+        })
       }
 
-      await api.put(`/nutrition/meals/recommendations/${selectedMealToEdit.id}`, payload)
+      const response = await api.put(`/nutrition/meals/recommendations/${selectedMealToEdit.id}`, payload)
+      console.log('Update response:', response.data)
 
       notifications.show({
         title: 'Success',
@@ -639,13 +645,30 @@ function ClientNutrition({ clientId, clientName }) {
       setRecipeLoading(true)
       const recipeId = meal.recipe_id
       
+      console.log('View Recipe - meal data:', {
+        meal_name: meal.meal_name,
+        recipe_id: recipeId,
+        has_recipe_id: !!recipeId
+      })
+      
       // For client view: Always fetch full recipe from API if recipe_id exists
       // This ensures we get complete recipe data (ingredients, instructions, tips, etc.)
       if (recipeId) {
         try {
+          console.log('Fetching recipe from API:', recipeId)
           const result = await api.get(`/nutrition/recipes/${recipeId}`)
           
           if (result.data) {
+            console.log('Recipe data received:', {
+              name: result.data.name,
+              has_ingredients: !!(result.data.ingredients && result.data.ingredients.length > 0),
+              has_instructions: !!result.data.instructions,
+              has_prep_tips: !!result.data.prep_tips,
+              has_storage_tips: !!result.data.storage_tips,
+              has_nutrition_tips: !!result.data.nutrition_tips,
+              ingredients_count: Array.isArray(result.data.ingredients) ? result.data.ingredients.length : 0
+            })
+            
             // Merge meal-specific data (like notes from meal recommendation) with recipe data
             setSelectedRecipe({
               ...result.data,
@@ -662,8 +685,11 @@ function ClientNutrition({ clientId, clientName }) {
           }
         } catch (apiError) {
           console.error('Error fetching recipe from API:', apiError)
+          console.error('API Error details:', apiError.response?.data)
           // Fall through to show basic meal info if API fails
         }
+      } else {
+        console.log('No recipe_id found for meal, showing basic info')
       }
       
       // If no recipe_id or API fetch failed, show meal recommendation details

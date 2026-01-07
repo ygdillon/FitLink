@@ -1109,8 +1109,12 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
     const recipeData = req.body.recipe
     let finalRecipeId = existingMeal.recipe_id
 
+    console.log('Update meal recommendation - recipeData:', recipeData ? 'present' : 'missing')
+    console.log('Update meal recommendation - existing recipe_id:', existingMeal.recipe_id)
+
     // If recipe details provided, create or update recipe
     if (recipeData && recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0 && recipeData.instructions && recipeData.instructions.trim() !== '') {
+      console.log('Creating/updating recipe with ingredients:', recipeData.ingredients.length)
       if (existingMeal.recipe_id) {
         // Update existing recipe
         await pool.query(
@@ -1218,8 +1222,11 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
           ]
         )
         finalRecipeId = recipeResult.rows[0].id
+        console.log('Created new recipe with ID:', finalRecipeId)
       }
     }
+
+    console.log('Final recipe_id to use:', finalRecipeId)
 
     const allowedFields = [
       'meal_name', 'meal_description', 'meal_category', 'meal_type',
@@ -1240,9 +1247,10 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
     }
 
     // Add recipe_id if a recipe was created/updated
-    if (finalRecipeId !== existingMeal.recipe_id) {
+    if (finalRecipeId && finalRecipeId !== existingMeal.recipe_id) {
       updateFields.push(`recipe_id = $${paramCount++}`)
       values.push(finalRecipeId)
+      console.log('Adding recipe_id to update:', finalRecipeId)
     }
 
     if (updateFields.length === 0) {
