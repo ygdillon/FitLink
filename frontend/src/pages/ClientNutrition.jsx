@@ -343,6 +343,13 @@ function ClientNutrition({ clientId, clientName }) {
       } else {
         // For clients, use the client endpoint
         const result = await api.get('/nutrition/meals/recommended').catch(() => ({ data: { assigned: [], flexible: {} } }))
+        console.log('Fetched recommended meals for client:', {
+          total_meals: (result.data?.assigned?.length || 0) + Object.values(result.data?.flexible || {}).flat().length,
+          meals_with_recipe: [
+            ...(result.data?.assigned || []),
+            ...Object.values(result.data?.flexible || {}).flat()
+          ].filter(m => m.recipe_id).length
+        })
         setRecommendedMeals(result.data)
       }
     } catch (error) {
@@ -658,13 +665,20 @@ function ClientNutrition({ clientId, clientName }) {
       setSelectedMealToEdit(null)
       mealRecommendationForm.reset()
       
-      // Refresh meal recommendations to get updated recipe_id
-      await fetchRecommendedMeals()
+      // Refresh ALL meal data sources to get updated recipe_id
+      console.log('🔄 Refreshing all meal data sources after update...')
       
-      // Also refresh weekly meal data if in meals tab
-      if (activeTab === 'meals') {
-        await fetchWeeklyMealData()
-      }
+      // Force a complete refresh of all meal-related data
+      await fetchRecommendedMeals()
+      await fetchWeeklyMealData()
+      await fetchNutritionData() // Refresh nutrition plan which might have meal data
+      
+      // Double-check by fetching again after a brief delay
+      setTimeout(async () => {
+        console.log('🔄 Second refresh to ensure data is updated...')
+        await fetchRecommendedMeals()
+        console.log('✅ Refresh complete')
+      }, 1000)
     } catch (error) {
       console.error('Error updating meal recommendation:', error)
       console.error('Error details:', error.response?.data)
@@ -1467,6 +1481,14 @@ function ClientNutrition({ clientId, clientName }) {
 
                     // Get flexible recommendations for this category
                     const flexibleMeals = recommendedMeals.flexible[mealSlot] || []
+                    
+                    // Debug: Log meal data sources
+                    if (flexibleMeals.length > 0 && flexibleMeals[0].meal_name === 'toast with eggs') {
+                      console.log('🔍 Found toast with eggs in flexibleMeals:', {
+                        recipe_id: flexibleMeals[0].recipe_id,
+                        meal_name: flexibleMeals[0].meal_name
+                      })
+                    }
 
                     // Prepare meal data for MealCard
                     const currentMeal = selectedMeal ? {

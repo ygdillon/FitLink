@@ -879,9 +879,12 @@ router.get('/meals/recommendations/:clientId', requireRole(['trainer']), async (
 
     let query = `
       SELECT tmr.*, 
+             tmr.recipe_id,
              r.name as recipe_name,
              r.description as recipe_description,
              r.image_url,
+             r.ingredients,
+             r.instructions,
              r.is_vegan,
              r.is_vegetarian,
              r.is_gluten_free,
@@ -891,7 +894,15 @@ router.get('/meals/recommendations/:clientId', requireRole(['trainer']), async (
              r.is_meal_prep_friendly,
              r.prep_time,
              r.cook_time,
-             r.total_time
+             r.total_time,
+             r.total_yield,
+             r.difficulty_level,
+             r.equipment_needed,
+             r.substitution_options,
+             r.prep_tips,
+             r.storage_tips,
+             r.nutrition_tips,
+             r.storage_instructions
       FROM trainer_meal_recommendations tmr
       LEFT JOIN recipes r ON tmr.recipe_id = r.id
       WHERE tmr.client_id = $1 AND tmr.trainer_id = $2 AND tmr.is_active = true
