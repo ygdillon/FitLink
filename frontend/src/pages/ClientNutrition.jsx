@@ -1506,10 +1506,12 @@ function ClientNutrition({ clientId, clientName }) {
   const MealCard = ({ meal, onSelect, onViewRecipe, mealSlot, showActions = true, onEdit = null }) => {
     const mealName = meal.recipe_name || meal.meal_name || 'Meal'
     const imageUrl = meal.image_url
+    // Note: calories_per_serving, etc. now contain TOTAL values (not per-serving) after AI calculation fix
+    // These fields store the total recipe values, which is what we want to display
     const calories = Math.round(meal.calories_per_serving || meal.actual_calories || 0)
-    const protein = Math.round(meal.protein_per_serving || meal.actual_protein || 0)
-    const carbs = Math.round(meal.carbs_per_serving || meal.actual_carbs || 0)
-    const fats = Math.round(meal.fats_per_serving || meal.actual_fats || 0)
+    const protein = Math.round((meal.protein_per_serving || meal.actual_protein || 0) * 10) / 10
+    const carbs = Math.round((meal.carbs_per_serving || meal.actual_carbs || 0) * 10) / 10
+    const fats = Math.round((meal.fats_per_serving || meal.actual_fats || 0) * 10) / 10
 
     // Dietary badges
     const dietaryBadges = []
