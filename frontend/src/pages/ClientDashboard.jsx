@@ -435,8 +435,8 @@ function ClientDashboard() {
       <Title order={1} mb="md" style={{ flexShrink: 0 }}>My Dashboard</Title>
 
       <Grid gutter="md" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {/* Left Side - Today's Workout and My Programs */}
-        <Grid.Col span={{ base: 12, md: 5 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {/* Left Side - Today's Workout, My Programs, and Upcoming Sessions */}
+        <Grid.Col span={{ base: 12, md: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <Stack gap="md" style={{ height: '100%', overflow: 'hidden' }}>
             {/* Today's Workout */}
             {getTodaysWorkout ? (

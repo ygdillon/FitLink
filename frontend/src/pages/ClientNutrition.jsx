@@ -1027,37 +1027,32 @@ function ClientNutrition({ clientId, clientName }) {
   }
 
   // Helper function to normalize log date to YYYY-MM-DD format
-  // This handles various date formats from the database and ensures consistent comparison
+  // CRITICAL: Extract date part BEFORE any Date parsing to avoid timezone issues
   const normalizeLogDate = (logDate) => {
     if (!logDate) return null
     
-    // If it's already a string in YYYY-MM-DD format, extract just the date part
+    // If it's a string, extract the date part (YYYY-MM-DD) directly without parsing as Date
+    // This avoids timezone conversion issues
     if (typeof logDate === 'string') {
-      // Handle formats like "2024-01-15" or "2024-01-15T00:00:00.000Z" or "2024-01-15 00:00:00"
+      // Match YYYY-MM-DD pattern at the start of the string
+      // Handles: "2026-01-07", "2026-01-07T08:00:00.000Z", "2026-01-07 00:00:00", etc.
       const dateMatch = logDate.match(/^(\d{4}-\d{2}-\d{2})/)
       if (dateMatch) {
-        return dateMatch[1] // Return just YYYY-MM-DD
+        return dateMatch[1] // Return just YYYY-MM-DD, no timezone conversion
       }
     }
     
-    // If it's a Date object, convert to local date string
+    // If it's a Date object, we need to be careful with timezone
+    // But ideally we should never get here if database returns strings
     if (logDate instanceof Date) {
-      return getLocalDateString(logDate)
+      // Use the date parts directly to avoid timezone issues
+      const year = logDate.getFullYear()
+      const month = String(logDate.getMonth() + 1).padStart(2, '0')
+      const day = String(logDate.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
     
-    // Try to parse as date and convert to local date
-    try {
-      // Parse the date - this handles ISO strings, timestamps, etc.
-      const date = new Date(logDate)
-      if (!isNaN(date.getTime())) {
-        // Use local date, not UTC
-        return getLocalDateString(date)
-      }
-    } catch (e) {
-      console.warn('Could not parse log date:', logDate, e)
-    }
-    
-    // Fallback: try to extract date from string
+    // Fallback: try to extract date from any string representation
     const str = String(logDate)
     const dateMatch = str.match(/(\d{4}-\d{2}-\d{2})/)
     if (dateMatch) {
