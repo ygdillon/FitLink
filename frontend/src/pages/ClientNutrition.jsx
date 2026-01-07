@@ -361,7 +361,9 @@ function ClientNutrition({ clientId, clientName }) {
   const handleSelectMeal = async (meal, mealSlot) => {
     try {
       const today = new Date().toISOString().split('T')[0]
-      await api.post('/nutrition/meals/select', {
+      
+      // First, create the meal selection
+      const selectionResponse = await api.post('/nutrition/meals/select', {
         recommendation_id: meal.id,
         recipe_id: meal.recipe_id,
         selected_date: today,
@@ -370,14 +372,43 @@ function ClientNutrition({ clientId, clientName }) {
         servings: 1.0
       })
       
+      // Also create a nutrition log entry so it shows up in Food Log and Dashboard
+      const calories = Math.round(meal.calories_per_serving || meal.actual_calories || 0)
+      const protein = Math.round(meal.protein_per_serving || meal.actual_protein || 0)
+      const carbs = Math.round(meal.carbs_per_serving || meal.actual_carbs || 0)
+      const fats = Math.round(meal.fats_per_serving || meal.actual_fats || 0)
+      
+      try {
+        await api.post('/nutrition/logs', {
+          log_date: today,
+          meal_type: meal.meal_category || mealSlot || 'other',
+          food_name: meal.recipe_name || meal.meal_name,
+          quantity: 1,
+          unit: 'serving',
+          calories: calories,
+          protein: protein,
+          carbs: carbs,
+          fats: fats,
+          notes: `Added from meal recommendations`
+        })
+      } catch (logError) {
+        console.error('Error creating nutrition log entry:', logError)
+        // Don't fail the whole operation if log creation fails
+      }
+      
       notifications.show({
         title: 'Success',
-        message: 'Meal added to your plan',
+        message: 'Meal added to your plan and logged',
         color: 'green'
       })
       
-      fetchWeeklyMealData()
-      fetchRecommendedMeals()
+      // Refresh all data
+      await Promise.all([
+        fetchNutritionData(),
+        fetchWeeklyMealData(),
+        fetchRecommendedMeals(),
+        fetchWeeklySummary()
+      ])
     } catch (error) {
       console.error('Error selecting meal:', error)
       notifications.show({
