@@ -562,11 +562,17 @@ function ClientNutrition({ clientId, clientName }) {
 
       const macros = response.data
 
-      // Auto-fill the form with calculated values
-      mealRecommendationForm.setFieldValue('calories_per_serving', macros.calories_per_serving)
-      mealRecommendationForm.setFieldValue('protein_per_serving', macros.protein_per_serving)
-      mealRecommendationForm.setFieldValue('carbs_per_serving', macros.carbs_per_serving)
-      mealRecommendationForm.setFieldValue('fats_per_serving', macros.fats_per_serving)
+      // Auto-fill the form with TOTAL values (not per-serving)
+      // Use total values from breakdown if available, otherwise use calories/protein/carbs/fats
+      const totalCalories = macros.breakdown?.total_calories || macros.calories || macros.calories_per_serving
+      const totalProtein = macros.breakdown?.total_protein || macros.protein || macros.protein_per_serving
+      const totalCarbs = macros.breakdown?.total_carbs || macros.carbs || macros.carbs_per_serving
+      const totalFats = macros.breakdown?.total_fats || macros.fats || macros.fats_per_serving
+
+      mealRecommendationForm.setFieldValue('calories_per_serving', totalCalories)
+      mealRecommendationForm.setFieldValue('protein_per_serving', totalProtein)
+      mealRecommendationForm.setFieldValue('carbs_per_serving', totalCarbs)
+      mealRecommendationForm.setFieldValue('fats_per_serving', totalFats)
 
       notifications.show({
         title: 'Macros Calculated!',
@@ -2914,7 +2920,7 @@ function ClientNutrition({ clientId, clientName }) {
               </Button>
 
               <NumberInput
-                label="Calories per Serving"
+                label="Calories"
                 required
                 min={0}
                 {...mealRecommendationForm.getInputProps('calories_per_serving')}
@@ -3163,7 +3169,7 @@ function ClientNutrition({ clientId, clientName }) {
               </Button>
 
               <NumberInput
-                label="Calories per Serving"
+                label="Calories"
                 required
                 min={0}
                 {...mealRecommendationForm.getInputProps('calories_per_serving')}

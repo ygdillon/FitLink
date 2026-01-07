@@ -2234,16 +2234,35 @@ CRITICAL: Double-check your calculations. Values must be realistic and match sta
       })
     }
 
+    // Return TOTAL values from breakdown (not per-serving)
+    const totalCalories = aiResponse.breakdown?.total_calories 
+      ? Math.round(parseFloat(aiResponse.breakdown.total_calories))
+      : calories * servings
+    const totalProtein = aiResponse.breakdown?.total_protein
+      ? Math.round(parseFloat(aiResponse.breakdown.total_protein) * 10) / 10
+      : protein * servings
+    const totalCarbs = aiResponse.breakdown?.total_carbs
+      ? Math.round(parseFloat(aiResponse.breakdown.total_carbs) * 10) / 10
+      : carbs * servings
+    const totalFats = aiResponse.breakdown?.total_fats
+      ? Math.round(parseFloat(aiResponse.breakdown.total_fats) * 10) / 10
+      : fats * servings
+
     const macros = {
+      calories: totalCalories,
+      protein: totalProtein,
+      carbs: totalCarbs,
+      fats: totalFats,
+      // Also include per-serving for reference
       calories_per_serving: calories,
       protein_per_serving: protein,
       carbs_per_serving: carbs,
       fats_per_serving: fats,
       breakdown: {
-        total_calories: calories * servings,
-        total_protein: protein * servings,
-        total_carbs: carbs * servings,
-        total_fats: fats * servings
+        total_calories: totalCalories,
+        total_protein: totalProtein,
+        total_carbs: totalCarbs,
+        total_fats: totalFats
       },
       notes: aiResponse.notes || 'Calculated using AI based on provided ingredients and preparation methods.'
     }
