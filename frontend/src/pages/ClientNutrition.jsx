@@ -1080,40 +1080,63 @@ function ClientNutrition({ clientId, clientName }) {
   }), { calories: 0, protein: 0, carbs: 0, fats: 0 })
 
   // Filter logs for today using local date - STRICT comparison
+  // Extract date part directly from string to avoid timezone conversion
   const todayLogs = nutritionLogs.filter(log => {
-    const logDate = normalizeLogDate(log.log_date)
-    const matches = logDate === today
-    if (!matches && logDate) {
-      // Debug: log mismatches to help identify issues
-      console.log('Date mismatch:', {
-        logDate,
-        today,
-        original: log.log_date,
-        food: log.food_name,
-        matches
-      })
+    // Extract date part directly from the string (YYYY-MM-DD) without Date parsing
+    let logDateStr = null
+    if (typeof log.log_date === 'string') {
+      // Extract YYYY-MM-DD from strings like "2026-01-07T08:00:00.000Z" or "2026-01-07"
+      const match = log.log_date.match(/^(\d{4}-\d{2}-\d{2})/)
+      logDateStr = match ? match[1] : null
+    } else if (log.log_date instanceof Date) {
+      // If it's a Date object, get local date parts
+      const d = log.log_date
+      logDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    } else {
+      logDateStr = normalizeLogDate(log.log_date)
     }
+    
+    const matches = logDateStr === today
+    
+    // Debug logging
+    console.log('🔍 Date filter check:', {
+      original: log.log_date,
+      extracted: logDateStr,
+      today: today,
+      matches: matches,
+      food: log.food_name,
+      willShow: matches
+    })
+    
     return matches
   })
   
-  // Debug logging
+  // Debug logging - show what's happening with dates
   if (nutritionLogs.length > 0) {
+    const now = new Date()
+    const localToday = getTodayLocalDate()
     console.log('📊 Nutrition logs debug:', {
       totalLogs: nutritionLogs.length,
       today: today,
+      localToday: localToday,
+      currentTime: now.toISOString(),
+      currentLocalTime: now.toString(),
       todayLogsCount: todayLogs.length,
       sampleLog: nutritionLogs[0],
       sampleLogDate: normalizeLogDate(nutritionLogs[0]?.log_date),
-      todayLogs: todayLogs.map(log => ({
-        food_name: log.food_name,
-        log_date: log.log_date,
-        normalized_date: normalizeLogDate(log.log_date),
-        matches_today: normalizeLogDate(log.log_date) === today
-      })),
-      allLogDates: nutritionLogs.map(log => ({
-        original: log.log_date,
-        normalized: normalizeLogDate(log.log_date)
-      }))
+      allLogsWithDates: nutritionLogs.map(log => {
+        const normalized = normalizeLogDate(log.log_date)
+        const matches = normalized === today
+        return {
+          id: log.id,
+          food_name: log.food_name,
+          original_date: log.log_date,
+          normalized_date: normalized,
+          today: today,
+          matches: matches,
+          willShow: matches
+        }
+      })
     })
   }
   

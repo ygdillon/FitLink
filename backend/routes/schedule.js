@@ -48,6 +48,45 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
   }
 })
 
+// Check if client has completed a workout today
+router.get('/client/today-completed', requireRole(['client']), async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+    
+    // Check for completed sessions today
+    const sessionsResult = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM sessions
+       WHERE client_id = $1
+         AND session_date = $2
+         AND status = 'completed'`,
+      [req.user.id, today]
+    )
+    
+    const hasCompletedSession = parseInt(sessionsResult.rows[0].count) > 0
+    
+    // Also check program_workout_completions for today
+    const completionsResult = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM program_workout_completions
+       WHERE client_id = $1
+         AND completed_date = $2`,
+      [req.user.id, today]
+    )
+    
+    const hasCompletedWorkout = parseInt(completionsResult.rows[0].count) > 0
+    
+    res.json({ 
+      hasCompleted: hasCompletedSession || hasCompletedWorkout,
+      hasCompletedSession,
+      hasCompletedWorkout
+    })
+  } catch (error) {
+    console.error('Error checking today\'s completed workouts:', error)
+    res.status(500).json({ message: 'Failed to check completed workouts', hasCompleted: false })
+  }
+})
+
 // Get client's upcoming sessions
 router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
   try {

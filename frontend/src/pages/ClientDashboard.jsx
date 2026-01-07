@@ -507,14 +507,14 @@ function ClientDashboard() {
             {/* My Programs */}
             {programs.length > 0 && (
               <div style={{ 
-                flex: 1, 
+                flex: '0 0 auto',
                 position: 'relative', 
                 border: '1px solid var(--mantine-color-gray-4)', 
                 borderRadius: 'var(--mantine-radius-sm)', 
                 overflow: 'hidden',
-                minHeight: 0,
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                maxHeight: '40%'
               }}>
                 <Paper 
                   p="sm" 
@@ -546,7 +546,7 @@ function ClientDashboard() {
                     paddingRight: '0.5rem'
                   }}>
                     <SimpleGrid cols={1} spacing="sm">
-                      {programs.slice(0, 4).map(program => {
+                      {programs.slice(0, 2).map(program => {
                         const stats = getProgramStats(program)
                         return (
                           <Card key={program.id} shadow="sm" padding="sm" radius="md" withBorder style={{ flexShrink: 0 }}>
@@ -592,256 +592,250 @@ function ClientDashboard() {
                 </Paper>
               </div>
             )}
+
+            {/* Upcoming Sessions Widget */}
+            <div style={{ 
+              flex: 1, 
+              position: 'relative', 
+              border: '1px solid var(--mantine-color-gray-4)', 
+              borderRadius: 'var(--mantine-radius-sm)', 
+              overflow: 'hidden',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box'
+            }}>
+              <Paper 
+                p="sm" 
+                shadow="sm" 
+                withBorder={false}
+                style={{ 
+                  height: '100%',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden',
+                  minHeight: 0,
+                  border: 'none',
+                  borderRadius: 0,
+                  boxShadow: 'none'
+                }}
+              >
+                <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                  <Title order={3} style={{ fontSize: '1.1rem' }}>
+                    Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
+                  </Title>
+                </Group>
+                {upcomingSessions.length === 0 ? (
+                  <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
+                    <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
+                    <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
+                  </Stack>
+                ) : (
+                  <div style={{ 
+                    flex: 1, 
+                    minHeight: 0, 
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: '0.5rem'
+                  }}>
+                    <Stack gap="xs">
+                      {upcomingSessions.map(session => {
+                      const sessionDate = session.session_date ? new Date(session.session_date) : null
+                      const isNextSession = nextSession && session.id === nextSession.id
+                      const [hours, minutes] = session.session_time ? session.session_time.split(':') : ['0', '0']
+                      const sessionDateTime = sessionDate ? (() => {
+                        const dt = new Date(sessionDate)
+                        dt.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+                        return dt
+                      })() : null
+                      
+                      return (
+                        <Card 
+                          key={session.id} 
+                          p="sm" 
+                          withBorder
+                          style={{
+                            border: isNextSession ? '2px solid rgba(34, 197, 94, 0.8)' : undefined,
+                            backgroundColor: isNextSession ? 'rgba(34, 197, 94, 0.1)' : undefined,
+                            boxShadow: isNextSession ? '0 2px 8px rgba(34, 197, 94, 0.3)' : undefined
+                          }}
+                        >
+                          <Stack gap={4}>
+                            <Group justify="space-between" gap="xs">
+                              <Stack gap={2} style={{ flex: 1 }}>
+                                {isNextSession && (
+                                  <Badge size="xs" color="green" variant="light">
+                                    Next Session
+                                  </Badge>
+                                )}
+                                <Text size="sm" fw={500}>
+                                  {sessionDate ? sessionDate.toLocaleDateString('en-US', { 
+                                    weekday: 'long', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  }) : 'Date TBD'}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {session.session_time ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit' 
+                                  }) : ''}
+                                </Text>
+                                {session.workout_name && (
+                                  <Text size="xs" fw={500} c="green">
+                                    {session.workout_name}
+                                  </Text>
+                                )}
+                                {session.program_name && (
+                                  <Text size="xs" c="dimmed">
+                                    {session.program_name}
+                                  </Text>
+                                )}
+                              </Stack>
+                              <Badge size="sm" color={session.status === 'confirmed' ? 'blue' : 'gray'}>
+                                {session.status || 'scheduled'}
+                              </Badge>
+                            </Group>
+                            {session.location && (
+                              <Text size="xs" c="dimmed">
+                                📍 {session.location}
+                              </Text>
+                            )}
+                            {session.meeting_link && (
+                              <Text size="xs" c="dimmed">
+                                🔗 <a href={session.meeting_link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                                  Join Meeting
+                                </a>
+                              </Text>
+                            )}
+                          </Stack>
+                        </Card>
+                      )
+                      })}
+                    </Stack>
+                  </div>
+                )}
+              </Paper>
+            </div>
           </Stack>
         </Grid.Col>
 
-        {/* Right Side - Calendar and Sessions Widget */}
-        <Grid.Col span={{ base: 12, md: 7 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Grid gutter="sm" style={{ height: '100%', flex: 1, minHeight: 0 }}>
-            {/* Calendar - Top Right */}
-            <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <div style={{ 
-                height: '100%', 
-                position: 'relative', 
-                border: '1px solid var(--mantine-color-gray-4)', 
-                borderRadius: 'var(--mantine-radius-sm)', 
+        {/* Right Side - Calendar Only */}
+        <Grid.Col span={{ base: 12, md: 8 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ 
+            height: '100%', 
+            position: 'relative', 
+            border: '1px solid var(--mantine-color-gray-4)', 
+            borderRadius: 'var(--mantine-radius-sm)', 
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box'
+          }}>
+            <Paper 
+              p="sm" 
+              shadow="sm" 
+              withBorder={false}
+              style={{ 
+                height: '100%',
+                display: 'flex', 
+                flexDirection: 'column', 
                 overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                boxSizing: 'border-box'
-              }}>
-                <Paper 
-                  p="sm" 
-                  shadow="sm" 
-                  withBorder={false}
-                  style={{ 
-                    height: '100%',
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden',
-                    minHeight: 0,
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none'
-                  }}
-                >
-                  <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                    <Title order={3} style={{ fontSize: '1.1rem' }}>
-                      Calendar
-                    </Title>
-                  </Group>
-                  {upcomingSessions.length === 0 ? (
-                    <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
-                      <Text c="dimmed" size="sm">No upcoming sessions</Text>
-                    </Stack>
-                  ) : (
-                    <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-                      <Calendar
-                      value={null}
-                      month={displayedMonth}
-                      onMonthSelect={setDisplayedMonth}
-                      onChange={handleDateClick}
-                      renderDay={renderDay}
-                      getDayProps={(date) => {
-                        // Ensure date is a valid Date object
-                        if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-                          return {}
-                        }
+                minHeight: 0,
+                border: 'none',
+                borderRadius: 0,
+                boxShadow: 'none'
+              }}
+            >
+              <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
+                <Title order={3} style={{ fontSize: '1.1rem' }}>
+                  Calendar
+                </Title>
+              </Group>
+              {upcomingSessions.length === 0 ? (
+                <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
+                  <Text c="dimmed" size="sm">No upcoming sessions</Text>
+                </Stack>
+              ) : (
+                <div className="client-calendar-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                  <Calendar
+                    value={null}
+                    month={displayedMonth}
+                    onMonthSelect={setDisplayedMonth}
+                    onChange={handleDateClick}
+                    renderDay={renderDay}
+                    getDayProps={(date) => {
+                      // Ensure date is a valid Date object
+                      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                        return {}
+                      }
+                      
+                      try {
+                        const dateKey = getDateKey(date)
+                        if (!dateKey) return { style: { cursor: 'pointer' } }
                         
-                        try {
-                          const dateKey = getDateKey(date)
-                          if (!dateKey) return { style: { cursor: 'pointer' } }
-                          
-                          const sessions = sessionsByDate.get(dateKey) || []
-                          const hasSessions = sessions.length > 0
-                          
-                          return {
-                            onClick: (e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              handleDateClick(date)
-                            },
-                            style: {
-                              cursor: 'pointer',
-                              position: 'relative',
-                              ...(hasSessions ? {
-                                border: '2px solid rgba(34, 197, 94, 0.6)',
-                                borderRadius: '4px'
-                              } : {})
-                            }
+                        const sessions = sessionsByDate.get(dateKey) || []
+                        const hasSessions = sessions.length > 0
+                        
+                        return {
+                          onClick: (e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleDateClick(date)
+                          },
+                          style: {
+                            cursor: 'pointer',
+                            position: 'relative',
+                            ...(hasSessions ? {
+                              border: '2px solid rgba(34, 197, 94, 0.6)',
+                              borderRadius: '4px'
+                            } : {})
                           }
-                        } catch (error) {
-                          console.error('[ClientDashboard] Error in getDayProps:', error, date)
-                          return { style: { cursor: 'pointer' } }
                         }
-                      }}
-                      styles={{
-                        calendar: {
-                          width: '100%',
-                        },
-                        month: {
-                          width: '100%',
-                        },
-                        monthCell: {
-                          width: '100%',
-                        },
-                        weekday: {
-                          fontWeight: 600,
-                          fontSize: '0.875rem',
-                          paddingBottom: '0.75rem',
-                          paddingTop: '0.5rem',
-                          textAlign: 'center',
-                          color: 'var(--mantine-color-gray-6)',
-                        },
-                        day: {
-                          fontSize: '0.95rem',
-                          height: '5.5rem',
-                          minHeight: '5.5rem',
-                          width: '100%',
-                          borderRadius: 0,
-                          border: 'none',
-                          margin: 0,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'flex-start',
-                          justifyContent: 'flex-start',
-                          padding: '0.3rem',
-                        },
-                      }}
-                        size="sm"
-                      />
-                    </div>
-                  )}
-                </Paper>
-              </div>
-            </Grid.Col>
-
-            {/* Sessions Widget - Bottom Right */}
-            <Grid.Col span={{ base: 12, md: 6 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <div style={{ 
-                height: '100%', 
-                position: 'relative', 
-                border: '1px solid var(--mantine-color-gray-4)', 
-                borderRadius: 'var(--mantine-radius-sm)', 
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                boxSizing: 'border-box'
-              }}>
-                <Paper 
-                  p="sm" 
-                  shadow="sm" 
-                  withBorder={false}
-                  style={{ 
-                    height: '100%',
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden',
-                    minHeight: 0,
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none'
-                  }}
-                >
-                  <Group justify="space-between" mb="sm" style={{ flexShrink: 0 }}>
-                    <Title order={3} style={{ fontSize: '1.1rem' }}>
-                      Upcoming Sessions {upcomingSessions.length > 0 && `(${upcomingSessions.length})`}
-                    </Title>
-                  </Group>
-                  {upcomingSessions.length === 0 ? (
-                    <Stack gap="xs" align="center" justify="center" style={{ flex: 1, minHeight: 0 }}>
-                      <Text c="dimmed" size="sm">No upcoming sessions scheduled</Text>
-                      <Text size="xs" c="dimmed">Your trainer will schedule sessions for you</Text>
-                    </Stack>
-                  ) : (
-                    <div style={{ 
-                      flex: 1, 
-                      minHeight: 0, 
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
-                      paddingRight: '0.5rem'
-                    }}>
-                      <Stack gap="xs">
-                        {upcomingSessions.map(session => {
-                        const sessionDate = session.session_date ? new Date(session.session_date) : null
-                        const isNextSession = nextSession && session.id === nextSession.id
-                        const [hours, minutes] = session.session_time ? session.session_time.split(':') : ['0', '0']
-                        const sessionDateTime = sessionDate ? (() => {
-                          const dt = new Date(sessionDate)
-                          dt.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-                          return dt
-                        })() : null
-                        
-                        return (
-                          <Card 
-                            key={session.id} 
-                            p="sm" 
-                            withBorder
-                            style={{
-                              border: isNextSession ? '2px solid rgba(34, 197, 94, 0.8)' : undefined,
-                              backgroundColor: isNextSession ? 'rgba(34, 197, 94, 0.1)' : undefined,
-                              boxShadow: isNextSession ? '0 2px 8px rgba(34, 197, 94, 0.3)' : undefined
-                            }}
-                          >
-                            <Stack gap={4}>
-                              <Group justify="space-between" gap="xs">
-                                <Stack gap={2} style={{ flex: 1 }}>
-                                  {isNextSession && (
-                                    <Badge size="xs" color="green" variant="light">
-                                      Next Session
-                                    </Badge>
-                                  )}
-                                  <Text size="sm" fw={500}>
-                                    {sessionDate ? sessionDate.toLocaleDateString('en-US', { 
-                                      weekday: 'long', 
-                                      month: 'short', 
-                                      day: 'numeric' 
-                                    }) : 'Date TBD'}
-                                  </Text>
-                                  <Text size="xs" c="dimmed">
-                                    {session.session_time ? new Date(`2000-01-01T${session.session_time}`).toLocaleTimeString('en-US', { 
-                                      hour: 'numeric', 
-                                      minute: '2-digit' 
-                                    }) : ''}
-                                  </Text>
-                                  {session.workout_name && (
-                                    <Text size="xs" fw={500} c="green">
-                                      {session.workout_name}
-                                    </Text>
-                                  )}
-                                  {session.program_name && (
-                                    <Text size="xs" c="dimmed">
-                                      {session.program_name}
-                                    </Text>
-                                  )}
-                                </Stack>
-                                <Badge size="sm" color={session.status === 'confirmed' ? 'blue' : 'gray'}>
-                                  {session.status || 'scheduled'}
-                                </Badge>
-                              </Group>
-                              {session.location && (
-                                <Text size="xs" c="dimmed">
-                                  📍 {session.location}
-                                </Text>
-                              )}
-                              {session.meeting_link && (
-                                <Text size="xs" c="dimmed">
-                                  🔗 <a href={session.meeting_link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
-                                    Join Meeting
-                                  </a>
-                                </Text>
-                              )}
-                            </Stack>
-                          </Card>
-                        )
-                        })}
-                      </Stack>
-                    </div>
-                  )}
-                </Paper>
-              </div>
-            </Grid.Col>
-          </Grid>
+                      } catch (error) {
+                        console.error('[ClientDashboard] Error in getDayProps:', error, date)
+                        return { style: { cursor: 'pointer' } }
+                      }
+                    }}
+                    styles={{
+                      calendar: {
+                        width: '100%',
+                      },
+                      month: {
+                        width: '100%',
+                      },
+                      monthCell: {
+                        width: '100%',
+                      },
+                      weekday: {
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        paddingBottom: '0.75rem',
+                        paddingTop: '0.5rem',
+                        textAlign: 'center',
+                        color: 'var(--mantine-color-gray-6)',
+                      },
+                      day: {
+                        fontSize: '0.95rem',
+                        height: '5.5rem',
+                        minHeight: '5.5rem',
+                        width: '100%',
+                        borderRadius: 0,
+                        border: 'none',
+                        margin: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        justifyContent: 'flex-start',
+                        padding: '0.3rem',
+                      },
+                    }}
+                    size="sm"
+                  />
+                </div>
+              )}
+            </Paper>
+          </div>
         </Grid.Col>
       </Grid>
 

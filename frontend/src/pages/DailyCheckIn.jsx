@@ -52,14 +52,13 @@ function DailyCheckIn() {
   const checkCompletedWorkouts = async () => {
     try {
       setCheckingWorkouts(true)
-      const response = await api.get('/client/workouts')
-      // Check if there are any completed workouts
-      const completed = response.data.filter(w => w.status === 'completed')
-      setHasCompletedWorkouts(completed.length > 0)
+      // Check for today's completed workouts
+      const response = await api.get('/schedule/client/today-completed')
+      setHasCompletedWorkouts(response.data.hasCompleted || false)
     } catch (error) {
       console.error('Error checking completed workouts:', error)
-      // If error, allow check-in (don't block on API error)
-      setHasCompletedWorkouts(true)
+      // If error, don't allow check-in (block on API error to be safe)
+      setHasCompletedWorkouts(false)
     } finally {
       setCheckingWorkouts(false)
     }
@@ -324,10 +323,10 @@ function DailyCheckIn() {
                 Checking your workout status...
               </Alert>
             ) : !hasCompletedWorkouts ? (
-              <Alert color="yellow" title="No Completed Workouts" mb="md">
+              <Alert color="yellow" title="Workout Required" mb="md">
                 <Stack gap="xs">
                   <Text>
-                    You need to complete at least one workout before you can check in.
+                    You need to complete your workout today before you can check in. Please complete your scheduled workout first.
                   </Text>
                   <Button 
                     component={Link}
