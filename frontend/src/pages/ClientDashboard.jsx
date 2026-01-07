@@ -64,12 +64,62 @@ function ClientDashboard() {
     }
   }
 
-  // Get today's workout from assigned programs
-  const getTodaysWorkout = useMemo(() => {
-    if (programs.length === 0) return null
+  // Helper function to calculate date for a given week and day in a program
+  const calculateDateForDay = useCallback((startDate, weekNumber, dayNumber) => {
+    if (!startDate) return null
+    const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0)
     
+    // Calculate days to add: Week 1 Day 1 = start date, Week 1 Day 2 = start + 1, etc.
+    // Week 2 Day 1 = start + 7, etc.
+    const daysToAdd = (weekNumber - 1) * 7 + (dayNumber - 1)
+    
+    const date = new Date(start)
+    date.setDate(start.getDate() + daysToAdd)
+    return date
+  }, [])
+
+  // Get today's workout from assigned programs or scheduled sessions
+  const getTodaysWorkout = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    const todayKey = getDateKey(today)
+    
+    // First, check if there's a session scheduled for today with a workout
+    if (upcomingSessions.length > 0 && todayKey) {
+      const todaysSessions = upcomingSessions.filter(session => {
+        if (!session.session_date) return false
+        const sessionDate = new Date(session.session_date)
+        sessionDate.setHours(0, 0, 0, 0)
+        const sessionKey = getDateKey(sessionDate)
+        return sessionKey === todayKey
+      })
+      
+      if (todaysSessions.length > 0) {
+        // Find the workout from the session's program_workout_id
+        const session = todaysSessions[0]
+        if (session.program_workout_id || session.workout_name) {
+          // Find the program and workout
+          for (const program of programs) {
+            if (!program.workouts) continue
+            const workout = program.workouts.find(w => 
+              w.id === session.program_workout_id || 
+              (session.workout_name && w.workout_name === session.workout_name)
+            )
+            if (workout) {
+              return {
+                workout,
+                program,
+                programId: program.id
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // If no session for today, calculate from program start date
+    if (programs.length === 0) return null
     
     for (const program of programs) {
       if (!program.start_date || !program.workouts || program.workouts.length === 0) continue
@@ -77,27 +127,25 @@ function ClientDashboard() {
       const startDate = new Date(program.start_date)
       startDate.setHours(0, 0, 0, 0)
       
-      // Calculate which week and day we're on
-      const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24))
-      const weekNumber = Math.floor(daysSinceStart / 7) + 1
-      const dayNumber = (daysSinceStart % 7) + 1
-      
-      // Find workout for today
-      const workout = program.workouts.find(w => 
-        w.week_number === weekNumber && w.day_number === dayNumber
-      )
-      
-      if (workout) {
-        return {
-          workout,
-          program,
-          programId: program.id
+      // Check each workout to see if its calculated date matches today
+      for (const workout of program.workouts) {
+        const workoutDate = calculateDateForDay(startDate, workout.week_number, workout.day_number)
+        if (workoutDate) {
+          workoutDate.setHours(0, 0, 0, 0)
+          const workoutDateKey = getDateKey(workoutDate)
+          if (workoutDateKey === todayKey) {
+            return {
+              workout,
+              program,
+              programId: program.id
+            }
+          }
         }
       }
     }
     
     return null
-  }, [programs])
+  }, [programs, upcomingSessions, calculateDateForDay, getDateKey])
 
   const getProgramStats = (program) => {
     if (!program || !program.workouts) {
