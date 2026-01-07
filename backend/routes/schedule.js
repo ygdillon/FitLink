@@ -126,11 +126,12 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
        WHERE s.client_id = $1
          AND s.status IN ('scheduled', 'confirmed')
          AND s.session_date >= CURRENT_DATE
+         AND (s.program_id IS NOT NULL OR s.program_workout_id IS NOT NULL)
        ORDER BY s.session_date ASC, s.session_time ASC
        LIMIT 20`,
       [req.user.id]
     )
-    console.log(`[Schedule API] Found ${result.rows.length} upcoming sessions for client ${req.user.id}`)
+    console.log(`[Schedule API] Found ${result.rows.length} upcoming program sessions for client ${req.user.id}`)
     if (result.rows.length > 0) {
       console.log(`[Schedule API] First session:`, {
         id: result.rows[0].id,
@@ -138,23 +139,34 @@ router.get('/client/upcoming', requireRole(['client']), async (req, res) => {
         session_time: result.rows[0].session_time,
         status: result.rows[0].status,
         program_workout_id: result.rows[0].program_workout_id,
+        program_id: result.rows[0].program_id,
         workout_name: result.rows[0].workout_name,
         program_name: result.rows[0].program_name
       })
     } else {
-      console.log(`[Schedule API] No upcoming sessions found. Checking why...`)
+      console.log(`[Schedule API] No upcoming program sessions found. Checking why...`)
       // Check if sessions exist but are filtered out
       const filteredCheck = await pool.query(
-        `SELECT id, session_date, status, 
+        `SELECT id, session_date, status, program_id, program_workout_id,
                 CASE WHEN status NOT IN ('scheduled', 'confirmed') THEN 'wrong_status' ELSE 'ok' END as status_check,
-                CASE WHEN session_date < CURRENT_DATE THEN 'past_date' ELSE 'ok' END as date_check
+                CASE WHEN session_date < CURRENT_DATE THEN 'past_date' ELSE 'ok' END as date_check,
+                CASE WHEN program_id IS NULL AND program_workout_id IS NULL THEN 'not_from_program' ELSE 'ok' END as program_check
          FROM sessions 
          WHERE client_id = $1 
-         LIMIT 5`,
+         LIMIT 10`,
         [req.user.id]
       )
       if (filteredCheck.rows.length > 0) {
-        console.log(`[Schedule API] Sessions exist but filtered:`, filteredCheck.rows)
+        console.log(`[Schedule API] Sessions exist but filtered:`, filteredCheck.rows.map(s => ({
+          id: s.id,
+          session_date: s.session_date,
+          status: s.status,
+          program_id: s.program_id,
+          program_workout_id: s.program_workout_id,
+          status_check: s.status_check,
+          date_check: s.date_check,
+          program_check: s.program_check
+        })))
       }
     }
     res.json(result.rows)

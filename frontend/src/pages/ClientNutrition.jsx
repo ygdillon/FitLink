@@ -1145,32 +1145,134 @@ function ClientNutrition({ clientId, clientName }) {
     }
     
     // Compare against the actual today's date (recalculated to ensure freshness)
+    // IMPORTANT: Recalculate "today" fresh for each comparison to avoid stale dates
     const actualTodayForComparison = getTodayLocalDate()
     const dateMatches = logDateStr === actualTodayForComparison
     
-    // ADDITIONAL CHECK: If the log was created more than 24 hours ago, it's definitely not from today
-    // This helps catch logs that were stored with the wrong date due to timezone issues
-    let createdRecently = true
-    if (log.created_at) {
-      const createdDate = new Date(log.created_at)
-      const now = new Date()
-      const hoursAgo = (now - createdDate) / (1000 * 60 * 60) // Convert to hours
-      createdRecently = hoursAgo < 24
-      
-      // If created more than 24 hours ago, it's definitely not from today
-      if (hoursAgo >= 24) {
-        console.log('⏰ Log created more than 24 hours ago - filtering out:', {
-          food: log.food_name,
-          created_at: log.created_at,
-          hoursAgo: hoursAgo.toFixed(1),
-          logDate: logDateStr,
-          today: actualTodayForComparison
-        })
-        return false
+    // CRITICAL FIX: Parse the log_date and check if it's actually from today in local time
+    // This catches cases where the date string matches but the actual date is different
+    let logDateIsActuallyToday = true
+    if (log.log_date) {
+      try {
+        // Parse the log_date as a date (this handles timezone conversion)
+        const logDateParsed = new Date(log.log_date)
+        // Get the local date from this parsed date using local timezone
+        const logYear = logDateParsed.getFullYear()
+        const logMonth = String(logDateParsed.getMonth() + 1).padStart(2, '0')
+        const logDay = String(logDateParsed.getDate()).padStart(2, '0')
+        const logLocalDate = `${logYear}-${logMonth}-${logDay}`
+        
+        // Get today's date in local timezone
+        const now = new Date()
+        const todayYear = now.getFullYear()
+        const todayMonth = String(now.getMonth() + 1).padStart(2, '0')
+        const todayDay = String(now.getDate()).padStart(2, '0')
+        const todayLocalDate = `${todayYear}-${todayMonth}-${todayDay}`
+        
+        // Compare: if log's local date is before today, it's from yesterday or earlier
+        logDateIsActuallyToday = logLocalDate === todayLocalDate
+        
+        // If the log's local date is before today, filter it out
+        if (logLocalDate < todayLocalDate) {
+          console.log('🚫 Log is from a past date (yesterday or earlier) - filtering out:', {
+            food: log.food_name,
+            original: log.log_date,
+            extracted: logDateStr,
+            logLocalDate: logLocalDate,
+            todayLocalDate: todayLocalDate,
+            isPast: logLocalDate < todayLocalDate,
+            willFilter: true
+          })
+          return false
+        }
+        
+        // Also check if it doesn't match today
+        if (!logDateIsActuallyToday) {
+          console.log('🚫 Log date does not match today when converted to local time:', {
+            food: log.food_name,
+            original: log.log_date,
+            extracted: logDateStr,
+            logLocalDate: logLocalDate,
+            todayLocalDate: todayLocalDate,
+            willFilter: true
+          })
+          return false
+        }
+      } catch (e) {
+        console.warn('Error parsing log_date for local time check:', log.log_date, e)
       }
     }
     
-    const matches = dateMatches && createdRecently
+    const dateMatchesFinal = dateMatches && logDateIsActuallyToday
+    
+    // CRITICAL CHECK: Use created_at to determine the actual date the log was created
+    // This is more reliable than log_date which can have timezone issues
+    let createdRecently = true
+    let hoursAgo = null
+    let createdOnToday = true
+    
+    // Check for created_at field (try different possible field names)
+    const createdAt = log.created_at || log.createdAt || log.created
+    if (createdAt) {
+      try {
+        const createdDate = new Date(createdAt)
+        const now = new Date()
+        hoursAgo = (now - createdDate) / (1000 * 60 * 60) // Convert to hours
+        
+        // Get the local date when the log was created
+        const createdYear = createdDate.getFullYear()
+        const createdMonth = String(createdDate.getMonth() + 1).padStart(2, '0')
+        const createdDay = String(createdDate.getDate()).padStart(2, '0')
+        const createdLocalDate = `${createdYear}-${createdMonth}-${createdDay}`
+        
+        // Get today's local date
+        const todayYear = now.getFullYear()
+        const todayMonth = String(now.getMonth() + 1).padStart(2, '0')
+        const todayDay = String(now.getDate()).padStart(2, '0')
+        const todayLocalDate = `${todayYear}-${todayMonth}-${todayDay}`
+        
+        // Check if created on today (in local timezone)
+        createdOnToday = createdLocalDate === todayLocalDate
+        
+        // If created on a different day (yesterday or earlier), filter it out
+        if (!createdOnToday) {
+          console.log('🚫 Log was created on a different day - filtering out:', {
+            food: log.food_name,
+            created_at: createdAt,
+            createdLocalDate: createdLocalDate,
+            todayLocalDate: todayLocalDate,
+            hoursAgo: hoursAgo.toFixed(1),
+            createdDateLocal: createdDate.toLocaleString(),
+            willFilter: true
+          })
+          return false
+        }
+        
+        // Also check if created more than 24 hours ago as a safety measure
+        if (hoursAgo >= 24) {
+          console.log('⏰ Log created more than 24 hours ago - filtering out:', {
+            food: log.food_name,
+            created_at: createdAt,
+            hoursAgo: hoursAgo.toFixed(1),
+            logDate: logDateStr,
+            today: actualTodayForComparison,
+            createdDate: createdDate.toString()
+          })
+          return false
+        }
+      } catch (e) {
+        console.warn('Error parsing created_at:', createdAt, e)
+      }
+    } else {
+      // Log what fields are available to help debug
+      console.log('⚠️ No created_at field found on log:', {
+        food: log.food_name,
+        availableFields: Object.keys(log),
+        log_id: log.id
+      })
+    }
+    
+    const matches = dateMatchesFinal && createdRecently && createdOnToday
     
     // Debug logging - show detailed date comparison
     const logDateObj = log.log_date ? new Date(log.log_date) : null
@@ -1194,7 +1296,17 @@ function ClientNutrition({ clientId, clientName }) {
       actualNowLocal: actualToday.toLocaleDateString(),
       // Check if dates actually match
       datesMatch: logDateStr === today,
-      actualDatesMatch: logDateStr === actualTodayStr
+      actualDatesMatch: logDateStr === actualTodayStr,
+      // Show created_at info
+      created_at: log.created_at || log.createdAt || log.created || 'NOT FOUND',
+      hoursAgo: hoursAgo !== null ? hoursAgo.toFixed(1) : 'N/A',
+      createdRecently: createdRecently,
+      createdOnToday: createdOnToday,
+      // Show all log fields for debugging
+      allLogFields: Object.keys(log),
+      // Show what date created_at represents in local time
+      created_at_local: createdAt ? new Date(createdAt).toLocaleString() : 'N/A',
+      created_at_local_date: createdAt ? getLocalDateString(new Date(createdAt)) : 'N/A'
     })
     
     return matches

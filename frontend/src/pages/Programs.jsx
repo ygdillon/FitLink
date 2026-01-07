@@ -124,7 +124,18 @@ function Programs() {
   const handleViewProgram = async (programId) => {
     try {
       const response = await api.get(`/programs/${programId}`)
-      setSelectedProgram(response.data)
+      const program = response.data
+      
+      // If client view, get start_date from assignment
+      if (user?.role === 'client') {
+        const assignedProgramsRes = await api.get('/programs/client/assigned').catch(() => ({ data: [] }))
+        const assignedProgram = assignedProgramsRes.data?.find(p => p.id === programId)
+        if (assignedProgram?.start_date) {
+          program.start_date = assignedProgram.start_date
+        }
+      }
+      
+      setSelectedProgram(program)
       openProgramView()
     } catch (error) {
       console.error('Error fetching program:', error)
@@ -1322,7 +1333,19 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
   // Update current program when program prop changes
   useEffect(() => {
     setCurrentProgram(program)
-  }, [program])
+    
+    // If client view and start_date is missing, fetch it from assignment
+    if (!isTrainer && program?.id && !program.start_date) {
+      api.get('/programs/client/assigned')
+        .then(res => {
+          const assignedProgram = res.data?.find(p => p.id === program.id)
+          if (assignedProgram?.start_date) {
+            setCurrentProgram(prev => ({ ...prev, start_date: assignedProgram.start_date }))
+          }
+        })
+        .catch(err => console.error('Error fetching assignment start_date:', err))
+    }
+  }, [program, isTrainer])
 
   // Helper function to calculate actual date from program start date, week, and day
   // dayNumber: 1=Monday, 2=Tuesday, ..., 7=Sunday
@@ -1750,11 +1773,22 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                       const dayWorkouts = weekWorkouts[dayNum] || []
                       
                       // Calculate actual date for this day
-                      const dayDate = currentProgram.start_date 
-                        ? calculateDateForDay(currentProgram.start_date, weekNum, dayNum)
-                        : null
+                      // Always try to calculate date - if no start_date, use today as fallback for relative dates
+                      let dayDate = null
+                      if (currentProgram.start_date) {
+                        dayDate = calculateDateForDay(currentProgram.start_date, weekNum, dayNum)
+                      } else {
+                        // Fallback: calculate relative to today (for display purposes)
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        const daysToAdd = (weekNum - 1) * 7 + (dayNum - 1)
+                        dayDate = new Date(today)
+                        dayDate.setDate(today.getDate() + daysToAdd)
+                      }
+                      
                       const dateDisplay = dayDate ? formatDateDisplay(dayDate) : null
                       const dayName = dayDate ? dayDate.toLocaleDateString('en-US', { weekday: 'short' }) : null
+                      const fullDate = dayDate ? dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null
                       
                       return (
                         <Paper
@@ -1789,13 +1823,18 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                         >
                           <Stack gap="xs">
                             <Group justify="space-between">
-                              {dateDisplay ? (
+                              {dayDate ? (
                                 <Stack gap={0}>
                                   <Text fw={700} size="sm" c="gray.3">{dayName?.toUpperCase()}</Text>
                                   <Text fw={500} size="xs" c="gray.5">{dateDisplay}</Text>
+                                  {!currentProgram.start_date && (
+                                    <Text fw={400} size="xs" c="gray.6" style={{ fontStyle: 'italic' }}>
+                                      (Est.)
+                                    </Text>
+                                  )}
                                 </Stack>
                               ) : (
-                                <Text fw={700} size="sm" c="gray.3">DAY {dayNumber}</Text>
+                                <Text fw={700} size="sm" c="gray.3">DAY {dayNum}</Text>
                               )}
                               {isTrainer && dayWorkouts.length === 0 && (
                                 <Text size="xs" c="gray.5">+</Text>
