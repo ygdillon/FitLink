@@ -64,6 +64,32 @@ function ClientDashboard() {
     }
   }
 
+  // Format date key from Date object
+  const getDateKey = useCallback((date) => {
+    if (!date) return null
+    
+    // Ensure date is a Date object
+    let dateObj = date
+    if (!(date instanceof Date)) {
+      // Try to convert if it's a string or number
+      if (typeof date === 'string' || typeof date === 'number') {
+        dateObj = new Date(date)
+      } else {
+        return null
+      }
+    }
+    
+    // Validate the date
+    if (isNaN(dateObj.getTime())) {
+      return null
+    }
+    
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
+
   // Helper function to calculate date for a given week and day in a program
   const calculateDateForDay = useCallback((startDate, weekNumber, dayNumber) => {
     if (!startDate) return null
@@ -222,33 +248,7 @@ function ClientDashboard() {
     })
     console.log('[ClientDashboard] Grouped sessions into', grouped.size, 'dates:', Array.from(grouped.keys()))
     return grouped
-  }, [upcomingSessions])
-
-  // Format date key from Date object
-  const getDateKey = useCallback((date) => {
-      if (!date) return null
-      
-      // Ensure date is a Date object
-      let dateObj = date
-      if (!(date instanceof Date)) {
-        // Try to convert if it's a string or number
-        if (typeof date === 'string' || typeof date === 'number') {
-          dateObj = new Date(date)
-        } else {
-          return null
-        }
-      }
-      
-      // Validate the date
-      if (isNaN(dateObj.getTime())) {
-        return null
-      }
-      
-      const year = dateObj.getFullYear()
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0')
-      const day = String(dateObj.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-  }, [])
+  }, [upcomingSessions, getDateKey])
 
   const getSessionsForDate = (date) => {
     if (!date) return []

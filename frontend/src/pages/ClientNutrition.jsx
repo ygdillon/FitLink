@@ -478,9 +478,11 @@ function ClientNutrition({ clientId, clientName }) {
     }
   }
 
-  const handleEditMeal = (meal) => {
+  const handleEditMeal = async (meal) => {
     setSelectedMealToEdit(meal)
-    mealRecommendationForm.setValues({
+    
+    // Load basic meal data
+    const formValues = {
       meal_name: meal.meal_name || '',
       meal_description: meal.meal_description || '',
       meal_category: meal.meal_category || 'breakfast',
@@ -490,8 +492,63 @@ function ClientNutrition({ clientId, clientName }) {
       fats_per_serving: meal.fats_per_serving || 0,
       recommendation_type: meal.recommendation_type || 'flexible',
       priority: meal.priority || 0,
-      notes: meal.notes || ''
-    })
+      notes: meal.notes || '',
+      // Recipe fields
+      include_recipe: false,
+      total_yield: 1,
+      prep_time: '',
+      cook_time: '',
+      total_time: '',
+      difficulty_level: '',
+      ingredients: [''],
+      instructions: '',
+      equipment_needed: [],
+      prep_tips: '',
+      storage_tips: '',
+      nutrition_tips: '',
+      substitution_options: [],
+      is_vegan: false,
+      is_vegetarian: true,
+      is_gluten_free: false,
+      is_dairy_free: false,
+      is_quick_meal: false,
+      is_meal_prep_friendly: false
+    }
+
+    // If meal has a recipe_id, fetch the recipe data
+    if (meal.recipe_id) {
+      try {
+        const recipeResult = await api.get(`/nutrition/recipes/${meal.recipe_id}`).catch(() => ({ data: null }))
+        if (recipeResult.data) {
+          const recipe = recipeResult.data
+          formValues.include_recipe = true
+          formValues.total_yield = recipe.total_yield || 1
+          formValues.prep_time = recipe.prep_time || ''
+          formValues.cook_time = recipe.cook_time || ''
+          formValues.total_time = recipe.total_time || ''
+          formValues.difficulty_level = recipe.difficulty_level || ''
+          formValues.ingredients = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 
+            ? recipe.ingredients 
+            : ['']
+          formValues.instructions = recipe.instructions || ''
+          formValues.prep_tips = recipe.prep_tips || ''
+          formValues.storage_tips = recipe.storage_tips || ''
+          formValues.nutrition_tips = recipe.nutrition_tips || ''
+          formValues.equipment_needed = Array.isArray(recipe.equipment_needed) ? recipe.equipment_needed : []
+          formValues.substitution_options = Array.isArray(recipe.substitution_options) ? recipe.substitution_options : []
+          formValues.is_vegan = recipe.is_vegan || false
+          formValues.is_vegetarian = recipe.is_vegetarian !== undefined ? recipe.is_vegetarian : true
+          formValues.is_gluten_free = recipe.is_gluten_free || false
+          formValues.is_dairy_free = recipe.is_dairy_free || false
+          formValues.is_quick_meal = recipe.is_quick_meal || false
+          formValues.is_meal_prep_friendly = recipe.is_meal_prep_friendly || false
+        }
+      } catch (error) {
+        console.error('Error fetching recipe for edit:', error)
+      }
+    }
+
+    mealRecommendationForm.setValues(formValues)
     openEditMealModal()
   }
 
@@ -516,7 +573,7 @@ function ClientNutrition({ clientId, clientName }) {
         return
       }
 
-      await api.put(`/nutrition/meals/recommendations/${selectedMealToEdit.id}`, {
+      const payload = {
         meal_name: values.meal_name.trim(),
         meal_description: values.meal_description?.trim() || null,
         meal_category: values.meal_category,
@@ -527,7 +584,33 @@ function ClientNutrition({ clientId, clientName }) {
         recommendation_type: values.recommendation_type || 'flexible',
         priority: parseInt(values.priority || 0),
         notes: values.notes?.trim() || null
-      })
+      }
+
+      // If recipe details are provided, include them
+      if (values.include_recipe && values.ingredients && values.ingredients.length > 0 && values.ingredients[0].trim() !== '' && values.instructions && values.instructions.trim() !== '') {
+        payload.recipe = {
+          total_yield: parseInt(values.total_yield || 1),
+          prep_time: values.prep_time ? parseInt(values.prep_time) : null,
+          cook_time: values.cook_time ? parseInt(values.cook_time) : null,
+          total_time: values.total_time ? parseInt(values.total_time) : null,
+          difficulty_level: values.difficulty_level || null,
+          ingredients: values.ingredients.filter(ing => ing.trim() !== '').map(ing => ing.trim()),
+          instructions: values.instructions.trim(),
+          equipment_needed: values.equipment_needed || [],
+          prep_tips: values.prep_tips?.trim() || null,
+          storage_tips: values.storage_tips?.trim() || null,
+          nutrition_tips: values.nutrition_tips?.trim() || null,
+          substitution_options: values.substitution_options || [],
+          is_vegan: values.is_vegan || false,
+          is_vegetarian: values.is_vegetarian !== undefined ? values.is_vegetarian : true,
+          is_gluten_free: values.is_gluten_free || false,
+          is_dairy_free: values.is_dairy_free || false,
+          is_quick_meal: values.is_quick_meal || false,
+          is_meal_prep_friendly: values.is_meal_prep_friendly || false
+        }
+      }
+
+      await api.put(`/nutrition/meals/recommendations/${selectedMealToEdit.id}`, payload)
 
       notifications.show({
         title: 'Success',

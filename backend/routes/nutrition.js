@@ -1095,12 +1095,130 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
 
     // Verify recommendation belongs to trainer
     const checkResult = await pool.query(
-      'SELECT id FROM trainer_meal_recommendations WHERE id = $1 AND trainer_id = $2',
+      'SELECT * FROM trainer_meal_recommendations WHERE id = $1 AND trainer_id = $2',
       [id, req.user.id]
     )
 
     if (checkResult.rows.length === 0) {
       return res.status(404).json({ message: 'Recommendation not found' })
+    }
+
+    const existingMeal = checkResult.rows[0]
+
+    // Check if recipe details are provided (ingredients and instructions)
+    const recipeData = req.body.recipe
+    let finalRecipeId = existingMeal.recipe_id
+
+    // If recipe details provided, create or update recipe
+    if (recipeData && recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0 && recipeData.instructions && recipeData.instructions.trim() !== '') {
+      if (existingMeal.recipe_id) {
+        // Update existing recipe
+        await pool.query(
+          `UPDATE recipes SET
+            name = $1,
+            description = $2,
+            category = $3,
+            total_yield = $4,
+            prep_time = $5,
+            cook_time = $6,
+            total_time = $7,
+            difficulty_level = $8,
+            equipment_needed = $9,
+            calories_per_serving = $10,
+            protein_per_serving = $11,
+            carbs_per_serving = $12,
+            fats_per_serving = $13,
+            ingredients = $14,
+            instructions = $15,
+            storage_instructions = $16,
+            substitution_options = $17,
+            prep_tips = $18,
+            storage_tips = $19,
+            nutrition_tips = $20,
+            is_vegan = $21,
+            is_vegetarian = $22,
+            is_gluten_free = $23,
+            is_dairy_free = $24,
+            is_quick_meal = $25,
+            is_meal_prep_friendly = $26,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $27`,
+          [
+            updates.meal_name?.trim() || existingMeal.meal_name,
+            updates.meal_description?.trim() || recipeData.description?.trim() || null,
+            updates.meal_category || existingMeal.meal_category,
+            recipeData.total_yield ? parseInt(recipeData.total_yield) : 1,
+            recipeData.prep_time ? parseInt(recipeData.prep_time) : null,
+            recipeData.cook_time ? parseInt(recipeData.cook_time) : null,
+            recipeData.total_time ? parseInt(recipeData.total_time) : null,
+            recipeData.difficulty_level || null,
+            recipeData.equipment_needed ? JSON.stringify(recipeData.equipment_needed) : null,
+            parseFloat(updates.calories_per_serving || existingMeal.calories_per_serving),
+            parseFloat(updates.protein_per_serving || existingMeal.protein_per_serving),
+            parseFloat(updates.carbs_per_serving || existingMeal.carbs_per_serving),
+            parseFloat(updates.fats_per_serving || existingMeal.fats_per_serving),
+            JSON.stringify(recipeData.ingredients.filter(ing => ing.trim() !== '')),
+            recipeData.instructions.trim(),
+            recipeData.storage_instructions?.trim() || recipeData.storage_tips?.trim() || null,
+            recipeData.substitution_options ? JSON.stringify(recipeData.substitution_options) : null,
+            recipeData.prep_tips?.trim() || null,
+            recipeData.storage_tips?.trim() || null,
+            recipeData.nutrition_tips?.trim() || null,
+            recipeData.is_vegan || false,
+            recipeData.is_vegetarian !== undefined ? recipeData.is_vegetarian : true,
+            recipeData.is_gluten_free || false,
+            recipeData.is_dairy_free || false,
+            recipeData.is_quick_meal || false,
+            recipeData.is_meal_prep_friendly || false,
+            existingMeal.recipe_id
+          ]
+        )
+        finalRecipeId = existingMeal.recipe_id
+      } else {
+        // Create new recipe
+        const recipeResult = await pool.query(
+          `INSERT INTO recipes (
+            name, description, category, total_yield, prep_time, cook_time, total_time,
+            difficulty_level, equipment_needed, calories_per_serving, protein_per_serving,
+            carbs_per_serving, fats_per_serving, ingredients, instructions,
+            storage_instructions, substitution_options, prep_tips, storage_tips,
+            nutrition_tips, is_vegan, is_vegetarian, is_gluten_free, is_dairy_free,
+            is_quick_meal, is_meal_prep_friendly, created_by, is_system_recipe
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+          RETURNING id`,
+          [
+            updates.meal_name?.trim() || existingMeal.meal_name,
+            updates.meal_description?.trim() || recipeData.description?.trim() || null,
+            updates.meal_category || existingMeal.meal_category,
+            recipeData.total_yield ? parseInt(recipeData.total_yield) : 1,
+            recipeData.prep_time ? parseInt(recipeData.prep_time) : null,
+            recipeData.cook_time ? parseInt(recipeData.cook_time) : null,
+            recipeData.total_time ? parseInt(recipeData.total_time) : null,
+            recipeData.difficulty_level || null,
+            recipeData.equipment_needed ? JSON.stringify(recipeData.equipment_needed) : null,
+            parseFloat(updates.calories_per_serving || existingMeal.calories_per_serving),
+            parseFloat(updates.protein_per_serving || existingMeal.protein_per_serving),
+            parseFloat(updates.carbs_per_serving || existingMeal.carbs_per_serving),
+            parseFloat(updates.fats_per_serving || existingMeal.fats_per_serving),
+            JSON.stringify(recipeData.ingredients.filter(ing => ing.trim() !== '')),
+            recipeData.instructions.trim(),
+            recipeData.storage_instructions?.trim() || recipeData.storage_tips?.trim() || null,
+            recipeData.substitution_options ? JSON.stringify(recipeData.substitution_options) : null,
+            recipeData.prep_tips?.trim() || null,
+            recipeData.storage_tips?.trim() || null,
+            recipeData.nutrition_tips?.trim() || null,
+            recipeData.is_vegan || false,
+            recipeData.is_vegetarian !== undefined ? recipeData.is_vegetarian : true,
+            recipeData.is_gluten_free || false,
+            recipeData.is_dairy_free || false,
+            recipeData.is_quick_meal || false,
+            recipeData.is_meal_prep_friendly || false,
+            req.user.id,
+            false
+          ]
+        )
+        finalRecipeId = recipeResult.rows[0].id
+      }
     }
 
     const allowedFields = [
@@ -1121,6 +1239,12 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
       }
     }
 
+    // Add recipe_id if a recipe was created/updated
+    if (finalRecipeId !== existingMeal.recipe_id) {
+      updateFields.push(`recipe_id = $${paramCount++}`)
+      values.push(finalRecipeId)
+    }
+
     if (updateFields.length === 0) {
       return res.status(400).json({ message: 'No valid fields to update' })
     }
@@ -1139,7 +1263,7 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
     res.json(result.rows[0])
   } catch (error) {
     console.error('Error updating meal recommendation:', error)
-    res.status(500).json({ message: 'Failed to update meal recommendation' })
+    res.status(500).json({ message: 'Failed to update meal recommendation', error: error.message })
   }
 })
 
