@@ -48,8 +48,15 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
     // Log for debugging
     if (result.rows.length > 0) {
       console.log(`[Schedule API] Fetched ${result.rows.length} sessions for trainer ${req.user.id} (user: ${req.user.email})`)
+      // Log sample of session dates to verify date range
+      const sampleDates = result.rows.slice(0, 5).map(s => s.session_date)
+      console.log(`[Schedule API] Sample session dates: ${sampleDates.join(', ')}`)
+      // Count recurring vs non-recurring
+      const recurringCount = result.rows.filter(s => s.is_recurring).length
+      const childCount = result.rows.filter(s => s.recurring_parent_id).length
+      console.log(`[Schedule API] Recurring sessions: ${recurringCount}, Child sessions: ${childCount}`)
     } else {
-      console.log(`[Schedule API] No sessions found for trainer ${req.user.id} (user: ${req.user.email})`)
+      console.log(`[Schedule API] No sessions found for trainer ${req.user.id} (user: ${req.user.email}), date range: ${startDate || 'CURRENT_DATE'} to ${endDate || 'unlimited'}`)
     }
     res.json(result.rows)
   } catch (error) {
