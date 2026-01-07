@@ -699,29 +699,31 @@ function ClientNutrition({ clientId, clientName }) {
       console.log('View Recipe - meal data:', {
         meal_name: meal.meal_name,
         recipe_id: recipeId,
-        has_recipe_id: !!recipeId
+        has_recipe_id: !!recipeId,
+        meal_object: meal
       })
       
       // For client view: Always fetch full recipe from API if recipe_id exists
       // This ensures we get complete recipe data (ingredients, instructions, tips, etc.)
       if (recipeId) {
         try {
-          console.log('Fetching recipe from API:', recipeId)
+          console.log('✅ Recipe ID found! Fetching full recipe from API:', recipeId)
           const result = await api.get(`/nutrition/recipes/${recipeId}`)
           
           if (result.data) {
-            console.log('Recipe data received:', {
+            console.log('✅ Recipe data received:', {
               name: result.data.name,
               has_ingredients: !!(result.data.ingredients && result.data.ingredients.length > 0),
               has_instructions: !!result.data.instructions,
               has_prep_tips: !!result.data.prep_tips,
               has_storage_tips: !!result.data.storage_tips,
               has_nutrition_tips: !!result.data.nutrition_tips,
-              ingredients_count: Array.isArray(result.data.ingredients) ? result.data.ingredients.length : 0
+              ingredients_count: Array.isArray(result.data.ingredients) ? result.data.ingredients.length : 0,
+              full_recipe: result.data
             })
             
             // Merge meal-specific data (like notes from meal recommendation) with recipe data
-            setSelectedRecipe({
+            const fullRecipeData = {
               ...result.data,
               // Preserve meal recommendation notes if available
               notes: meal.notes || result.data.notes,
@@ -730,17 +732,23 @@ function ClientNutrition({ clientId, clientName }) {
               protein_per_serving: result.data.protein_per_serving || meal.protein_per_serving,
               carbs_per_serving: result.data.carbs_per_serving || meal.carbs_per_serving,
               fats_per_serving: result.data.fats_per_serving || meal.fats_per_serving
-            })
+            }
+            
+            console.log('✅ Setting full recipe data:', fullRecipeData)
+            setSelectedRecipe(fullRecipeData)
             openRecipeModal()
             return
+          } else {
+            console.error('❌ Recipe API returned no data')
           }
         } catch (apiError) {
-          console.error('Error fetching recipe from API:', apiError)
+          console.error('❌ Error fetching recipe from API:', apiError)
           console.error('API Error details:', apiError.response?.data)
           // Fall through to show basic meal info if API fails
         }
       } else {
-        console.log('No recipe_id found for meal, showing basic info')
+        console.log('❌ No recipe_id found for meal, showing basic info')
+        console.log('Meal object:', meal)
       }
       
       // If no recipe_id or API fetch failed, show meal recommendation details
