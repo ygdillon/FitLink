@@ -31,7 +31,16 @@ function ClientDashboard() {
         assignedPrograms.map(async (program) => {
           try {
             const fullProgramRes = await api.get(`/programs/${program.id}`)
-            return fullProgramRes.data || program
+            const fullProgram = fullProgramRes.data || program
+            // Use assignment start_date if available, otherwise use program start_date
+            // The assignment start_date is the actual start date for this client
+            if (program.start_date && !fullProgram.start_date) {
+              fullProgram.start_date = program.start_date
+            } else if (program.start_date) {
+              // Assignment start_date takes precedence as it's client-specific
+              fullProgram.start_date = program.start_date
+            }
+            return fullProgram
           } catch (error) {
             console.error(`Error fetching program ${program.id}:`, error)
             return program
