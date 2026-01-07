@@ -1029,6 +1029,18 @@ router.post('/workout/:workoutId/complete', requireRole(['client']), async (req,
       [workoutId, req.user.id, JSON.stringify(exercises_completed || {}), notes || null, duration || null]
     )
 
+    // Also update any related sessions for today to 'completed' status
+    await pool.query(
+      `UPDATE sessions
+       SET status = 'completed',
+           updated_at = NOW()
+       WHERE client_id = $1
+         AND program_workout_id = $2
+         AND session_date = CURRENT_DATE
+         AND status IN ('scheduled', 'confirmed')`,
+      [req.user.id, workoutId]
+    )
+
     res.json({ message: 'Workout completed successfully' })
   } catch (error) {
     console.error('Error completing workout:', error)

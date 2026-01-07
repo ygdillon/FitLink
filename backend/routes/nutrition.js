@@ -785,7 +785,22 @@ router.post('/logs', requireRole(['client']), async (req, res) => {
     }
 
     // Convert numeric values, defaulting to 0 if not provided
-    const logDate = log_date || new Date().toISOString().split('T')[0]
+    // IMPORTANT: Use the provided log_date (which should be in local timezone YYYY-MM-DD format)
+    // If not provided, get today's date in local timezone (not UTC)
+    let logDate = log_date
+    if (!logDate) {
+      // Get today's date in server's local timezone (YYYY-MM-DD)
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      logDate = `${year}-${month}-${day}`
+    }
+    
+    // Ensure logDate is in YYYY-MM-DD format (extract date part if it's a timestamp)
+    if (typeof logDate === 'string' && logDate.includes('T')) {
+      logDate = logDate.split('T')[0]
+    }
     const numQuantity = quantity ? parseFloat(quantity) : 1
     const numCalories = calories ? parseFloat(calories) : 0
     const numProtein = protein ? parseFloat(protein) : 0

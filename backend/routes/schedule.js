@@ -51,16 +51,17 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
 // Check if client has completed a workout today
 router.get('/client/today-completed', requireRole(['client']), async (req, res) => {
   try {
+    // Use CURRENT_DATE from database to ensure timezone consistency
     const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
     
-    // Check for completed sessions today
+    // Check for completed sessions today (using DATE() to handle timestamp comparisons)
     const sessionsResult = await pool.query(
       `SELECT COUNT(*) as count
        FROM sessions
        WHERE client_id = $1
-         AND session_date = $2
+         AND DATE(session_date) = CURRENT_DATE
          AND status = 'completed'`,
-      [req.user.id, today]
+      [req.user.id]
     )
     
     const hasCompletedSession = parseInt(sessionsResult.rows[0].count) > 0
@@ -70,11 +71,13 @@ router.get('/client/today-completed', requireRole(['client']), async (req, res) 
       `SELECT COUNT(*) as count
        FROM program_workout_completions
        WHERE client_id = $1
-         AND completed_date = $2`,
-      [req.user.id, today]
+         AND DATE(completed_date) = CURRENT_DATE`,
+      [req.user.id]
     )
     
     const hasCompletedWorkout = parseInt(completionsResult.rows[0].count) > 0
+    
+    console.log(`[Today Completed Check] Client ${req.user.id}: sessions=${hasCompletedSession}, workouts=${hasCompletedWorkout}, total=${hasCompletedSession || hasCompletedWorkout}`)
     
     res.json({ 
       hasCompleted: hasCompletedSession || hasCompletedWorkout,

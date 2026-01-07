@@ -466,7 +466,7 @@ function ClientNutrition({ clientId, clientName }) {
         }
         
         const logData = {
-          log_date: today,
+          log_date: today, // Already using getTodayLocalDate()
           meal_type: normalizedMealType,
           food_name: foodName,
           quantity: 1,
@@ -478,7 +478,11 @@ function ClientNutrition({ clientId, clientName }) {
           notes: `Added from meal recommendations`
         }
         
-        console.log('📝 Creating nutrition log with data:', logData)
+        console.log('📝 Creating nutrition log with data:', {
+          ...logData,
+          todayLocal: getTodayLocalDate(),
+          dateMatch: logData.log_date === getTodayLocalDate()
+        })
         const logResponse = await api.post('/nutrition/logs', logData)
         console.log('✅ Nutrition log created successfully:', logResponse.data)
         logCreated = true
@@ -953,7 +957,17 @@ function ClientNutrition({ clientId, clientName }) {
 
   const handleSubmitLog = async () => {
     try {
-      await api.post('/nutrition/logs', logForm.values)
+      // Ensure log_date is set to today's local date (not UTC)
+      const logData = {
+        ...logForm.values,
+        log_date: logForm.values.log_date || getTodayLocalDate()
+      }
+      console.log('Submitting log with date:', {
+        original: logForm.values.log_date,
+        final: logData.log_date,
+        today: getTodayLocalDate()
+      })
+      await api.post('/nutrition/logs', logData)
       
       notifications.show({
         title: 'Success',
@@ -1064,7 +1078,36 @@ function ClientNutrition({ clientId, clientName }) {
   }
 
   // Get today's date in local timezone (not UTC) - use getTodayLocalDate for consistency
+  // IMPORTANT: This should match the user's actual calendar date, not UTC date
   const today = getTodayLocalDate()
+  
+  // Debug: Log what "today" actually is
+  const actualNow = new Date()
+  const actualTodayStr = getTodayLocalDate()
+  
+  // Check if there's a mismatch between what we think today is and what it actually is
+  console.log('🗓️ Date calculation:', {
+    actualNow: actualNow.toString(),
+    actualNowISO: actualNow.toISOString(),
+    actualNowLocal: actualNow.toLocaleDateString(),
+    today: today,
+    actualTodayStr: actualTodayStr,
+    getTodayLocalDate: getTodayLocalDate(),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezoneOffset: actualNow.getTimezoneOffset(),
+    // Check if dates match
+    datesMatch: today === actualTodayStr,
+    // Show what date the logs have
+    logDates: nutritionLogs.map(log => ({
+      id: log.id,
+      food: log.food_name,
+      log_date: log.log_date,
+      extracted: normalizeLogDate(log.log_date)
+    }))
+  })
+  
+  // Use actualTodayStr to ensure we're using the most current date
+  const todayForFiltering = actualTodayStr
   
   // Calculate selected date totals from logs
   const selectedDateStr = getLocalDateString(selectedDate)
@@ -1096,16 +1139,33 @@ function ClientNutrition({ clientId, clientName }) {
       logDateStr = normalizeLogDate(log.log_date)
     }
     
-    const matches = logDateStr === today
+    // Compare against the actual today's date (recalculated to ensure freshness)
+    const actualTodayForComparison = getTodayLocalDate()
+    const matches = logDateStr === actualTodayForComparison
     
-    // Debug logging
+    // Debug logging - show detailed date comparison
+    const logDateObj = log.log_date ? new Date(log.log_date) : null
+    const actualToday = new Date()
+    const actualTodayStr = getTodayLocalDate()
+    
     console.log('🔍 Date filter check:', {
       original: log.log_date,
       extracted: logDateStr,
       today: today,
+      actualTodayStr: actualTodayStr,
       matches: matches,
       food: log.food_name,
-      willShow: matches
+      willShow: matches,
+      // Show what the log date represents in local time
+      logDateAsDate: logDateObj ? logDateObj.toString() : null,
+      logDateLocal: logDateObj ? logDateObj.toLocaleDateString() : null,
+      logDateLocalTime: logDateObj ? logDateObj.toLocaleString() : null,
+      // Show what today is
+      actualNow: actualToday.toString(),
+      actualNowLocal: actualToday.toLocaleDateString(),
+      // Check if dates actually match
+      datesMatch: logDateStr === today,
+      actualDatesMatch: logDateStr === actualTodayStr
     })
     
     return matches

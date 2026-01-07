@@ -43,11 +43,41 @@ function DailyCheckIn() {
         ...prev,
         workout_completed: true
       }))
+      // If coming from workout, allow check-in immediately
+      setHasCompletedWorkouts(true)
     }
     fetchTodayCheckIn()
     fetchCheckInHistory()
     checkCompletedWorkouts()
   }, [location])
+
+  // Re-check workout completion when page becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !submitted) {
+        // Small delay to ensure backend has processed the completion
+        setTimeout(() => {
+          checkCompletedWorkouts()
+        }, 500)
+      }
+    }
+
+    const handleFocus = () => {
+      if (!submitted) {
+        setTimeout(() => {
+          checkCompletedWorkouts()
+        }, 500)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [submitted])
 
   const checkCompletedWorkouts = async () => {
     try {
@@ -328,14 +358,26 @@ function DailyCheckIn() {
                   <Text>
                     You need to complete your workout today before you can check in. Please complete your scheduled workout first.
                   </Text>
-                  <Button 
-                    component={Link}
-                    to="/client/workouts" 
-                    variant="filled"
-                    color="green"
-                  >
-                    Go to Workouts
-                  </Button>
+                  <Group>
+                    <Button 
+                      component={Link}
+                      to="/client/workouts" 
+                      variant="filled"
+                      color="green"
+                    >
+                      Go to Workouts
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      color="blue"
+                      onClick={() => {
+                        checkCompletedWorkouts()
+                      }}
+                      loading={checkingWorkouts}
+                    >
+                      Refresh Status
+                    </Button>
+                  </Group>
                 </Stack>
               </Alert>
             ) : (
