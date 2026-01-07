@@ -566,6 +566,7 @@ function TrainerDashboard() {
             p="lg" 
             shadow="sm" 
             withBorder
+            radius="sm"
             style={{ 
               height: '100%',
               display: 'flex',
@@ -573,7 +574,8 @@ function TrainerDashboard() {
               overflow: 'hidden',
               minHeight: 0,
               width: '100%',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              borderRadius: 'var(--mantine-radius-sm)'
             }}
           >
             <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
@@ -588,8 +590,8 @@ function TrainerDashboard() {
                 <Text size="sm" c="dimmed">Schedule sessions from client profiles</Text>
               </Stack>
             ) : (
-              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%', paddingBottom: '0.5rem' }}>
-                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
+              <Stack gap="xs" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, margin: 0, padding: 0, width: '100%' }}>
+                <div className="calendar-wrapper" style={{ flex: 1, overflow: 'auto', minHeight: 0, margin: 0, padding: 0, width: '100%', borderRadius: '0 0 var(--mantine-radius-sm) var(--mantine-radius-sm)' }}>
                   <Calendar
                     value={null}
                     month={displayedMonth}

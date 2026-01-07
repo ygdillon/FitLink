@@ -448,6 +448,32 @@
   overflow: auto;
   flex: 1;
   min-height: 0;
+  border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+}
+
+/* Ensure calendar table respects rounded corners */
+.calendar-wrapper table {
+  border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+  overflow: hidden;
+}
+
+/* Ensure calendar respects parent Card's rounded corners */
+.calendar-wrapper table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--mantine-radius-sm) !important;
+  overflow: hidden;
+}
+
+.calendar-wrapper table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--mantine-radius-sm) !important;
+  overflow: hidden;
+}
+
+.calendar-wrapper table tbody tr:last-child td:first-child [data-mantine-calendar-day] {
+  border-bottom-left-radius: var(--mantine-radius-sm) !important;
+}
+
+.calendar-wrapper table tbody tr:last-child td:last-child [data-mantine-calendar-day] {
+  border-bottom-right-radius: var(--mantine-radius-sm) !important;
 }
 
 /* Target Mantine Calendar table structure */
