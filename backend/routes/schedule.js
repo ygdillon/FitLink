@@ -10,7 +10,7 @@ router.use(authenticate)
 // Get trainer's upcoming sessions
 router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
   try {
-    const { limit = 20, startDate } = req.query
+    const { limit = 100, startDate, endDate } = req.query
     
     let query = `
       SELECT s.*, 
@@ -25,17 +25,27 @@ router.get('/trainer/upcoming', requireRole(['trainer']), async (req, res) => {
     const params = [req.user.id]
     
     if (startDate) {
-      query += ' AND s.session_date >= $2'
+      query += ' AND s.session_date >= $' + (params.length + 1)
       params.push(startDate)
     } else {
       query += ' AND s.session_date >= CURRENT_DATE'
     }
     
-    query += ' ORDER BY s.session_date ASC, s.session_time ASC LIMIT $' + (params.length + 1)
-    params.push(parseInt(limit))
+    if (endDate) {
+      query += ' AND s.session_date <= $' + (params.length + 1)
+      params.push(endDate)
+    }
+    
+    query += ' ORDER BY s.session_date ASC, s.session_time ASC'
+    
+    // Only apply limit if specified and reasonable (max 1000)
+    if (limit && parseInt(limit) > 0 && parseInt(limit) <= 1000) {
+      query += ' LIMIT $' + (params.length + 1)
+      params.push(parseInt(limit))
+    }
     
     const result = await pool.query(query, params)
-    // Log for debugging - removed detailed session logging
+    // Log for debugging
     if (result.rows.length > 0) {
       console.log(`[Schedule API] Fetched ${result.rows.length} sessions for trainer ${req.user.id} (user: ${req.user.email})`)
     } else {

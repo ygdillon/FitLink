@@ -65,7 +65,12 @@ function TrainerDashboard() {
   useEffect(() => {
     fetchDashboardData()
     fetchAlertsWidget()
-  }, [])
+  }, []) // Initial load
+
+  // Refetch sessions when calendar month changes
+  useEffect(() => {
+    fetchDashboardData()
+  }, [displayedMonth])
 
   useEffect(() => {
     // Refresh alerts every 30 seconds
@@ -77,9 +82,15 @@ function TrainerDashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      // Calculate date range for calendar (first day of displayed month to last day)
+      const firstDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), 1)
+      const lastDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0)
+      const startDate = firstDay.toISOString().split('T')[0]
+      const endDate = lastDay.toISOString().split('T')[0]
+      
       const [revenueRes, sessionsRes] = await Promise.all([
         api.get('/payments/trainer/history').catch(() => ({ data: [] })),
-        api.get('/schedule/trainer/upcoming').catch(() => ({ data: [] }))
+        api.get(`/schedule/trainer/upcoming?startDate=${startDate}&endDate=${endDate}&limit=200`).catch(() => ({ data: [] }))
       ])
       
       // Calculate revenue
