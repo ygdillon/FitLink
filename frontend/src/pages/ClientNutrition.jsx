@@ -587,6 +587,15 @@ function ClientNutrition({ clientId, clientName }) {
       }
 
       // If recipe details are provided, include them
+      console.log('Form values check:', {
+        include_recipe: values.include_recipe,
+        ingredients: values.ingredients,
+        ingredients_length: values.ingredients?.length,
+        first_ingredient: values.ingredients?.[0],
+        instructions: values.instructions,
+        has_instructions: !!(values.instructions && values.instructions.trim() !== '')
+      })
+      
       if (values.include_recipe && values.ingredients && values.ingredients.length > 0 && values.ingredients[0].trim() !== '' && values.instructions && values.instructions.trim() !== '') {
         payload.recipe = {
           total_yield: parseInt(values.total_yield || 1),
@@ -608,15 +617,25 @@ function ClientNutrition({ clientId, clientName }) {
           is_quick_meal: values.is_quick_meal || false,
           is_meal_prep_friendly: values.is_meal_prep_friendly || false
         }
-        console.log('Sending recipe data with update:', {
+        console.log('✅ Sending recipe data with update:', {
           ingredients: payload.recipe.ingredients.length,
+          ingredients_list: payload.recipe.ingredients,
           hasInstructions: !!payload.recipe.instructions,
+          instructions_preview: payload.recipe.instructions.substring(0, 100),
           hasTips: !!(payload.recipe.prep_tips || payload.recipe.storage_tips || payload.recipe.nutrition_tips)
+        })
+      } else {
+        console.log('❌ Recipe data NOT included because:', {
+          include_recipe: values.include_recipe,
+          has_ingredients: !!(values.ingredients && values.ingredients.length > 0),
+          first_ingredient_valid: !!(values.ingredients?.[0] && values.ingredients[0].trim() !== ''),
+          has_instructions: !!(values.instructions && values.instructions.trim() !== '')
         })
       }
 
       const response = await api.put(`/nutrition/meals/recommendations/${selectedMealToEdit.id}`, payload)
       console.log('Update response:', response.data)
+      console.log('Updated meal recipe_id:', response.data?.recipe_id)
 
       notifications.show({
         title: 'Success',
@@ -627,7 +646,14 @@ function ClientNutrition({ clientId, clientName }) {
       closeEditMealModal()
       setSelectedMealToEdit(null)
       mealRecommendationForm.reset()
-      fetchRecommendedMeals()
+      
+      // Refresh meal recommendations to get updated recipe_id
+      await fetchRecommendedMeals()
+      
+      // Also refresh weekly meal data if in meals tab
+      if (activeTab === 'meals') {
+        await fetchWeeklyMealData()
+      }
     } catch (error) {
       console.error('Error updating meal recommendation:', error)
       console.error('Error details:', error.response?.data)

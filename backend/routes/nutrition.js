@@ -1111,10 +1111,19 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
 
     console.log('Update meal recommendation - recipeData:', recipeData ? 'present' : 'missing')
     console.log('Update meal recommendation - existing recipe_id:', existingMeal.recipe_id)
+    if (recipeData) {
+      console.log('Recipe data details:', {
+        has_ingredients: !!(recipeData.ingredients && Array.isArray(recipeData.ingredients)),
+        ingredients_length: recipeData.ingredients ? recipeData.ingredients.length : 0,
+        has_instructions: !!(recipeData.instructions && recipeData.instructions.trim() !== ''),
+        instructions_length: recipeData.instructions ? recipeData.instructions.length : 0
+      })
+    }
 
     // If recipe details provided, create or update recipe
     if (recipeData && recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0 && recipeData.instructions && recipeData.instructions.trim() !== '') {
       console.log('Creating/updating recipe with ingredients:', recipeData.ingredients.length)
+      console.log('Instructions preview:', recipeData.instructions.substring(0, 50))
       if (existingMeal.recipe_id) {
         // Update existing recipe
         await pool.query(
@@ -1222,8 +1231,15 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
           ]
         )
         finalRecipeId = recipeResult.rows[0].id
-        console.log('Created new recipe with ID:', finalRecipeId)
+        console.log('✅ Created new recipe with ID:', finalRecipeId)
+      } else {
+        console.log('⚠️ Recipe data provided but validation failed:', {
+          has_ingredients: !!(recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0),
+          has_instructions: !!(recipeData.instructions && recipeData.instructions.trim() !== '')
+        })
       }
+    } else {
+      console.log('ℹ️ No recipe data provided or incomplete')
     }
 
     console.log('Final recipe_id to use:', finalRecipeId)
