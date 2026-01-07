@@ -30,7 +30,7 @@ import { TimeInput, DatePickerInput, DateInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconTrash, IconCopy } from '@tabler/icons-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import './Programs.css'
@@ -1496,29 +1496,24 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           })
         : existingWorkouts
 
-      // Add new workout with cleaned data
-      const newWorkout = {
-        workout_name: values.workout_name.trim(),
-        day_number: selectedDay, // This is the day of week (1-7)
-        week_number: selectedWeek, // Use selectedWeek from state
-        exercises: values.exercises
-          .filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '') // Filter out empty exercises
-          .map((ex, idx) => ({
-            exercise_name: ex.exercise_name.trim(),
-            exercise_type: ex.exercise_type || 'REGULAR',
-            sets: ex.sets || null,
-            reps: ex.reps || null,
-            weight: ex.weight || null,
-            duration: ex.duration || null,
-            rest: ex.rest || null,
-            tempo: ex.tempo || null,
-            notes: ex.notes || null,
-            order_index: idx
-          }))
-      }
+      // Prepare exercises array
+      const cleanedExercises = values.exercises
+        .filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '') // Filter out empty exercises
+        .map((ex, idx) => ({
+          exercise_name: ex.exercise_name.trim(),
+          exercise_type: ex.exercise_type || 'REGULAR',
+          sets: ex.sets || null,
+          reps: ex.reps || null,
+          weight: ex.weight || null,
+          duration: ex.duration || null,
+          rest: ex.rest || null,
+          tempo: ex.tempo || null,
+          notes: ex.notes || null,
+          order_index: idx
+        }))
 
       // Ensure we have at least one exercise
-      if (newWorkout.exercises.length === 0) {
+      if (cleanedExercises.length === 0) {
         notifications.show({
           title: 'Validation Error',
           message: 'At least one exercise with a name is required',
@@ -1527,7 +1522,50 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         return
       }
 
-      const updatedWorkouts = [...filteredWorkouts, newWorkout]
+      // Handle repeat workout option
+      const workoutsToAdd = []
+      
+      if (values.repeatWorkout && !editingWorkout) {
+        // Create workout for each week on the specified day
+        const startWeek = values.repeatStartWeek || selectedWeek
+        const endWeek = values.repeatEndWeek || selectedWeek
+        const targetDay = values.repeatDayOfWeek || selectedDay
+        
+        for (let week = startWeek; week <= endWeek; week++) {
+          // Skip if workout already exists for this week/day
+          const exists = filteredWorkouts.some(w => 
+            w.week_number === week && w.day_number === targetDay
+          )
+          
+          if (!exists) {
+            workoutsToAdd.push({
+              workout_name: values.workout_name.trim(),
+              day_number: targetDay,
+              week_number: week,
+              exercises: cleanedExercises
+            })
+          }
+        }
+        
+        if (workoutsToAdd.length === 0) {
+          notifications.show({
+            title: 'Info',
+            message: 'All selected weeks already have workouts on this day',
+            color: 'blue',
+          })
+          return
+        }
+      } else {
+        // Single workout (normal case or editing)
+        workoutsToAdd.push({
+          workout_name: values.workout_name.trim(),
+          day_number: selectedDay,
+          week_number: selectedWeek,
+          exercises: cleanedExercises
+        })
+      }
+
+      const updatedWorkouts = [...filteredWorkouts, ...workoutsToAdd]
 
       // Update program via API
       await api.put(`/programs/${currentProgram.id}`, {
@@ -1537,6 +1575,26 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         duration_weeks: currentProgram.duration_weeks,
         workouts: updatedWorkouts
       })
+
+      // If editing a workout and session details were provided, update sessions
+      if (editingWorkout?.id && (values.sessionTime || values.location !== undefined || values.sessionType || values.meetingLink !== undefined)) {
+        try {
+          await api.put(`/schedule/trainer/workout/${editingWorkout.id}/sessions`, {
+            sessionTime: values.sessionTime,
+            location: values.location,
+            sessionType: values.sessionType,
+            meetingLink: values.meetingLink
+          })
+        } catch (error) {
+          console.error('Error updating sessions:', error)
+          // Don't fail the whole operation if session update fails
+          notifications.show({
+            title: 'Warning',
+            message: 'Workout saved but session update failed',
+            color: 'yellow',
+          })
+        }
+      }
 
       // Refresh program data
       const response = await api.get(`/programs/${currentProgram.id}`)
@@ -1548,6 +1606,7 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
 
       // Find the saved workout ID (it should be in the response)
       // Try multiple ways to find it since the workout might be newly created
+      const workoutName = values.workout_name.trim()
       let savedWorkout = response.data.workouts?.find(w => 
         w.id && w.week_number === weekNumber && w.day_number === dayNumber
       )
@@ -1557,7 +1616,7 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         savedWorkout = response.data.workouts?.find(w => 
           w.week_number === weekNumber && 
           w.day_number === dayNumber && 
-          w.workout_name === newWorkout.workout_name
+          w.workout_name === workoutName
         )
       }
       
@@ -1574,14 +1633,15 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
       // If trainer and workout was saved, show workout actions modal
       if (isTrainer) {
         // Set saved workout data - ensure we have the full workout object
+        const firstWorkout = workoutsToAdd[0] || {}
         const workoutToSave = savedWorkout ? {
           ...savedWorkout,
-          workout_name: savedWorkout.workout_name || newWorkout.workout_name,
-          exercises: savedWorkout.exercises || newWorkout.exercises
+          workout_name: savedWorkout.workout_name || firstWorkout.workout_name,
+          exercises: savedWorkout.exercises || firstWorkout.exercises
         } : {
-          ...newWorkout,
-          workout_name: newWorkout.workout_name,
-          exercises: newWorkout.exercises
+          ...firstWorkout,
+          workout_name: firstWorkout.workout_name,
+          exercises: firstWorkout.exercises
         }
         
         console.log('[DEBUG] Setting saved workout:', workoutToSave)
@@ -1633,9 +1693,13 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         
         fetchClientsAndOpenModal()
       } else {
+        const successMessage = values.repeatWorkout && workoutsToAdd.length > 1
+          ? `Workout repeated successfully! Created ${workoutsToAdd.length} workouts.`
+          : 'Workout saved successfully!'
+        
         notifications.show({
           title: 'Success',
-          message: 'Workout saved successfully',
+          message: successMessage,
           color: 'green',
         })
       }
@@ -1850,7 +1914,8 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                                   backgroundColor: 'var(--mantine-color-dark-5)',
                                   border: '1px solid var(--mantine-color-blue-7)',
                                   cursor: !isTrainer ? 'pointer' : 'default',
-                                  transition: 'all 0.2s ease'
+                                  transition: 'all 0.2s ease',
+                                  position: 'relative'
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -1877,6 +1942,30 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
                                   }
                                 }}
                               >
+                                {isTrainer && (
+                                  <ActionIcon
+                                    variant="subtle"
+                                    color="blue"
+                                    size="sm"
+                                    style={{
+                                      position: 'absolute',
+                                      top: 4,
+                                      right: 4,
+                                      zIndex: 10
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      // Set workout to copy
+                                      savedWorkoutRef.current = workout
+                                      setSavedWorkout(workout)
+                                      setSavedWorkoutId(workout.id)
+                                      openCopyWorkout()
+                                    }}
+                                    title="Copy workout to another day"
+                                  >
+                                    <IconCopy size={16} />
+                                  </ActionIcon>
+                                )}
                                 <Stack gap="xs">
                                   <Text size="sm" fw={600} lineClamp={1} c="gray.1">
                                     {workout.workout_name}
@@ -1930,6 +2019,7 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
           weekNumber={selectedWeek}
           workout={editingWorkout}
           onSave={handleSaveWorkout}
+          program={currentProgram}
         />
       )}
 
@@ -2021,29 +2111,90 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
 }
 
 // Workout Editor Modal Component
-function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, onSave }) {
+function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, onSave, program }) {
+  const [loadingSessions, setLoadingSessions] = useState(false)
+  const [existingSessions, setExistingSessions] = useState([])
+  
   const form = useForm({
     initialValues: {
       workout_name: workout?.workout_name || '',
-      exercises: workout?.exercises || []
+      exercises: workout?.exercises || [],
+      repeatWorkout: false,
+      repeatPattern: 'weekly',
+      repeatStartWeek: weekNumber || 1,
+      repeatEndWeek: weekNumber || 1,
+      repeatDayOfWeek: dayNumber || 1,
+      sessionTime: '18:00',
+      location: '',
+      sessionType: 'in_person',
+      meetingLink: ''
     }
   })
+
+  // Fetch existing sessions when editing a workout
+  useEffect(() => {
+    if (opened && workout?.id && program?.id) {
+      setLoadingSessions(true)
+      // Fetch sessions for this workout
+      api.get(`/schedule/trainer/workout/${workout.id}/sessions`)
+        .then(res => {
+          const sessions = res.data || []
+          setExistingSessions(sessions)
+          
+          // If sessions exist, use the first one's time/location as default
+          if (sessions.length > 0) {
+            const firstSession = sessions[0]
+            form.setFieldValue('sessionTime', firstSession.session_time?.substring(0, 5) || '18:00')
+            form.setFieldValue('location', firstSession.location || '')
+            form.setFieldValue('sessionType', firstSession.session_type || 'in_person')
+            form.setFieldValue('meetingLink', firstSession.meeting_link || '')
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching sessions:', err)
+          setExistingSessions([])
+        })
+        .finally(() => {
+          setLoadingSessions(false)
+        })
+    } else {
+      setExistingSessions([])
+    }
+  }, [opened, workout?.id, program?.id])
 
   // Update form when workout changes (for editing)
   useEffect(() => {
     if (workout) {
       form.setValues({
         workout_name: workout.workout_name || '',
-        exercises: workout.exercises || []
+        exercises: workout.exercises || [],
+        repeatWorkout: false,
+        repeatPattern: 'weekly',
+        repeatStartWeek: weekNumber || 1,
+        repeatEndWeek: weekNumber || 1,
+        repeatDayOfWeek: dayNumber || 1,
+        sessionTime: form.values.sessionTime || '18:00',
+        location: form.values.location || '',
+        sessionType: form.values.sessionType || 'in_person',
+        meetingLink: form.values.meetingLink || ''
       })
     } else {
       // Reset form for new workout
       form.setValues({
         workout_name: '',
-        exercises: []
+        exercises: [],
+        repeatWorkout: false,
+        repeatPattern: 'weekly',
+        repeatStartWeek: weekNumber || 1,
+        repeatEndWeek: weekNumber || 1,
+        repeatDayOfWeek: dayNumber || 1,
+        sessionTime: '18:00',
+        location: '',
+        sessionType: 'in_person',
+        meetingLink: ''
       })
     }
-  }, [workout, opened])
+  }, [workout, opened, weekNumber, dayNumber])
 
   const addExercise = () => {
     try {
@@ -2152,6 +2303,92 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
           >
             + Add Exercise
           </Button>
+
+          {workout && existingSessions.length > 0 && (
+            <>
+              <Divider label="Session Details" labelPosition="left" mt="md" />
+              {loadingSessions ? (
+                <Loader size="sm" />
+              ) : (
+                <Stack gap="sm">
+                  <Text size="sm" c="dimmed">
+                    This workout has {existingSessions.length} scheduled session(s). Update session details below.
+                  </Text>
+                  <Group grow>
+                    <TimeInput
+                      label="Session Time"
+                      {...form.getInputProps('sessionTime')}
+                    />
+                    <Select
+                      label="Session Type"
+                      data={[
+                        { value: 'in_person', label: 'In-Person' },
+                        { value: 'online', label: 'Online' },
+                        { value: 'hybrid', label: 'Hybrid' }
+                      ]}
+                      {...form.getInputProps('sessionType')}
+                    />
+                  </Group>
+                  {form.values.sessionType === 'in_person' && (
+                    <TextInput
+                      label="Location"
+                      placeholder="Gym address or location"
+                      {...form.getInputProps('location')}
+                    />
+                  )}
+                  {form.values.sessionType === 'online' && (
+                    <TextInput
+                      label="Meeting Link"
+                      placeholder="Zoom, Google Meet, or other meeting link"
+                      type="url"
+                      {...form.getInputProps('meetingLink')}
+                    />
+                  )}
+                </Stack>
+              )}
+            </>
+          )}
+
+          {!workout && (
+            <>
+              <Divider label="Repeat Workout" labelPosition="left" mt="md" />
+              <Switch
+                label="Repeat this workout on multiple days"
+                description="Create this workout on the same day each week"
+                {...form.getInputProps('repeatWorkout', { type: 'checkbox' })}
+              />
+              {form.values.repeatWorkout && (
+                <Stack gap="sm" ml="md">
+                  <Select
+                    label="Repeat Pattern"
+                    data={[
+                      { value: 'weekly', label: 'Same day each week' }
+                    ]}
+                    {...form.getInputProps('repeatPattern')}
+                  />
+                  <Group grow>
+                    <NumberInput
+                      label="Start Week"
+                      min={1}
+                      {...form.getInputProps('repeatStartWeek')}
+                    />
+                    <NumberInput
+                      label="End Week"
+                      min={form.values.repeatStartWeek || 1}
+                      {...form.getInputProps('repeatEndWeek')}
+                    />
+                  </Group>
+                  <NumberInput
+                    label="Day of Week"
+                    description="1=Monday, 7=Sunday"
+                    min={1}
+                    max={7}
+                    {...form.getInputProps('repeatDayOfWeek')}
+                  />
+                </Stack>
+              )}
+            </>
+          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -2785,12 +3022,37 @@ function WorkoutActionsModal({ opened, onClose, program, workout, workoutId, wee
 // Copy Workout Modal Component
 function CopyWorkoutModal({ opened, onClose, program, workout, onProgramUpdate, setCurrentProgram }) {
   const [loading, setLoading] = useState(false)
+  const [calculatedDate, setCalculatedDate] = useState(null)
   const form = useForm({
     initialValues: {
       targetWeek: 1,
       targetDay: 1
     }
   })
+
+  // Calculate date when week or day changes
+  useEffect(() => {
+    if (opened && program?.start_date && form.values.targetWeek && form.values.targetDay) {
+      // Convert targetDay to number if it's a string
+      const dayNum = typeof form.values.targetDay === 'string' ? parseInt(form.values.targetDay) : form.values.targetDay
+      const date = calculateDateForDay(program.start_date, form.values.targetWeek, dayNum)
+      setCalculatedDate(date)
+    } else {
+      setCalculatedDate(null)
+    }
+  }, [opened, program?.start_date, form.values.targetWeek, form.values.targetDay])
+
+  // Helper function to calculate date (same as in ProgramCalendarView)
+  const calculateDateForDay = (startDate, weekNumber, dayNumber) => {
+    if (!startDate) return null
+    const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0)
+    // Calculate days to add: Week 1 Day 1 = start date, Week 1 Day 2 = start + 1, etc.
+    const daysToAdd = (weekNumber - 1) * 7 + (dayNumber - 1)
+    const date = new Date(start)
+    date.setDate(start.getDate() + daysToAdd)
+    return date
+  }
 
   const handleCopy = async (values) => {
     if (!workout || !program) return
@@ -2801,10 +3063,13 @@ function CopyWorkoutModal({ opened, onClose, program, workout, onProgramUpdate, 
       // Get existing workouts
       const existingWorkouts = program.workouts || []
 
+      // Convert targetDay to number if it's a string
+      const targetDay = typeof values.targetDay === 'string' ? parseInt(values.targetDay) : values.targetDay
+
       // Create new workout based on the saved one
       const newWorkout = {
         workout_name: workout.workout_name || workout.workoutName || 'Copy of Workout',
-        day_number: values.targetDay,
+        day_number: targetDay,
         week_number: values.targetWeek,
         exercises: (workout.exercises || []).map((ex, idx) => ({
           exercise_name: ex.exercise_name || ex.exerciseName || '',
@@ -2890,6 +3155,26 @@ function CopyWorkoutModal({ opened, onClose, program, workout, onProgramUpdate, 
             required
             {...form.getInputProps('targetDay')}
           />
+
+          {calculatedDate && (
+            <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-dark-6)' }}>
+              <Text size="sm" fw={500} mb={4}>Calculated Date:</Text>
+              <Text size="lg" c="blue">
+                {calculatedDate.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </Text>
+            </Paper>
+          )}
+
+          {!program?.start_date && (
+            <Alert color="yellow" size="sm">
+              <Text size="xs">Program start date not set. Date calculation unavailable.</Text>
+            </Alert>
+          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="outline" onClick={onClose} disabled={loading}>

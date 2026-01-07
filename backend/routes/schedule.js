@@ -644,6 +644,100 @@ router.post('/trainer/sessions/:sessionId/cancel', requireRole(['trainer']), asy
   }
 })
 
+// Get sessions for a specific workout (trainer only)
+router.get('/trainer/workout/:workoutId/sessions', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { workoutId } = req.params
+    
+    const result = await pool.query(
+      `SELECT s.*, u.name as client_name
+       FROM sessions s
+       JOIN users u ON s.client_id = u.id
+       WHERE s.program_workout_id = $1 
+         AND s.trainer_id = $2
+         AND s.status IN ('scheduled', 'confirmed')
+       ORDER BY s.session_date ASC, s.session_time ASC`,
+      [workoutId, req.user.id]
+    )
+    
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching workout sessions:', error)
+    res.status(500).json({ message: 'Failed to fetch workout sessions' })
+  }
+})
+
+// Update sessions for a specific workout (trainer only)
+router.put('/trainer/workout/:workoutId/sessions', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { workoutId } = req.params
+    const { sessionTime, location, sessionType, meetingLink } = req.body
+    
+    // Verify workout belongs to trainer's program
+    const workoutCheck = await pool.query(
+      `SELECT pw.id, p.trainer_id 
+       FROM program_workouts pw
+       JOIN programs p ON pw.program_id = p.id
+       WHERE pw.id = $1`,
+      [workoutId]
+    )
+    
+    if (workoutCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Workout not found' })
+    }
+    
+    if (workoutCheck.rows[0].trainer_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' })
+    }
+    
+    // Update all sessions for this workout
+    const updates = []
+    const values = []
+    let paramCount = 1
+    
+    if (sessionTime !== undefined) {
+      updates.push(`session_time = $${paramCount++}`)
+      values.push(sessionTime)
+    }
+    if (location !== undefined) {
+      updates.push(`location = $${paramCount++}`)
+      values.push(location || null)
+    }
+    if (sessionType !== undefined) {
+      updates.push(`session_type = $${paramCount++}`)
+      values.push(sessionType)
+    }
+    if (meetingLink !== undefined) {
+      updates.push(`meeting_link = $${paramCount++}`)
+      values.push(meetingLink || null)
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' })
+    }
+    
+    values.push(workoutId, req.user.id)
+    
+    const result = await pool.query(
+      `UPDATE sessions 
+       SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+       WHERE program_workout_id = $${paramCount++} 
+         AND trainer_id = $${paramCount++}
+         AND status IN ('scheduled', 'confirmed')
+       RETURNING id`,
+      values
+    )
+    
+    res.json({ 
+      message: `Updated ${result.rows.length} session(s)`,
+      updatedCount: result.rows.length
+    })
+  } catch (error) {
+    console.error('Error updating workout sessions:', error)
+    res.status(500).json({ message: 'Failed to update workout sessions' })
+  }
+})
+
 // Get trainer availability
 router.get('/trainer/availability', requireRole(['trainer']), async (req, res) => {
   try {

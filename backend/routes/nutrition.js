@@ -1,8 +1,14 @@
 import express from 'express'
 import { authenticate, requireRole } from '../middleware/auth.js'
 import { pool } from '../config/database.js'
+import OpenAI from 'openai'
 
 const router = express.Router()
+
+// Initialize OpenAI client for AI macro calculation
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+}) : null
 
 router.use(authenticate)
 
@@ -1324,14 +1330,12 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
         )
         finalRecipeId = recipeResult.rows[0].id
         console.log('✅ Created new recipe with ID:', finalRecipeId)
-      } else {
-        console.log('⚠️ Recipe data provided but validation failed:', {
-          has_ingredients: !!(recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0),
-          has_instructions: !!(recipeData.instructions && recipeData.instructions.trim() !== '')
-        })
       }
     } else {
-      console.log('ℹ️ No recipe data provided or incomplete')
+      console.log('⚠️ Recipe data provided but validation failed:', {
+        has_ingredients: !!(recipeData.ingredients && Array.isArray(recipeData.ingredients) && recipeData.ingredients.length > 0),
+        has_instructions: !!(recipeData.instructions && recipeData.instructions.trim() !== '')
+      })
     }
 
     console.log('Final recipe_id to use:', finalRecipeId)
@@ -1956,6 +1960,126 @@ router.get('/recipes/:id', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching recipe:', error)
     res.status(500).json({ message: 'Failed to fetch recipe' })
+  }
+})
+
+// ============================================
+// AI MACRO CALCULATION ENDPOINT
+// ============================================
+
+// Calculate meal macros using AI based on ingredients and description
+router.post('/meals/calculate-macros', requireRole(['trainer']), async (req, res) => {
+  try {
+    const { ingredients, meal_description, instructions, total_yield } = req.body
+
+    if (!openai) {
+      return res.status(503).json({ 
+        message: 'AI service not available. Please configure OPENAI_API_KEY in environment variables.' 
+      })
+    }
+
+    // Validate that we have ingredients or description
+    if ((!ingredients || ingredients.length === 0 || ingredients.every(ing => !ing.trim())) && !meal_description && !instructions) {
+      return res.status(400).json({ 
+        message: 'Please provide at least ingredients, meal description, or instructions to calculate macros' 
+      })
+    }
+
+    // Build the prompt for AI
+    const ingredientsList = ingredients && ingredients.length > 0 
+      ? ingredients.filter(ing => ing.trim()).join('\n- ')
+      : 'Not specified'
+    
+    const description = meal_description || 'Not provided'
+    const instructionsText = instructions || 'Not provided'
+    const servings = total_yield || 1
+
+    const prompt = `You are a nutrition expert. Calculate the nutritional information for a meal based on the following details:
+
+MEAL DETAILS:
+- Ingredients:
+${ingredientsList.split('\n').map(ing => `  - ${ing}`).join('\n')}
+- Description: ${description}
+- Preparation Instructions: ${instructionsText}
+- Number of Servings: ${servings}
+
+IMPORTANT INSTRUCTIONS:
+1. Analyze ALL ingredients listed, including quantities and measurements (e.g., "2 cups", "1 tablespoon", "200g", etc.)
+2. Extract any additional ingredients mentioned in the description or instructions (e.g., "use a tablespoon of oil", "add 1 cup of milk", etc.)
+3. Calculate the TOTAL nutritional values for the ENTIRE recipe (all servings combined)
+4. Then divide by the number of servings to get PER SERVING values
+5. Be accurate with measurements - convert units if needed (e.g., 1 cup = 240ml, 1 tablespoon = 15ml, etc.)
+6. Include calories from cooking oils, butter, dressings, and any preparation ingredients mentioned
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "calories_per_serving": <number>,
+  "protein_per_serving": <number in grams>,
+  "carbs_per_serving": <number in grams>,
+  "fats_per_serving": <number in grams>,
+  "breakdown": {
+    "total_calories": <total for entire recipe>,
+    "total_protein": <total for entire recipe in grams>,
+    "total_carbs": <total for entire recipe in grams>,
+    "total_fats": <total for entire recipe in grams>
+  },
+  "notes": "<brief explanation of calculation>"
+}
+
+Make sure all numbers are realistic and accurate. Round to 1 decimal place.`
+
+    console.log('🤖 Calling OpenAI to calculate macros...')
+    console.log('Ingredients:', ingredients)
+    console.log('Description:', description)
+    console.log('Instructions:', instructionsText)
+    console.log('Servings:', servings)
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a nutrition expert. Calculate accurate nutritional information based on ingredients and preparation methods. Always return valid JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3, // Lower temperature for more consistent, accurate results
+      response_format: { type: 'json_object' }
+    })
+
+    const aiResponse = JSON.parse(completion.choices[0].message.content)
+
+    // Validate and structure the response
+    const macros = {
+      calories_per_serving: Math.round(parseFloat(aiResponse.calories_per_serving) || 0),
+      protein_per_serving: Math.round(parseFloat(aiResponse.protein_per_serving) || 0 * 10) / 10,
+      carbs_per_serving: Math.round(parseFloat(aiResponse.carbs_per_serving) || 0 * 10) / 10,
+      fats_per_serving: Math.round(parseFloat(aiResponse.fats_per_serving) || 0 * 10) / 10,
+      breakdown: aiResponse.breakdown || {},
+      notes: aiResponse.notes || 'Calculated using AI based on provided ingredients and preparation methods.'
+    }
+
+    console.log('✅ AI calculated macros:', macros)
+
+    res.json(macros)
+  } catch (error) {
+    console.error('Error calculating macros with AI:', error)
+    
+    // Handle OpenAI API errors
+    if (error.response) {
+      return res.status(500).json({ 
+        message: 'AI service error', 
+        error: error.response.data?.error?.message || error.message 
+      })
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to calculate macros', 
+      error: error.message 
+    })
   }
 })
 

@@ -91,6 +91,7 @@ function ClientNutrition({ clientId, clientName }) {
   const [selectedMealToEdit, setSelectedMealToEdit] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedMealSlot, setSelectedMealSlot] = useState(null)
+  const [aiCalculating, setAiCalculating] = useState(false)
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date()
     const dayOfWeek = today.getDay()
@@ -528,6 +529,60 @@ function ClientNutrition({ clientId, clientName }) {
         message: 'Failed to add meal',
         color: 'red'
       })
+    }
+  }
+
+  const handleAICalculateMacros = async () => {
+    try {
+      setAiCalculating(true)
+      
+      const ingredients = mealRecommendationForm.values.ingredients || []
+      const mealDescription = mealRecommendationForm.values.meal_description || ''
+      const instructions = mealRecommendationForm.values.instructions || ''
+      const totalYield = mealRecommendationForm.values.total_yield || 1
+
+      // Check if we have at least some data to calculate
+      const hasIngredients = ingredients.some(ing => ing.trim())
+      if (!hasIngredients && !mealDescription.trim() && !instructions.trim()) {
+        notifications.show({
+          title: 'Error',
+          message: 'Please add at least ingredients, meal description, or instructions to calculate macros',
+          color: 'red'
+        })
+        setAiCalculating(false)
+        return
+      }
+
+      const response = await api.post('/nutrition/meals/calculate-macros', {
+        ingredients: ingredients.filter(ing => ing.trim()),
+        meal_description: mealDescription,
+        instructions: instructions,
+        total_yield: totalYield
+      })
+
+      const macros = response.data
+
+      // Auto-fill the form with calculated values
+      mealRecommendationForm.setFieldValue('calories_per_serving', macros.calories_per_serving)
+      mealRecommendationForm.setFieldValue('protein_per_serving', macros.protein_per_serving)
+      mealRecommendationForm.setFieldValue('carbs_per_serving', macros.carbs_per_serving)
+      mealRecommendationForm.setFieldValue('fats_per_serving', macros.fats_per_serving)
+
+      notifications.show({
+        title: 'Macros Calculated!',
+        message: macros.notes || 'Macros calculated successfully using AI',
+        color: 'green'
+      })
+    } catch (error) {
+      console.error('Error calculating macros with AI:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to calculate macros'
+      notifications.show({
+        title: 'Error',
+        message: errorMessage,
+        color: 'red'
+      })
+    } finally {
+      setAiCalculating(false)
     }
   }
 
@@ -2843,6 +2898,20 @@ function ClientNutrition({ clientId, clientName }) {
               />
 
               <Divider label="Nutritional Information" labelPosition="center" />
+
+              {/* AI Calculate Macros Button */}
+              <Button
+                type="button"
+                variant="light"
+                color="green"
+                leftSection="🤖"
+                onClick={handleAICalculateMacros}
+                loading={aiCalculating}
+                disabled={!mealRecommendationForm.values.ingredients?.some(ing => ing.trim()) && !mealRecommendationForm.values.meal_description?.trim() && !mealRecommendationForm.values.instructions?.trim()}
+                fullWidth
+              >
+                {aiCalculating ? 'Calculating with AI...' : '🤖 AI Calculate Macros from Ingredients'}
+              </Button>
 
               <NumberInput
                 label="Calories per Serving"
