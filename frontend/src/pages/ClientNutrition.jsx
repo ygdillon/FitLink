@@ -553,8 +553,16 @@ function ClientNutrition({ clientId, clientName }) {
   }
 
   const handleUpdateMealRecommendation = async (values) => {
+    console.log('🔵 handleUpdateMealRecommendation called with values:', {
+      meal_name: values.meal_name,
+      include_recipe: values.include_recipe,
+      ingredients: values.ingredients,
+      instructions: values.instructions
+    })
+    
     try {
       if (!isTrainerView || !selectedMealToEdit?.id) {
+        console.log('❌ Invalid request - isTrainerView:', isTrainerView, 'selectedMealToEdit:', selectedMealToEdit)
         notifications.show({
           title: 'Error',
           message: 'Invalid request',
@@ -565,6 +573,7 @@ function ClientNutrition({ clientId, clientName }) {
 
       // Validate meal_name is not empty
       if (!values.meal_name || values.meal_name.trim() === '') {
+        console.log('❌ Meal name validation failed')
         notifications.show({
           title: 'Validation Error',
           message: 'Meal name is required',
@@ -572,6 +581,8 @@ function ClientNutrition({ clientId, clientName }) {
         })
         return
       }
+      
+      console.log('✅ Validation passed, proceeding with update')
 
       const payload = {
         meal_name: values.meal_name.trim(),

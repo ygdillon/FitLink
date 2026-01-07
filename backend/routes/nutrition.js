@@ -1276,6 +1276,9 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`)
     values.push(id)
 
+    console.log('Executing UPDATE query with fields:', updateFields)
+    console.log('Values:', values)
+    
     const result = await pool.query(
       `UPDATE trainer_meal_recommendations 
        SET ${updateFields.join(', ')}
@@ -1283,6 +1286,12 @@ router.put('/meals/recommendations/:id', requireRole(['trainer']), async (req, r
        RETURNING *`,
       values
     )
+
+    console.log('✅ Update successful. Returned meal:', {
+      id: result.rows[0].id,
+      meal_name: result.rows[0].meal_name,
+      recipe_id: result.rows[0].recipe_id
+    })
 
     res.json(result.rows[0])
   } catch (error) {
