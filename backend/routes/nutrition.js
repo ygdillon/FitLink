@@ -923,7 +923,37 @@ router.get('/meals/recommendations/:clientId', requireRole(['trainer']), async (
     query += ' ORDER BY tmr.priority DESC, tmr.created_at DESC'
 
     const result = await pool.query(query, params)
-    res.json(result.rows)
+    
+    // Parse JSONB fields for each meal recommendation
+    const parsedRows = result.rows.map(row => {
+      // Parse ingredients if it's a string
+      if (row.ingredients && typeof row.ingredients === 'string') {
+        try {
+          row.ingredients = JSON.parse(row.ingredients)
+        } catch (e) {
+          row.ingredients = []
+        }
+      }
+      // Parse equipment_needed if it's a string
+      if (row.equipment_needed && typeof row.equipment_needed === 'string') {
+        try {
+          row.equipment_needed = JSON.parse(row.equipment_needed)
+        } catch (e) {
+          row.equipment_needed = []
+        }
+      }
+      // Parse substitution_options if it's a string
+      if (row.substitution_options && typeof row.substitution_options === 'string') {
+        try {
+          row.substitution_options = JSON.parse(row.substitution_options)
+        } catch (e) {
+          row.substitution_options = []
+        }
+      }
+      return row
+    })
+    
+    res.json(parsedRows)
   } catch (error) {
     console.error('Error fetching meal recommendations:', error)
     res.status(500).json({ message: 'Failed to fetch meal recommendations' })
