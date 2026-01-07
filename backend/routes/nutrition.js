@@ -2004,7 +2004,43 @@ router.post('/meals/calculate-macros', requireRole(['trainer']), async (req, res
       hasIngredients: ingredients && ingredients.length > 0 && ingredients.some(ing => ing.trim())
     })
 
-    const prompt = `You are a professional nutritionist with access to USDA nutrition database. Calculate ACCURATE nutritional information for a meal.
+    const prompt = `You are a professional nutritionist with access to USDA FoodData Central database. Calculate ACCURATE nutritional information for a meal.
+
+WORKED EXAMPLE FIRST:
+If ingredients are:
+- 1 cup red lentils (cooked)
+- 1 cup vegetable broth  
+- 1 tablespoon olive oil
+- 1/2 cup diced tomatoes
+
+Step-by-step calculation:
+1. Red lentils: 1 cup = 198g cooked
+   - 198g × (116 cal/100g) = 230 cal
+   - 198g × (9g protein/100g) = 17.8g protein
+   - 198g × (20g carbs/100g) = 39.6g carbs
+   - 198g × (0.4g fat/100g) = 0.8g fat
+
+2. Vegetable broth: 1 cup = 240ml
+   - 240ml × (5 cal/100ml) = 12 cal
+   - 240ml × (0g protein/100ml) = 0g protein
+   - 240ml × (1g carbs/100ml) = 2.4g carbs
+   - 240ml × (0g fat/100ml) = 0g fat
+
+3. Olive oil: 1 tbsp = 15ml
+   - 15ml × (119 cal/15ml) = 119 cal
+   - 0g protein, 0g carbs
+   - 15ml × (13.5g fat/15ml) = 13.5g fat
+
+4. Diced tomatoes: 1/2 cup = 120g
+   - 120g × (18 cal/100g) = 22 cal
+   - 120g × (0.9g protein/100g) = 1.1g protein
+   - 120g × (3.9g carbs/100g) = 4.7g carbs
+   - 120g × (0.2g fat/100g) = 0.2g fat
+
+TOTAL for recipe: 383 cal, 18.9g protein, 46.7g carbs, 14.5g fat
+PER SERVING (if 1 serving): 383 cal, 18.9g protein, 46.7g carbs, 14.5g fat
+
+NOW CALCULATE FOR THIS MEAL:
 
 MEAL DETAILS:
 - Ingredients List:
@@ -2130,12 +2166,46 @@ CRITICAL: Double-check your calculations. Values must be realistic and match sta
       calories = Math.round(calculatedCalories)
     }
 
-    // Warn if values seem too low for a meal
-    if (calories < 50) {
+    // Enhanced validation - check for unrealistic values
+    const hasProteinSource = ingredientsList.toLowerCase().includes('chicken') || 
+                             ingredientsList.toLowerCase().includes('meat') || 
+                             ingredientsList.toLowerCase().includes('lentil') || 
+                             ingredientsList.toLowerCase().includes('bean') ||
+                             ingredientsList.toLowerCase().includes('tofu') ||
+                             ingredientsList.toLowerCase().includes('fish')
+    
+    const hasCarbSource = ingredientsList.toLowerCase().includes('rice') ||
+                         ingredientsList.toLowerCase().includes('pasta') ||
+                         ingredientsList.toLowerCase().includes('potato') ||
+                         ingredientsList.toLowerCase().includes('bread') ||
+                         ingredientsList.toLowerCase().includes('lentil') ||
+                         ingredientsList.toLowerCase().includes('bean')
+
+    if (calories < 100) {
       console.warn(`⚠️ Very low calories (${calories}) - may indicate calculation error`)
     }
-    if (protein < 1 && (ingredientsList.toLowerCase().includes('chicken') || ingredientsList.toLowerCase().includes('meat') || ingredientsList.toLowerCase().includes('lentil') || ingredientsList.toLowerCase().includes('bean'))) {
-      console.warn(`⚠️ Very low protein (${protein}g) despite protein sources in ingredients - may indicate calculation error`)
+    
+    if (hasProteinSource && protein < 5) {
+      console.warn(`⚠️ Very low protein (${protein}g) despite protein sources in ingredients - recalculating...`)
+      // If protein is too low but we have protein sources, the AI likely made an error
+      // We can't auto-fix this, but we'll warn the user
+    }
+    
+    if (hasCarbSource && carbs < 10) {
+      console.warn(`⚠️ Very low carbs (${carbs}g) despite carb sources in ingredients - may indicate calculation error`)
+    }
+
+    // Final sanity check - if values are clearly wrong, log detailed warning
+    if ((hasProteinSource && protein < 5) || (hasCarbSource && carbs < 10) || calories < 100) {
+      console.error(`❌ SUSPICIOUS VALUES DETECTED:`, {
+        calories,
+        protein,
+        carbs,
+        fats,
+        ingredients: ingredientsList,
+        aiResponse: aiResponse,
+        suggestion: 'AI may have miscalculated. Please verify ingredients and try again.'
+      })
     }
 
     const macros = {

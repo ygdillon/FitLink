@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { 
   Container, 
@@ -1652,11 +1652,63 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
               const sessionDate = calculateSessionDate(currentProgram.start_date, weekNumber, dayNumber)
               const clientIds = assignedClients.map(c => c.client_id || c.id).filter(Boolean)
               
+              // Calculate duration from exercises
+              const calculateDuration = () => {
+                const exercises = values.exercises || []
+                if (exercises.length === 0) return 60
+
+                let totalMinutes = 0
+                const validExercises = exercises.filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '')
+
+                validExercises.forEach((exercise, index) => {
+                  // Parse duration per set
+                  let durationPerSet = 0
+                  if (exercise.duration) {
+                    if (typeof exercise.duration === 'string') {
+                      const timeParts = exercise.duration.split(':')
+                      if (timeParts.length === 2) {
+                        durationPerSet = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1])
+                      } else {
+                        durationPerSet = parseFloat(exercise.duration) * 60
+                      }
+                    } else {
+                      durationPerSet = parseFloat(exercise.duration) * 60
+                    }
+                  }
+
+                  // Parse rest time
+                  let restMinutes = 0
+                  if (exercise.rest) {
+                    if (typeof exercise.rest === 'string') {
+                      const restMatch = exercise.rest.match(/(\d+\.?\d*)/)
+                      if (restMatch) {
+                        restMinutes = parseFloat(restMatch[1])
+                      }
+                    } else {
+                      restMinutes = parseFloat(exercise.rest)
+                    }
+                  }
+
+                  const sets = exercise.sets ? parseInt(exercise.sets) : 1
+                  const exerciseDuration = (durationPerSet + (restMinutes * 60)) * sets
+                  totalMinutes += exerciseDuration
+
+                  // Add 2 minute buffer between exercises
+                  if (index < validExercises.length - 1) {
+                    totalMinutes += 2 * 60
+                  }
+                })
+
+                return Math.ceil(totalMinutes / 60) || 60
+              }
+
+              const calculatedDuration = calculateDuration()
+
               // Create sessions for all assigned clients
               await api.post(`/programs/${currentProgram.id}/workout/${savedWorkout.id}/create-sessions`, {
                 sessionDate,
                 sessionTime: values.sessionTime,
-                duration: 60, // Default duration
+                duration: calculatedDuration,
                 sessionType: values.sessionType || 'in_person',
                 location: values.location || null,
                 meetingLink: values.meetingLink || null,
@@ -2274,6 +2326,85 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
     }
   }
 
+  // Calculate total session duration from exercises (memoized for performance)
+  const estimatedDuration = useMemo(() => {
+    const exercises = form.values.exercises || []
+    if (exercises.length === 0) return 0
+
+    let totalMinutes = 0
+    const validExercises = exercises.filter(ex => ex.exercise_name && ex.exercise_name.trim() !== '')
+
+    validExercises.forEach((exercise, index) => {
+      // Parse duration (format: "MM:SS" or just minutes as number)
+      let durationPerSet = 0
+      if (exercise.duration) {
+        if (typeof exercise.duration === 'string') {
+          // Try to parse as MM:SS format
+          const timeParts = exercise.duration.split(':')
+          if (timeParts.length === 2) {
+            durationPerSet = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1])
+          } else {
+            // Try to parse as just a number (minutes)
+            durationPerSet = parseFloat(exercise.duration) * 60
+          }
+        } else {
+          durationPerSet = parseFloat(exercise.duration) * 60
+        }
+      }
+
+      // Parse rest time (format: "X Minute" or just a number)
+      let restMinutes = 0
+      if (exercise.rest) {
+        if (typeof exercise.rest === 'string') {
+          // Extract number from strings like "1 Minute between sets" or "1 min"
+          const restMatch = exercise.rest.match(/(\d+\.?\d*)/)
+          if (restMatch) {
+            restMinutes = parseFloat(restMatch[1])
+          }
+        } else {
+          restMinutes = parseFloat(exercise.rest)
+        }
+      }
+
+      // Get number of sets
+      const sets = exercise.sets ? parseInt(exercise.sets) : 1
+
+      // Calculate: (duration_per_set + rest) * sets
+      const exerciseDuration = (durationPerSet + (restMinutes * 60)) * sets
+      totalMinutes += exerciseDuration
+
+      // Add 2 minute buffer between exercises (except after the last one)
+      if (index < validExercises.length - 1) {
+        totalMinutes += 2 * 60 // 2 minutes in seconds
+      }
+    })
+
+    return Math.ceil(totalMinutes / 60) // Return in minutes, rounded up
+  }, [form.values.exercises])
+
+  // Calculate estimated end time (memoized)
+  const estimatedEndTime = useMemo(() => {
+    const startTime = form.values.sessionTime
+    if (!startTime || estimatedDuration === 0) return null
+
+    try {
+      // Parse start time (format: "HH:MM")
+      const [hours, minutes] = startTime.split(':').map(Number)
+      const startDate = new Date()
+      startDate.setHours(hours, minutes, 0, 0)
+
+      // Add duration
+      const endDate = new Date(startDate.getTime() + estimatedDuration * 60 * 1000)
+
+      // Format as HH:MM
+      const endHours = String(endDate.getHours()).padStart(2, '0')
+      const endMinutes = String(endDate.getMinutes()).padStart(2, '0')
+      return `${endHours}:${endMinutes}`
+    } catch (error) {
+      return null
+    }
+  }, [form.values.sessionTime, estimatedDuration])
+
   return (
     <Modal opened={opened} onClose={onClose} title={`Day ${dayNumber} - Week ${weekNumber}`} size="lg">
       <form onSubmit={form.onSubmit(onSave)}>
@@ -2373,7 +2504,7 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
                 )}
                 <Group grow>
                   <TimeInput
-                    label="Session Time"
+                    label="Session Start Time"
                     {...form.getInputProps('sessionTime')}
                   />
                   <Select
@@ -2386,6 +2517,30 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
                     {...form.getInputProps('sessionType')}
                   />
                 </Group>
+                {form.values.sessionTime && estimatedDuration > 0 && (
+                  <Paper p="sm" withBorder style={{ backgroundColor: 'var(--mantine-color-dark-6)' }}>
+                    <Group justify="space-between">
+                      <Stack gap={2}>
+                        <Text size="sm" fw={500}>Estimated Duration:</Text>
+                        <Text size="xs" c="dimmed">Based on exercises</Text>
+                      </Stack>
+                      <Text size="lg" fw={600} c="blue">
+                        {estimatedDuration} min
+                      </Text>
+                    </Group>
+                    {estimatedEndTime && (
+                      <Group justify="space-between" mt="xs" pt="xs" style={{ borderTop: '1px solid var(--mantine-color-dark-4)' }}>
+                        <Stack gap={2}>
+                          <Text size="sm" fw={500}>Estimated End Time:</Text>
+                          <Text size="xs" c="dimmed">Start: {form.values.sessionTime}</Text>
+                        </Stack>
+                        <Text size="lg" fw={600} c="green">
+                          {estimatedEndTime}
+                        </Text>
+                      </Group>
+                    )}
+                  </Paper>
+                )}
                 {form.values.sessionType === 'in_person' && (
                   <TextInput
                     label="Location"
