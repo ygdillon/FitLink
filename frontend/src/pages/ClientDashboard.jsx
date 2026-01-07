@@ -111,6 +111,9 @@ function ClientDashboard() {
     today.setHours(0, 0, 0, 0)
     const todayKey = getDateKey(today)
     
+    console.log('[ClientDashboard] getTodaysWorkout - today:', today, 'todayKey:', todayKey)
+    console.log('[ClientDashboard] getTodaysWorkout - programs:', programs.length, 'sessions:', upcomingSessions.length)
+    
     // First, check if there's a session scheduled for today with a workout
     if (upcomingSessions.length > 0 && todayKey) {
       const todaysSessions = upcomingSessions.filter(session => {
@@ -118,12 +121,17 @@ function ClientDashboard() {
         const sessionDate = new Date(session.session_date)
         sessionDate.setHours(0, 0, 0, 0)
         const sessionKey = getDateKey(sessionDate)
-        return sessionKey === todayKey
+        const matches = sessionKey === todayKey
+        if (matches) {
+          console.log('[ClientDashboard] Found session for today:', session)
+        }
+        return matches
       })
       
       if (todaysSessions.length > 0) {
         // Find the workout from the session's program_workout_id
         const session = todaysSessions[0]
+        console.log('[ClientDashboard] Processing session:', session.program_workout_id, session.workout_name)
         if (session.program_workout_id || session.workout_name) {
           // Find the program and workout
           for (const program of programs) {
@@ -133,6 +141,7 @@ function ClientDashboard() {
               (session.workout_name && w.workout_name === session.workout_name)
             )
             if (workout) {
+              console.log('[ClientDashboard] Found workout from session:', workout.workout_name)
               return {
                 workout,
                 program,
@@ -145,13 +154,25 @@ function ClientDashboard() {
     }
     
     // If no session for today, calculate from program start date
-    if (programs.length === 0) return null
+    if (programs.length === 0) {
+      console.log('[ClientDashboard] No programs available')
+      return null
+    }
     
+    console.log('[ClientDashboard] Checking programs for today\'s workout...')
     for (const program of programs) {
-      if (!program.start_date || !program.workouts || program.workouts.length === 0) continue
+      if (!program.start_date) {
+        console.log('[ClientDashboard] Program', program.id, 'has no start_date')
+        continue
+      }
+      if (!program.workouts || program.workouts.length === 0) {
+        console.log('[ClientDashboard] Program', program.id, 'has no workouts')
+        continue
+      }
       
       const startDate = new Date(program.start_date)
       startDate.setHours(0, 0, 0, 0)
+      console.log('[ClientDashboard] Checking program', program.id, 'start_date:', startDate, 'workouts:', program.workouts.length)
       
       // Check each workout to see if its calculated date matches today
       for (const workout of program.workouts) {
@@ -159,7 +180,9 @@ function ClientDashboard() {
         if (workoutDate) {
           workoutDate.setHours(0, 0, 0, 0)
           const workoutDateKey = getDateKey(workoutDate)
+          console.log('[ClientDashboard] Workout', workout.workout_name, 'week', workout.week_number, 'day', workout.day_number, 'calculated date:', workoutDateKey, 'matches today?', workoutDateKey === todayKey)
           if (workoutDateKey === todayKey) {
+            console.log('[ClientDashboard] Found today\'s workout:', workout.workout_name)
             return {
               workout,
               program,
@@ -170,6 +193,7 @@ function ClientDashboard() {
       }
     }
     
+    console.log('[ClientDashboard] No workout found for today')
     return null
   }, [programs, upcomingSessions, calculateDateForDay, getDateKey])
 
