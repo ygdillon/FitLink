@@ -378,10 +378,13 @@ function ClientNutrition({ clientId, clientName }) {
       const carbs = Math.round(meal.carbs_per_serving || meal.actual_carbs || 0)
       const fats = Math.round(meal.fats_per_serving || meal.actual_fats || 0)
       
+      // Use mealSlot (which matches dashboard expectations) and normalize to lowercase
+      const normalizedMealType = (mealSlot || meal.meal_category || 'other').toLowerCase()
+      
       try {
-        await api.post('/nutrition/logs', {
+        const logResponse = await api.post('/nutrition/logs', {
           log_date: today,
-          meal_type: meal.meal_category || mealSlot || 'other',
+          meal_type: normalizedMealType,
           food_name: meal.recipe_name || meal.meal_name,
           quantity: 1,
           unit: 'serving',
@@ -391,9 +394,14 @@ function ClientNutrition({ clientId, clientName }) {
           fats: fats,
           notes: `Added from meal recommendations`
         })
+        console.log('✅ Nutrition log created:', logResponse.data)
       } catch (logError) {
-        console.error('Error creating nutrition log entry:', logError)
-        // Don't fail the whole operation if log creation fails
+        console.error('❌ Error creating nutrition log entry:', logError)
+        notifications.show({
+          title: 'Warning',
+          message: 'Meal selected but failed to log. Please log manually.',
+          color: 'yellow'
+        })
       }
       
       notifications.show({
@@ -402,7 +410,7 @@ function ClientNutrition({ clientId, clientName }) {
         color: 'green'
       })
       
-      // Refresh all data
+      // Refresh all data - ensure logs are fetched fresh
       await Promise.all([
         fetchNutritionData(),
         fetchWeeklyMealData(),
@@ -940,9 +948,9 @@ function ClientNutrition({ clientId, clientName }) {
     return Math.max(0, consumed - target)
   }
 
-  // Group logs by meal type
+  // Group logs by meal type (normalize to lowercase for consistency)
   const logsByMeal = todayLogs.reduce((acc, log) => {
-    const meal = log.meal_type || 'other'
+    const meal = (log.meal_type || 'other').toLowerCase()
     if (!acc[meal]) acc[meal] = []
     acc[meal].push(log)
     return acc

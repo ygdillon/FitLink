@@ -335,17 +335,26 @@ function ActiveWorkout() {
 
       {/* Current Exercise */}
       {currentExercise && (
-        <Card shadow="lg" p="xl" mb="md" withBorder>
+        <Card 
+          shadow="lg" 
+          p="xl" 
+          mb="md" 
+          withBorder
+          style={{
+            backgroundColor: 'var(--mantine-color-dark-6)',
+            borderColor: 'var(--mantine-color-dark-4)'
+          }}
+        >
           <Stack gap="lg">
             <Group justify="space-between">
               <Stack gap="xs">
                 <Badge size="lg" variant="light" color="blue">
                   {currentExercise.exercise_type || 'REGULAR'}
                 </Badge>
-                <Title order={2}>{currentExercise.exercise_name}</Title>
+                <Title order={2} c="white">{currentExercise.exercise_name}</Title>
               </Stack>
-              <Badge size="lg">
-                {exerciseProgress.completed}/{exerciseProgress.total} sets
+              <Badge size="lg" color="green">
+                {exerciseProgress.completed}/{exerciseProgress.total} SETS
               </Badge>
             </Group>
 
@@ -354,39 +363,58 @@ function ActiveWorkout() {
             {/* Exercise Details */}
             <Group>
               {currentExercise.sets && (
-                <Badge variant="outline">Sets: {currentExercise.sets}</Badge>
+                <Badge variant="outline" color="gray">Sets: {currentExercise.sets}</Badge>
               )}
               {currentExercise.reps && (
-                <Badge variant="outline">Reps: {currentExercise.reps}</Badge>
+                <Badge variant="outline" color="gray">Reps: {currentExercise.reps}</Badge>
               )}
               {currentExercise.weight && (
-                <Badge variant="outline">Weight: {currentExercise.weight}</Badge>
+                <Badge variant="outline" color="gray">Weight: {currentExercise.weight}</Badge>
               )}
               {currentExercise.duration && (
-                <Badge variant="outline">Duration: {currentExercise.duration}</Badge>
+                <Badge variant="outline" color="gray">Duration: {currentExercise.duration}</Badge>
               )}
             </Group>
 
             {currentExercise.notes && (
-              <Paper p="sm" withBorder bg="gray.0">
-                <Text size="sm">{currentExercise.notes}</Text>
+              <Paper 
+                p="sm" 
+                withBorder 
+                style={{
+                  backgroundColor: 'var(--mantine-color-dark-7)',
+                  borderColor: 'var(--mantine-color-dark-4)'
+                }}
+              >
+                <Text size="sm" c="dimmed">{currentExercise.notes}</Text>
               </Paper>
             )}
 
-            <Divider />
+            <Divider color="dark.4" />
 
             {/* Sets */}
             <Stack gap="md">
-              <Title order={4}>Sets</Title>
+              <Title order={4} c="white">Sets</Title>
               {Array.from({ length: currentExercise.sets || 1 }, (_, setIdx) => {
                 const setData = completedSets[currentExerciseIndex]?.[setIdx] || {}
                 const isCompleted = setData.completed
 
                 return (
-                  <Paper key={setIdx} p="md" withBorder bg={isCompleted ? 'green.0' : 'gray.0'}>
+                  <Paper 
+                    key={setIdx} 
+                    p="md" 
+                    withBorder
+                    style={{
+                      backgroundColor: isCompleted 
+                        ? 'rgba(34, 197, 94, 0.15)' 
+                        : 'var(--mantine-color-dark-7)',
+                      borderColor: isCompleted 
+                        ? 'rgba(34, 197, 94, 0.5)' 
+                        : 'var(--mantine-color-dark-4)'
+                    }}
+                  >
                     <Stack gap="sm">
                       <Group justify="space-between">
-                        <Text fw={600}>Set {setIdx + 1}</Text>
+                        <Text fw={600} c="white">Set {setIdx + 1}</Text>
                         {isCompleted && (
                           <Badge color="green">Completed</Badge>
                         )}
