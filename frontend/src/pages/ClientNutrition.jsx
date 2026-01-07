@@ -3148,6 +3148,20 @@ function ClientNutrition({ clientId, clientName }) {
 
               <Divider label="Nutritional Information" labelPosition="center" />
 
+              {/* AI Calculate Macros Button */}
+              <Button
+                type="button"
+                variant="light"
+                color="green"
+                leftSection="🤖"
+                onClick={handleAICalculateMacros}
+                loading={aiCalculating}
+                disabled={!mealRecommendationForm.values.ingredients?.some(ing => ing.trim()) && !mealRecommendationForm.values.meal_description?.trim() && !mealRecommendationForm.values.instructions?.trim()}
+                fullWidth
+              >
+                {aiCalculating ? 'Calculating with AI...' : '🤖 AI Calculate Macros from Ingredients'}
+              </Button>
+
               <NumberInput
                 label="Calories per Serving"
                 required

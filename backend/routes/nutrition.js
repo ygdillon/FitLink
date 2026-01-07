@@ -1985,84 +1985,177 @@ router.post('/meals/calculate-macros', requireRole(['trainer']), async (req, res
       })
     }
 
-    // Build the prompt for AI
+    // Build the prompt for AI - ensure ingredients are properly formatted
     const ingredientsList = ingredients && ingredients.length > 0 
-      ? ingredients.filter(ing => ing.trim()).join('\n- ')
+      ? ingredients.filter(ing => ing.trim()).map(ing => ing.trim()).join('\n- ')
       : 'Not specified'
     
     const description = meal_description || 'Not provided'
     const instructionsText = instructions || 'Not provided'
     const servings = total_yield || 1
 
-    const prompt = `You are a nutrition expert. Calculate the nutritional information for a meal based on the following details:
+    // Log the exact data being sent
+    console.log('📊 Data being sent to AI:', {
+      ingredients: ingredients,
+      ingredientsList: ingredientsList,
+      description: description,
+      instructions: instructionsText,
+      servings: servings,
+      hasIngredients: ingredients && ingredients.length > 0 && ingredients.some(ing => ing.trim())
+    })
+
+    const prompt = `You are a professional nutritionist with access to USDA nutrition database. Calculate ACCURATE nutritional information for a meal.
 
 MEAL DETAILS:
-- Ingredients:
+- Ingredients List:
 ${ingredientsList.split('\n').map(ing => `  - ${ing}`).join('\n')}
 - Description: ${description}
 - Preparation Instructions: ${instructionsText}
 - Number of Servings: ${servings}
 
-IMPORTANT INSTRUCTIONS:
-1. Analyze ALL ingredients listed, including quantities and measurements (e.g., "2 cups", "1 tablespoon", "200g", etc.)
-2. Extract any additional ingredients mentioned in the description or instructions (e.g., "use a tablespoon of oil", "add 1 cup of milk", etc.)
-3. Calculate the TOTAL nutritional values for the ENTIRE recipe (all servings combined)
-4. Then divide by the number of servings to get PER SERVING values
-5. Be accurate with measurements - convert units if needed (e.g., 1 cup = 240ml, 1 tablespoon = 15ml, etc.)
-6. Include calories from cooking oils, butter, dressings, and any preparation ingredients mentioned
+CRITICAL CALCULATION RULES:
 
-Return ONLY a valid JSON object with this exact structure:
+1. INGREDIENT PARSING:
+   - Parse each ingredient carefully, extracting the quantity and food item
+   - Examples: "2 cups chicken breast" = 2 cups of chicken breast, "1 tbsp olive oil" = 1 tablespoon olive oil
+   - If no quantity is specified, assume a reasonable standard serving (e.g., 1 cup for liquids, 100g for solids)
+
+2. NUTRITION DATA SOURCE:
+   - Use USDA FoodData Central nutrition database values
+   - For common foods, use these reference values:
+     * Chicken breast (cooked): 165 cal, 31g protein, 0g carbs, 3.6g fat per 100g
+     * Red lentils (cooked): 116 cal, 9g protein, 20g carbs, 0.4g fat per 100g
+     * Olive oil: 119 cal, 0g protein, 0g carbs, 13.5g fat per tablespoon
+     * Avocado: 160 cal, 2g protein, 9g carbs, 15g fat per 100g
+   - Use accurate, realistic values - if unsure, err on the side of standard USDA values
+
+3. QUANTITY CONVERSIONS:
+   - 1 cup = 240ml (liquids) or ~240g (solids like rice, lentils)
+   - 1 tablespoon (tbsp) = 15ml or ~15g
+   - 1 teaspoon (tsp) = 5ml or ~5g
+   - 1 oz = 28.35g
+   - 1 lb = 453.6g
+
+4. CALCULATION PROCESS:
+   a) For EACH ingredient in the list:
+      - Identify the food item and quantity
+      - Look up or calculate its nutrition per unit
+      - Multiply by the quantity to get total nutrition for that ingredient
+   
+   b) Sum ALL ingredients to get TOTAL recipe nutrition
+   
+   c) Divide by number of servings to get PER SERVING values
+   
+   d) Round protein, carbs, fats to 1 decimal place
+      Round calories to nearest whole number
+
+5. DESCRIPTION/INSTRUCTIONS:
+   - IGNORE conversational text in description (e.g., "we'll have this for dinner")
+   - ONLY extract preparation ingredients from instructions if they have explicit quantities (e.g., "add 1 tbsp oil")
+   - Do NOT count ingredients mentioned without quantities
+
+6. VALIDATION CHECKS:
+   - Calories should roughly equal: (protein × 4) + (carbs × 4) + (fats × 9) ± 10%
+   - If the meal contains protein sources (meat, beans, lentils), protein should be substantial (typically 15-40g per serving)
+   - If the meal contains grains/legumes, carbs should be substantial (typically 20-60g per serving)
+   - Values that seem too low (e.g., <5g protein for a main dish) are likely incorrect - recalculate
+
+7. EXAMPLES OF REALISTIC VALUES (use these as sanity checks):
+   - Lentil soup (1 cup/240ml): ~230-280 cal, 15-20g protein, 35-45g carbs, 1-2g fat
+   - Red lentil soup with vegetables (1 cup): ~250-300 cal, 18-22g protein, 40-50g carbs, 2-5g fat
+   - Grilled chicken breast (6oz/170g): ~280 cal, 52g protein, 0g carbs, 6g fat
+   - Chicken with rice (6oz chicken + 1 cup rice): ~500 cal, 45g protein, 45g carbs, 10g fat
+   - If your calculated values are MUCH lower than these examples, you made an error - recalculate!
+
+Return ONLY a valid JSON object:
 {
-  "calories_per_serving": <number>,
-  "protein_per_serving": <number in grams>,
-  "carbs_per_serving": <number in grams>,
-  "fats_per_serving": <number in grams>,
+  "calories_per_serving": <number - whole number>,
+  "protein_per_serving": <number in grams - 1 decimal>,
+  "carbs_per_serving": <number in grams - 1 decimal>,
+  "fats_per_serving": <number in grams - 1 decimal>,
   "breakdown": {
     "total_calories": <total for entire recipe>,
     "total_protein": <total for entire recipe in grams>,
     "total_carbs": <total for entire recipe in grams>,
     "total_fats": <total for entire recipe in grams>
   },
-  "notes": "<brief explanation of calculation>"
+  "notes": "<list each ingredient used and its contribution, e.g., '2 cups red lentils: 464 cal, 36g protein, 80g carbs, 1.6g fat; 1 tbsp olive oil: 119 cal, 0g protein, 0g carbs, 13.5g fat'"
 }
 
-Make sure all numbers are realistic and accurate. Round to 1 decimal place.`
+CRITICAL: Double-check your calculations. Values must be realistic and match standard nutrition databases.`
 
     console.log('🤖 Calling OpenAI to calculate macros...')
-    console.log('Ingredients:', ingredients)
-    console.log('Description:', description)
-    console.log('Instructions:', instructionsText)
-    console.log('Servings:', servings)
+    console.log('📋 Input data:', {
+      ingredients: ingredients,
+      ingredientsList: ingredientsList,
+      description: description,
+      instructions: instructionsText,
+      servings: servings
+    })
 
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
-          content: 'You are a nutrition expert. Calculate accurate nutritional information based on ingredients and preparation methods. Always return valid JSON only.'
+          content: 'You are a professional nutritionist with expertise in calculating accurate nutritional information using USDA FoodData Central database. You must provide precise, realistic values based on standard nutrition databases. Always return valid JSON only. Double-check all calculations for accuracy.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.3, // Lower temperature for more consistent, accurate results
+      temperature: 0.2, // Even lower temperature for more accurate, consistent results
       response_format: { type: 'json_object' }
     })
 
     const aiResponse = JSON.parse(completion.choices[0].message.content)
 
     // Validate and structure the response
+    let calories = Math.round(parseFloat(aiResponse.calories_per_serving) || 0)
+    // Fix: Multiply by 10, round, then divide by 10 to get 1 decimal place
+    let protein = Math.round(parseFloat(aiResponse.protein_per_serving || 0) * 10) / 10
+    let carbs = Math.round(parseFloat(aiResponse.carbs_per_serving || 0) * 10) / 10
+    let fats = Math.round(parseFloat(aiResponse.fats_per_serving || 0) * 10) / 10
+
+    // Validation: Check if values seem reasonable
+    // Calories should roughly equal: (protein × 4) + (carbs × 4) + (fats × 9)
+    const calculatedCalories = (protein * 4) + (carbs * 4) + (fats * 9)
+    const calorieDifference = Math.abs(calories - calculatedCalories)
+    const caloriePercentDiff = calories > 0 ? (calorieDifference / calories) * 100 : 0
+
+    // If calories are way off (more than 20% difference), use calculated value
+    if (caloriePercentDiff > 20 && calculatedCalories > 0) {
+      console.warn(`⚠️ AI calories (${calories}) don't match calculated (${calculatedCalories.toFixed(0)}). Using calculated value.`)
+      calories = Math.round(calculatedCalories)
+    }
+
+    // Warn if values seem too low for a meal
+    if (calories < 50) {
+      console.warn(`⚠️ Very low calories (${calories}) - may indicate calculation error`)
+    }
+    if (protein < 1 && (ingredientsList.toLowerCase().includes('chicken') || ingredientsList.toLowerCase().includes('meat') || ingredientsList.toLowerCase().includes('lentil') || ingredientsList.toLowerCase().includes('bean'))) {
+      console.warn(`⚠️ Very low protein (${protein}g) despite protein sources in ingredients - may indicate calculation error`)
+    }
+
     const macros = {
-      calories_per_serving: Math.round(parseFloat(aiResponse.calories_per_serving) || 0),
-      protein_per_serving: Math.round(parseFloat(aiResponse.protein_per_serving) || 0 * 10) / 10,
-      carbs_per_serving: Math.round(parseFloat(aiResponse.carbs_per_serving) || 0 * 10) / 10,
-      fats_per_serving: Math.round(parseFloat(aiResponse.fats_per_serving) || 0 * 10) / 10,
+      calories_per_serving: calories,
+      protein_per_serving: protein,
+      carbs_per_serving: carbs,
+      fats_per_serving: fats,
       breakdown: aiResponse.breakdown || {},
       notes: aiResponse.notes || 'Calculated using AI based on provided ingredients and preparation methods.'
     }
 
-    console.log('✅ AI calculated macros:', macros)
+    console.log('✅ AI calculated macros:', {
+      raw: aiResponse,
+      processed: macros,
+      validation: {
+        calculatedCalories: calculatedCalories,
+        calorieDifference: calorieDifference,
+        caloriePercentDiff: caloriePercentDiff.toFixed(1) + '%'
+      }
+    })
 
     res.json(macros)
   } catch (error) {

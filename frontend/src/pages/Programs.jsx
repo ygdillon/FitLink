@@ -1576,26 +1576,6 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         workouts: updatedWorkouts
       })
 
-      // If editing a workout and session details were provided, update sessions
-      if (editingWorkout?.id && (values.sessionTime || values.location !== undefined || values.sessionType || values.meetingLink !== undefined)) {
-        try {
-          await api.put(`/schedule/trainer/workout/${editingWorkout.id}/sessions`, {
-            sessionTime: values.sessionTime,
-            location: values.location,
-            sessionType: values.sessionType,
-            meetingLink: values.meetingLink
-          })
-        } catch (error) {
-          console.error('Error updating sessions:', error)
-          // Don't fail the whole operation if session update fails
-          notifications.show({
-            title: 'Warning',
-            message: 'Workout saved but session update failed',
-            color: 'yellow',
-          })
-        }
-      }
-
       // Refresh program data
       const response = await api.get(`/programs/${currentProgram.id}`)
       setCurrentProgram(response.data)
@@ -1627,6 +1607,77 @@ function ProgramCalendarView({ program, opened, onClose, isTrainer, onProgramUpd
         )
         if (dayWorkouts && dayWorkouts.length > 0) {
           savedWorkout = dayWorkouts[dayWorkouts.length - 1]
+        }
+      }
+
+      // Handle session creation/update
+      if (savedWorkout?.id) {
+        // If editing a workout and session details were provided, update sessions
+        if (editingWorkout?.id && (values.sessionTime || values.location !== undefined || values.sessionType || values.meetingLink !== undefined)) {
+          try {
+            await api.put(`/schedule/trainer/workout/${savedWorkout.id}/sessions`, {
+              sessionTime: values.sessionTime,
+              location: values.location,
+              sessionType: values.sessionType,
+              meetingLink: values.meetingLink
+            })
+          } catch (error) {
+            console.error('Error updating sessions:', error)
+            // Don't fail the whole operation if session update fails
+            notifications.show({
+              title: 'Warning',
+              message: 'Workout saved but session update failed',
+              color: 'yellow',
+            })
+          }
+        }
+        // If creating a new workout with session details, create sessions for assigned clients
+        else if (!editingWorkout && values.sessionTime && currentProgram.start_date) {
+          try {
+            // Get assigned clients
+            const clientsRes = await api.get(`/programs/${currentProgram.id}/assigned-clients`)
+            const assignedClients = clientsRes.data || []
+            
+            if (assignedClients.length > 0) {
+              // Calculate session date
+              const calculateSessionDate = (startDate, weekNum, dayNum) => {
+                const start = new Date(startDate)
+                start.setHours(0, 0, 0, 0)
+                const daysToAdd = (weekNum - 1) * 7 + (dayNum - 1)
+                const date = new Date(start)
+                date.setDate(start.getDate() + daysToAdd)
+                return date.toISOString().split('T')[0]
+              }
+              
+              const sessionDate = calculateSessionDate(currentProgram.start_date, weekNumber, dayNumber)
+              const clientIds = assignedClients.map(c => c.client_id || c.id).filter(Boolean)
+              
+              // Create sessions for all assigned clients
+              await api.post(`/programs/${currentProgram.id}/workout/${savedWorkout.id}/create-sessions`, {
+                sessionDate,
+                sessionTime: values.sessionTime,
+                duration: 60, // Default duration
+                sessionType: values.sessionType || 'in_person',
+                location: values.location || null,
+                meetingLink: values.meetingLink || null,
+                clientIds
+              })
+              
+              notifications.show({
+                title: 'Success',
+                message: `Workout and ${assignedClients.length} session(s) created successfully!`,
+                color: 'green',
+              })
+            }
+          } catch (error) {
+            console.error('Error creating sessions:', error)
+            // Don't fail the whole operation if session creation fails
+            notifications.show({
+              title: 'Warning',
+              message: 'Workout saved but session creation failed. You can create sessions manually.',
+              color: 'yellow',
+            })
+          }
         }
       }
       
@@ -2304,50 +2355,55 @@ function WorkoutEditorModal({ opened, onClose, dayNumber, weekNumber, workout, o
             + Add Exercise
           </Button>
 
-          {workout && existingSessions.length > 0 && (
-            <>
-              <Divider label="Session Details" labelPosition="left" mt="md" />
-              {loadingSessions ? (
-                <Loader size="sm" />
-              ) : (
-                <Stack gap="sm">
-                  <Text size="sm" c="dimmed">
+          <Divider label="Session Details" labelPosition="left" mt="md" />
+          <Stack gap="sm">
+            {workout && existingSessions.length > 0 && loadingSessions ? (
+              <Loader size="sm" />
+            ) : (
+              <>
+                {workout && existingSessions.length > 0 && (
+                  <Text size="sm" c="dimmed" mb="xs">
                     This workout has {existingSessions.length} scheduled session(s). Update session details below.
                   </Text>
-                  <Group grow>
-                    <TimeInput
-                      label="Session Time"
-                      {...form.getInputProps('sessionTime')}
-                    />
-                    <Select
-                      label="Session Type"
-                      data={[
-                        { value: 'in_person', label: 'In-Person' },
-                        { value: 'online', label: 'Online' },
-                        { value: 'hybrid', label: 'Hybrid' }
-                      ]}
-                      {...form.getInputProps('sessionType')}
-                    />
-                  </Group>
-                  {form.values.sessionType === 'in_person' && (
-                    <TextInput
-                      label="Location"
-                      placeholder="Gym address or location"
-                      {...form.getInputProps('location')}
-                    />
-                  )}
-                  {form.values.sessionType === 'online' && (
-                    <TextInput
-                      label="Meeting Link"
-                      placeholder="Zoom, Google Meet, or other meeting link"
-                      type="url"
-                      {...form.getInputProps('meetingLink')}
-                    />
-                  )}
-                </Stack>
-              )}
-            </>
-          )}
+                )}
+                {!workout && (
+                  <Text size="sm" c="dimmed" mb="xs">
+                    Set session time and location to automatically create sessions when this workout is saved.
+                  </Text>
+                )}
+                <Group grow>
+                  <TimeInput
+                    label="Session Time"
+                    {...form.getInputProps('sessionTime')}
+                  />
+                  <Select
+                    label="Session Type"
+                    data={[
+                      { value: 'in_person', label: 'In-Person' },
+                      { value: 'online', label: 'Online' },
+                      { value: 'hybrid', label: 'Hybrid' }
+                    ]}
+                    {...form.getInputProps('sessionType')}
+                  />
+                </Group>
+                {form.values.sessionType === 'in_person' && (
+                  <TextInput
+                    label="Location"
+                    placeholder="Gym address or location"
+                    {...form.getInputProps('location')}
+                  />
+                )}
+                {form.values.sessionType === 'online' && (
+                  <TextInput
+                    label="Meeting Link"
+                    placeholder="Zoom, Google Meet, or other meeting link"
+                    type="url"
+                    {...form.getInputProps('meetingLink')}
+                  />
+                )}
+              </>
+            )}
+          </Stack>
 
           {!workout && (
             <>
