@@ -715,6 +715,71 @@ router.get('/clients/:clientId/nutrition/logs', async (req, res) => {
   }
 })
 
+// Get daily nutrition totals for a client (for progress tracking)
+router.get('/clients/:clientId/nutrition/totals', async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const { start_date, end_date } = req.query
+
+    // First, try to find the client - handle both user_id and client record ID
+    let actualUserId = null
+    
+    // Try as user_id first (most common case)
+    let clientCheck = await pool.query(
+      'SELECT user_id FROM clients WHERE user_id = $1 AND trainer_id = $2',
+      [clientId, req.user.id]
+    )
+
+    // If not found, try as client record ID
+    if (clientCheck.rows.length === 0) {
+      clientCheck = await pool.query(
+        'SELECT user_id FROM clients WHERE id = $1 AND trainer_id = $2',
+        [clientId, req.user.id]
+      )
+    }
+
+    if (clientCheck.rows.length === 0) {
+      console.error('Client not found for trainer:', { clientId, trainerId: req.user.id })
+      return res.status(404).json({ message: 'Client not found' })
+    }
+
+    actualUserId = clientCheck.rows[0].user_id
+
+    let query = `
+      SELECT 
+        log_date,
+        SUM(calories) as total_calories,
+        SUM(protein) as total_protein,
+        SUM(carbs) as total_carbs,
+        SUM(fats) as total_fats,
+        COUNT(*) as log_count
+      FROM nutrition_logs
+      WHERE client_id = $1
+    `
+    const params = [actualUserId]
+    let paramCount = 2
+
+    if (start_date) {
+      query += ` AND log_date >= $${paramCount++}`
+      params.push(start_date)
+    }
+
+    if (end_date) {
+      query += ` AND log_date <= $${paramCount++}`
+      params.push(end_date)
+    }
+
+    query += ' GROUP BY log_date ORDER BY log_date DESC'
+
+    const result = await pool.query(query, params)
+    console.log(`Fetched ${result.rows.length} days of nutrition totals for client ${actualUserId}`)
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching nutrition totals:', error)
+    res.status(500).json({ message: 'Failed to fetch nutrition totals', error: error.message })
+  }
+})
+
 // Create nutrition log entry
 router.post('/clients/:clientId/nutrition/logs', async (req, res) => {
   try {

@@ -75,6 +75,7 @@ function ClientNutrition({ clientId, clientName }) {
   const [searchFood, setSearchFood] = useState('')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [historyData, setHistoryData] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [weeklySummary, setWeeklySummary] = useState(null)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [logModalTab, setLogModalTab] = useState('search')
@@ -103,9 +104,18 @@ function ClientNutrition({ clientId, clientName }) {
   const isTrainerView = !!clientId
   const targetUserId = clientId || user?.id
 
+  // Helper to get today's date in local timezone (YYYY-MM-DD)
+  const getTodayLocalDate = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const logForm = useForm({
     initialValues: {
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: getTodayLocalDate(),
       meal_type: 'breakfast',
       food_name: '',
       quantity: '',
@@ -175,7 +185,7 @@ function ClientNutrition({ clientId, clientName }) {
       fetchWeeklyMealData()
       fetchRecommendedMeals()
     }
-  }, [targetUserId, activeTab, currentWeekStart])
+  }, [targetUserId, activeTab, currentWeekStart, clientId])
 
   const fetchNutritionData = async () => {
     try {
@@ -210,10 +220,20 @@ function ClientNutrition({ clientId, clientName }) {
           if (clientRes.data?.user_id) {
             const userId = clientRes.data.user_id
             const logsRes = await api.get(`/trainer/clients/${userId}/nutrition/logs`).catch(() => ({ data: [] }))
-            setNutritionLogs(logsRes.data || [])
+            const logs = logsRes.data || []
+            console.log('Fetched nutrition logs for trainer view:', {
+              totalLogs: logs.length,
+              sampleLogs: logs.slice(0, 3).map(log => ({
+                id: log.id,
+                log_date: log.log_date,
+                food_name: log.food_name,
+                dateType: typeof log.log_date
+              }))
+            })
+            setNutritionLogs(logs)
             
             // Fetch recent foods (last 10 unique foods logged)
-            const recent = logsRes.data
+            const recent = logs
               ?.map(log => log.food_name)
               .filter((name, index, self) => self.indexOf(name) === index)
               .slice(0, 10) || []
@@ -229,7 +249,17 @@ function ClientNutrition({ clientId, clientName }) {
         }
       } else {
         const logsRes = await api.get('/nutrition/logs').catch(() => ({ data: [] }))
-        setNutritionLogs(logsRes.data || [])
+        const logs = logsRes.data || []
+        console.log('Fetched nutrition logs for client view:', {
+          totalLogs: logs.length,
+          sampleLogs: logs.slice(0, 3).map(log => ({
+            id: log.id,
+            log_date: log.log_date,
+            food_name: log.food_name,
+            dateType: typeof log.log_date
+          }))
+        })
+        setNutritionLogs(logs)
         
         // Fetch recent foods (last 10 unique foods logged)
         const recent = logsRes.data
@@ -282,20 +312,66 @@ function ClientNutrition({ clientId, clientName }) {
 
   const fetchHistoryData = async () => {
     try {
+      setHistoryLoading(true)
       const today = new Date()
       const monthAgo = new Date(today)
       monthAgo.setDate(today.getDate() - 30)
       
-      const totalsRes = await api.get('/nutrition/logs/totals', {
-        params: {
-          start_date: monthAgo.toISOString().split('T')[0],
-          end_date: today.toISOString().split('T')[0]
+      let totalsRes
+      if (isTrainerView && clientId) {
+        // For trainers, first get the client's user_id
+        try {
+          const clientRes = await api.get(`/trainer/clients/${clientId}`).catch(() => ({ data: null }))
+          
+          if (clientRes.data?.user_id) {
+            const userId = clientRes.data.user_id
+            console.log('Fetching nutrition totals for client:', { clientId, userId })
+            // Use the trainer endpoint with the client's user_id
+            totalsRes = await api.get(`/trainer/clients/${userId}/nutrition/totals`, {
+              params: {
+                start_date: monthAgo.toISOString().split('T')[0],
+                end_date: today.toISOString().split('T')[0]
+              }
+            }).catch((err) => {
+              console.error('Error fetching nutrition totals:', err)
+              console.error('Error response:', err.response?.data)
+              return { data: [] }
+            })
+          } else {
+            console.warn('Client user_id not found for clientId:', clientId)
+            totalsRes = { data: [] }
+          }
+        } catch (error) {
+          console.error('Error fetching client data for history:', error)
+          totalsRes = { data: [] }
         }
-      }).catch(() => ({ data: [] }))
+      } else {
+        // For clients, use the client endpoint
+        totalsRes = await api.get('/nutrition/logs/totals', {
+          params: {
+            start_date: monthAgo.toISOString().split('T')[0],
+            end_date: today.toISOString().split('T')[0]
+          }
+        }).catch((err) => {
+          console.error('Error fetching nutrition totals:', err)
+          return { data: [] }
+        })
+      }
+      
+      console.log('History data fetched:', {
+        isTrainerView,
+        clientId,
+        dataLength: totalsRes.data?.length || 0,
+        sampleData: totalsRes.data?.[0],
+        allData: totalsRes.data
+      })
       
       setHistoryData(totalsRes.data || [])
     } catch (error) {
       console.error('Error fetching history data:', error)
+      setHistoryData([])
+    } finally {
+      setHistoryLoading(false)
     }
   }
 
@@ -360,7 +436,7 @@ function ClientNutrition({ clientId, clientName }) {
 
   const handleSelectMeal = async (meal, mealSlot) => {
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayLocalDate()
       
       // First, create the meal selection
       const selectionResponse = await api.post('/nutrition/meals/select', {
@@ -381,42 +457,66 @@ function ClientNutrition({ clientId, clientName }) {
       // Use mealSlot (which matches dashboard expectations) and normalize to lowercase
       const normalizedMealType = (mealSlot || meal.meal_category || 'other').toLowerCase()
       
+      let logCreated = false
       try {
-        const logResponse = await api.post('/nutrition/logs', {
+        // Ensure we have a valid food name
+        const foodName = meal.recipe_name || meal.meal_name || 'Unknown Meal'
+        if (!foodName || foodName.trim() === '') {
+          throw new Error('Meal name is required')
+        }
+        
+        const logData = {
           log_date: today,
           meal_type: normalizedMealType,
-          food_name: meal.recipe_name || meal.meal_name,
+          food_name: foodName,
           quantity: 1,
           unit: 'serving',
-          calories: calories,
-          protein: protein,
-          carbs: carbs,
-          fats: fats,
+          calories: calories || 0,
+          protein: protein || 0,
+          carbs: carbs || 0,
+          fats: fats || 0,
           notes: `Added from meal recommendations`
-        })
-        console.log('✅ Nutrition log created:', logResponse.data)
+        }
+        
+        console.log('📝 Creating nutrition log with data:', logData)
+        const logResponse = await api.post('/nutrition/logs', logData)
+        console.log('✅ Nutrition log created successfully:', logResponse.data)
+        logCreated = true
       } catch (logError) {
         console.error('❌ Error creating nutrition log entry:', logError)
+        console.error('Error details:', {
+          message: logError.message,
+          response: logError.response?.data,
+          status: logError.response?.status
+        })
         notifications.show({
           title: 'Warning',
-          message: 'Meal selected but failed to log. Please log manually.',
+          message: logError.response?.data?.message || 'Meal selected but failed to log. Please log manually.',
           color: 'yellow'
         })
       }
       
-      notifications.show({
-        title: 'Success',
-        message: 'Meal added to your plan and logged',
-        color: 'green'
-      })
-      
-      // Refresh all data - ensure logs are fetched fresh
-      await Promise.all([
-        fetchNutritionData(),
-        fetchWeeklyMealData(),
-        fetchRecommendedMeals(),
-        fetchWeeklySummary()
-      ])
+      if (logCreated) {
+        notifications.show({
+          title: 'Success',
+          message: 'Meal added to your plan and logged',
+          color: 'green'
+        })
+        
+        // Refresh all data - ensure logs are fetched fresh
+        await Promise.all([
+          fetchNutritionData(),
+          fetchWeeklyMealData(),
+          fetchRecommendedMeals(),
+          fetchWeeklySummary()
+        ])
+      } else {
+        // Still refresh to show the meal selection even if log failed
+        await Promise.all([
+          fetchWeeklyMealData(),
+          fetchRecommendedMeals()
+        ])
+      }
     } catch (error) {
       console.error('Error selecting meal:', error)
       notifications.show({
@@ -862,7 +962,18 @@ function ClientNutrition({ clientId, clientName }) {
       })
 
       closeLogModal()
-      logForm.reset()
+      // Reset form with today's date (not stale date)
+      logForm.setValues({
+        log_date: getTodayLocalDate(),
+        meal_type: 'breakfast',
+        food_name: '',
+        quantity: '',
+        unit: 'g',
+        calories: '',
+        protein: '',
+        carbs: '',
+        fats: ''
+      })
       setLogModalTab('search')
       fetchNutritionData()
       fetchWeeklySummary()
@@ -906,9 +1017,66 @@ function ClientNutrition({ clientId, clientName }) {
     )
   }
 
+  // Helper function to get local date string (YYYY-MM-DD) - handles timezone correctly
+  const getLocalDateString = (date) => {
+    const d = new Date(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Helper function to normalize log date to YYYY-MM-DD format
+  // This handles various date formats from the database and ensures consistent comparison
+  const normalizeLogDate = (logDate) => {
+    if (!logDate) return null
+    
+    // If it's already a string in YYYY-MM-DD format, extract just the date part
+    if (typeof logDate === 'string') {
+      // Handle formats like "2024-01-15" or "2024-01-15T00:00:00.000Z" or "2024-01-15 00:00:00"
+      const dateMatch = logDate.match(/^(\d{4}-\d{2}-\d{2})/)
+      if (dateMatch) {
+        return dateMatch[1] // Return just YYYY-MM-DD
+      }
+    }
+    
+    // If it's a Date object, convert to local date string
+    if (logDate instanceof Date) {
+      return getLocalDateString(logDate)
+    }
+    
+    // Try to parse as date and convert to local date
+    try {
+      // Parse the date - this handles ISO strings, timestamps, etc.
+      const date = new Date(logDate)
+      if (!isNaN(date.getTime())) {
+        // Use local date, not UTC
+        return getLocalDateString(date)
+      }
+    } catch (e) {
+      console.warn('Could not parse log date:', logDate, e)
+    }
+    
+    // Fallback: try to extract date from string
+    const str = String(logDate)
+    const dateMatch = str.match(/(\d{4}-\d{2}-\d{2})/)
+    if (dateMatch) {
+      return dateMatch[1]
+    }
+    
+    console.warn('Could not normalize log date:', logDate)
+    return null
+  }
+
+  // Get today's date in local timezone (not UTC) - use getTodayLocalDate for consistency
+  const today = getTodayLocalDate()
+  
   // Calculate selected date totals from logs
-  const selectedDateStr = selectedDate.toISOString().split('T')[0]
-  const selectedDateLogs = nutritionLogs.filter(log => log.log_date === selectedDateStr)
+  const selectedDateStr = getLocalDateString(selectedDate)
+  const selectedDateLogs = nutritionLogs.filter(log => {
+    const logDate = normalizeLogDate(log.log_date)
+    return logDate === selectedDateStr
+  })
   const selectedDateTotals = selectedDateLogs.reduce((acc, log) => ({
     calories: acc.calories + (parseFloat(log.calories) || 0),
     protein: acc.protein + (parseFloat(log.protein) || 0),
@@ -916,9 +1084,44 @@ function ClientNutrition({ clientId, clientName }) {
     fats: acc.fats + (parseFloat(log.fats) || 0)
   }), { calories: 0, protein: 0, carbs: 0, fats: 0 })
 
-  // Use today's date for dashboard, selected date for log tab
-  const today = new Date().toISOString().split('T')[0]
-  const todayLogs = nutritionLogs.filter(log => log.log_date === today)
+  // Filter logs for today using local date - STRICT comparison
+  const todayLogs = nutritionLogs.filter(log => {
+    const logDate = normalizeLogDate(log.log_date)
+    const matches = logDate === today
+    if (!matches && logDate) {
+      // Debug: log mismatches to help identify issues
+      console.log('Date mismatch:', {
+        logDate,
+        today,
+        original: log.log_date,
+        food: log.food_name,
+        matches
+      })
+    }
+    return matches
+  })
+  
+  // Debug logging
+  if (nutritionLogs.length > 0) {
+    console.log('📊 Nutrition logs debug:', {
+      totalLogs: nutritionLogs.length,
+      today: today,
+      todayLogsCount: todayLogs.length,
+      sampleLog: nutritionLogs[0],
+      sampleLogDate: normalizeLogDate(nutritionLogs[0]?.log_date),
+      todayLogs: todayLogs.map(log => ({
+        food_name: log.food_name,
+        log_date: log.log_date,
+        normalized_date: normalizeLogDate(log.log_date),
+        matches_today: normalizeLogDate(log.log_date) === today
+      })),
+      allLogDates: nutritionLogs.map(log => ({
+        original: log.log_date,
+        normalized: normalizeLogDate(log.log_date)
+      }))
+    })
+  }
+  
   const todayTotals = todayLogs.reduce((acc, log) => ({
     calories: acc.calories + (parseFloat(log.calories) || 0),
     protein: acc.protein + (parseFloat(log.protein) || 0),
@@ -1479,33 +1682,6 @@ function ClientNutrition({ clientId, clientName }) {
                 )}
               </Group>
 
-              {/* Weekly Nutrition Averages */}
-              {weeklyMealData?.weekly_averages && (
-                <Card withBorder p="md">
-                  <Text fw={600} mb="md">Weekly Nutrition Averages</Text>
-                  <SimpleGrid cols={4} spacing="md">
-                    <Box>
-                      <Text size="xs" c="dimmed" mb={4}>Calories</Text>
-                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.calories} cal</Text>
-                    </Box>
-                    <Box>
-                      <Text size="xs" c="dimmed" mb={4}>Protein</Text>
-                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.protein} g</Text>
-                    </Box>
-                    <Box>
-                      <Text size="xs" c="dimmed" mb={4}>Carbs</Text>
-                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.carbs} g</Text>
-                    </Box>
-                    <Box>
-                      <Text size="xs" c="dimmed" mb={4}>Fats</Text>
-                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.fats} g</Text>
-                    </Box>
-                  </SimpleGrid>
-                  <Text size="sm" c="dimmed" mt="sm">
-                    {weeklyMealData.weekly_averages.days_logged} of 7 days logged
-                  </Text>
-                </Card>
-              )}
 
               {/* Today's Meals Section */}
               <Paper p="md" withBorder>
@@ -1520,7 +1696,7 @@ function ClientNutrition({ clientId, clientName }) {
                     )
                     
                     // Get client selection for today
-                    const todayStr = new Date().toISOString().split('T')[0]
+                    const todayStr = getTodayLocalDate()
                     const selectedMeal = weeklyMealData?.client_selections?.find(s => 
                       s.selected_date === todayStr && 
                       s.meal_slot === mealSlot
@@ -1857,13 +2033,46 @@ function ClientNutrition({ clientId, clientName }) {
           {/* Progress & History Tab */}
           <Tabs.Panel value="history" pt="xl">
             <Stack gap="xl">
+              {/* Weekly Nutrition Averages */}
+              {weeklyMealData?.weekly_averages && (
+                <Card withBorder p="md">
+                  <Text fw={600} mb="md">Weekly Nutrition Averages</Text>
+                  <SimpleGrid cols={4} spacing="md">
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Calories</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.calories} cal</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Protein</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.protein} g</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Carbs</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.carbs} g</Text>
+                    </Box>
+                    <Box>
+                      <Text size="xs" c="dimmed" mb={4}>Fats</Text>
+                      <Text size="xl" fw={700}>{weeklyMealData.weekly_averages.fats} g</Text>
+                    </Box>
+                  </SimpleGrid>
+                  <Text size="sm" c="dimmed" mt="sm">
+                    {weeklyMealData.weekly_averages.days_logged} of 7 days logged
+                  </Text>
+                </Card>
+              )}
+
               <Paper p="md" withBorder>
                 <Title order={3} mb="md">{isTrainerView ? "Client's Nutrition Progress" : "Nutrition Progress"}</Title>
                 
-                {historyData.length === 0 ? (
+                {historyLoading ? (
+                  <Group justify="center" py="xl">
+                    <Loader size="md" />
+                    <Text c="dimmed" ml="md">Loading nutrition history...</Text>
+                  </Group>
+                ) : historyData.length === 0 ? (
                   <Text c="dimmed" ta="center" py="xl">
                     {isTrainerView 
-                      ? "No nutrition history data available for this client yet." 
+                      ? "No nutrition history data available for this client yet. Once the client starts logging meals, their progress will appear here." 
                       : "No history data available. Start logging to see your progress!"}
                   </Text>
                 ) : (
@@ -1893,24 +2102,253 @@ function ClientNutrition({ clientId, clientName }) {
                       </SimpleGrid>
                     </Box>
 
-                    {/* Stats Grid */}
+                    {/* Daily Averages & Insights */}
+                    {isTrainerView && (
+                      <>
+                        <Box>
+                          <Title order={4} mb="md">Daily Averages & Performance Metrics</Title>
+                          <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md" mb="xl">
+                            <Card withBorder p="md">
+                              <Text size="xs" c="dimmed" mb="xs">Avg Daily Calories</Text>
+                              <Text size="xl" fw={700} mb="xs">
+                                {historyData.length > 0 
+                                  ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length)
+                                  : 0}
+                              </Text>
+                              {targets && (
+                                <>
+                                  <Text size="sm" c="dimmed">Target: {Math.round(targets.calories)}</Text>
+                                  <Progress 
+                                    value={historyData.length > 0 
+                                      ? Math.min(100, (historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length / targets.calories) * 100)
+                                      : 0} 
+                                    color={historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length) > targets.calories * 1.1 ? 'red' : 
+                                           historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length) < targets.calories * 0.9 ? 'yellow' : 'green'}
+                                    mt="xs"
+                                  />
+                                </>
+                              )}
+                            </Card>
+                            <Card withBorder p="md">
+                              <Text size="xs" c="dimmed" mb="xs">Avg Daily Protein</Text>
+                              <Text size="xl" fw={700} mb="xs">
+                                {historyData.length > 0
+                                  ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length)
+                                  : 0}g
+                              </Text>
+                              {targets && (
+                                <>
+                                  <Text size="sm" c="dimmed">Target: {Math.round(targets.protein)}g</Text>
+                                  <Progress 
+                                    value={historyData.length > 0 
+                                      ? Math.min(100, (historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length / targets.protein) * 100)
+                                      : 0} 
+                                    color={historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length) < targets.protein * 0.9 ? 'yellow' : 'green'}
+                                    mt="xs"
+                                  />
+                                </>
+                              )}
+                            </Card>
+                            <Card withBorder p="md">
+                              <Text size="xs" c="dimmed" mb="xs">Avg Daily Carbs</Text>
+                              <Text size="xl" fw={700} mb="xs">
+                                {historyData.length > 0
+                                  ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_carbs || 0), 0) / historyData.length)
+                                  : 0}g
+                              </Text>
+                              {targets && (
+                                <>
+                                  <Text size="sm" c="dimmed">Target: {Math.round(targets.carbs)}g</Text>
+                                  <Progress 
+                                    value={historyData.length > 0 
+                                      ? Math.min(100, (historyData.reduce((sum, d) => sum + parseFloat(d.total_carbs || 0), 0) / historyData.length / targets.carbs) * 100)
+                                      : 0} 
+                                    color={historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_carbs || 0), 0) / historyData.length) > targets.carbs * 1.1 ? 'red' : 
+                                           historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_carbs || 0), 0) / historyData.length) < targets.carbs * 0.9 ? 'yellow' : 'green'}
+                                    mt="xs"
+                                  />
+                                </>
+                              )}
+                            </Card>
+                            <Card withBorder p="md">
+                              <Text size="xs" c="dimmed" mb="xs">Avg Daily Fats</Text>
+                              <Text size="xl" fw={700} mb="xs">
+                                {historyData.length > 0
+                                  ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_fats || 0), 0) / historyData.length)
+                                  : 0}g
+                              </Text>
+                              {targets && (
+                                <>
+                                  <Text size="sm" c="dimmed">Target: {Math.round(targets.fats)}g</Text>
+                                  <Progress 
+                                    value={historyData.length > 0 
+                                      ? Math.min(100, (historyData.reduce((sum, d) => sum + parseFloat(d.total_fats || 0), 0) / historyData.length / targets.fats) * 100)
+                                      : 0} 
+                                    color={historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_fats || 0), 0) / historyData.length) > targets.fats * 1.1 ? 'red' : 
+                                           historyData.length > 0 && (historyData.reduce((sum, d) => sum + parseFloat(d.total_fats || 0), 0) / historyData.length) < targets.fats * 0.9 ? 'yellow' : 'green'}
+                                    mt="xs"
+                                  />
+                                </>
+                              )}
+                            </Card>
+                          </SimpleGrid>
+                        </Box>
+
+                        {/* Insights & Areas of Concern */}
+                        {targets && historyData.length > 0 && (() => {
+                          const avgCalories = historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length
+                          const avgProtein = historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length
+                          const avgCarbs = historyData.reduce((sum, d) => sum + parseFloat(d.total_carbs || 0), 0) / historyData.length
+                          const avgFats = historyData.reduce((sum, d) => sum + parseFloat(d.total_fats || 0), 0) / historyData.length
+                          
+                          const insights = []
+                          if (avgCalories > targets.calories * 1.1) {
+                            insights.push({ type: 'warning', metric: 'Calories', message: `Consuming ${Math.round(avgCalories - targets.calories)} cal above target on average` })
+                          } else if (avgCalories < targets.calories * 0.9) {
+                            insights.push({ type: 'info', metric: 'Calories', message: `Consuming ${Math.round(targets.calories - avgCalories)} cal below target on average` })
+                          }
+                          if (avgProtein < targets.protein * 0.9) {
+                            insights.push({ type: 'warning', metric: 'Protein', message: `Protein intake ${Math.round(targets.protein - avgProtein)}g below target - may impact muscle recovery` })
+                          }
+                          if (avgCarbs > targets.carbs * 1.1) {
+                            insights.push({ type: 'warning', metric: 'Carbs', message: `Carb intake ${Math.round(avgCarbs - targets.carbs)}g above target on average` })
+                          } else if (avgCarbs < targets.carbs * 0.9) {
+                            insights.push({ type: 'info', metric: 'Carbs', message: `Carb intake ${Math.round(targets.carbs - avgCarbs)}g below target - may affect energy levels` })
+                          }
+                          if (avgFats > targets.fats * 1.1) {
+                            insights.push({ type: 'warning', metric: 'Fats', message: `Fat intake ${Math.round(avgFats - targets.fats)}g above target on average` })
+                          } else if (avgFats < targets.fats * 0.9) {
+                            insights.push({ type: 'info', metric: 'Fats', message: `Fat intake ${Math.round(targets.fats - avgFats)}g below target - may affect hormone production` })
+                          }
+                          
+                          return insights.length > 0 ? (
+                            <Card withBorder p="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+                              <Title order={4} mb="md">Key Insights & Areas of Concern</Title>
+                              <Stack gap="sm">
+                                {insights.map((insight, idx) => (
+                                  <Group key={idx} gap="sm" align="flex-start">
+                                    <Badge color={insight.type === 'warning' ? 'red' : 'blue'} variant="light">
+                                      {insight.metric}
+                                    </Badge>
+                                    <Text size="sm" style={{ flex: 1 }}>{insight.message}</Text>
+                                  </Group>
+                                ))}
+                              </Stack>
+                            </Card>
+                          ) : (
+                            <Card withBorder p="md" style={{ backgroundColor: 'var(--mantine-color-green-9)' }}>
+                              <Group gap="sm">
+                                <IconChecklist size={20} />
+                                <Text size="sm" fw={500}>Client is meeting nutrition targets consistently!</Text>
+                              </Group>
+                            </Card>
+                          )
+                        })()}
+
+                        {/* Daily Metrics Table */}
+                        <Box>
+                          <Title order={4} mb="md">Daily Breakdown (Last 30 Days)</Title>
+                          <ScrollArea>
+                            <Table striped highlightOnHover>
+                              <Table.Thead>
+                                <Table.Tr>
+                                  <Table.Th>Date</Table.Th>
+                                  <Table.Th>Calories</Table.Th>
+                                  <Table.Th>Protein</Table.Th>
+                                  <Table.Th>Carbs</Table.Th>
+                                  <Table.Th>Fats</Table.Th>
+                                  <Table.Th>Status</Table.Th>
+                                </Table.Tr>
+                              </Table.Thead>
+                              <Table.Tbody>
+                                {historyData.slice(0, 30).map((day, idx) => {
+                                  const calPct = targets ? (parseFloat(day.total_calories || 0) / targets.calories) * 100 : 0
+                                  const protPct = targets ? (parseFloat(day.total_protein || 0) / targets.protein) * 100 : 0
+                                  const carbsPct = targets ? (parseFloat(day.total_carbs || 0) / targets.carbs) * 100 : 0
+                                  const fatsPct = targets ? (parseFloat(day.total_fats || 0) / targets.fats) * 100 : 0
+                                  
+                                  const avgPct = (calPct + protPct + carbsPct + fatsPct) / 4
+                                  const status = avgPct >= 90 && avgPct <= 110 ? 'On Track' : avgPct < 90 ? 'Under Target' : 'Over Target'
+                                  const statusColor = avgPct >= 90 && avgPct <= 110 ? 'green' : avgPct < 90 ? 'yellow' : 'red'
+                                  
+                                  return (
+                                    <Table.Tr key={idx}>
+                                      <Table.Td>
+                                        {new Date(day.log_date).toLocaleDateString('en-US', { 
+                                          month: 'short', 
+                                          day: 'numeric',
+                                          year: 'numeric'
+                                        })}
+                                      </Table.Td>
+                                      <Table.Td>
+                                        <Text fw={500}>{Math.round(parseFloat(day.total_calories || 0))}</Text>
+                                        {targets && (
+                                          <Text size="xs" c="dimmed">
+                                            {calPct.toFixed(0)}% of target
+                                          </Text>
+                                        )}
+                                      </Table.Td>
+                                      <Table.Td>
+                                        <Text fw={500}>{Math.round(parseFloat(day.total_protein || 0))}g</Text>
+                                        {targets && (
+                                          <Text size="xs" c="dimmed">
+                                            {protPct.toFixed(0)}% of target
+                                          </Text>
+                                        )}
+                                      </Table.Td>
+                                      <Table.Td>
+                                        <Text fw={500}>{Math.round(parseFloat(day.total_carbs || 0))}g</Text>
+                                        {targets && (
+                                          <Text size="xs" c="dimmed">
+                                            {carbsPct.toFixed(0)}% of target
+                                          </Text>
+                                        )}
+                                      </Table.Td>
+                                      <Table.Td>
+                                        <Text fw={500}>{Math.round(parseFloat(day.total_fats || 0))}g</Text>
+                                        {targets && (
+                                          <Text size="xs" c="dimmed">
+                                            {fatsPct.toFixed(0)}% of target
+                                          </Text>
+                                        )}
+                                      </Table.Td>
+                                      <Table.Td>
+                                        <Badge color={statusColor} variant="light" size="sm">
+                                          {status}
+                                        </Badge>
+                                      </Table.Td>
+                                    </Table.Tr>
+                                  )
+                                })}
+                              </Table.Tbody>
+                            </Table>
+                          </ScrollArea>
+                        </Box>
+                      </>
+                    )}
+
+                    {/* Stats Grid (for both trainer and client) */}
                     <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
-                      <Card withBorder p="md">
-                        <Text size="xs" c="dimmed" mb="xs">Avg Daily Calories</Text>
-                        <Text size="xl" fw={700}>
-                          {historyData.length > 0 
-                            ? (historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length).toFixed(0)
-                            : 0}
-                        </Text>
-                      </Card>
-                      <Card withBorder p="md">
-                        <Text size="xs" c="dimmed" mb="xs">Avg Daily Protein</Text>
-                        <Text size="xl" fw={700}>
-                          {historyData.length > 0
-                            ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length).toFixed(0)
-                            : 0}g
-                        </Text>
-                      </Card>
+                      {!isTrainerView && (
+                        <>
+                          <Card withBorder p="md">
+                            <Text size="xs" c="dimmed" mb="xs">Avg Daily Calories</Text>
+                            <Text size="xl" fw={700}>
+                              {historyData.length > 0 
+                                ? (historyData.reduce((sum, d) => sum + parseFloat(d.total_calories || 0), 0) / historyData.length).toFixed(0)
+                                : 0}
+                            </Text>
+                          </Card>
+                          <Card withBorder p="md">
+                            <Text size="xs" c="dimmed" mb="xs">Avg Daily Protein</Text>
+                            <Text size="xl" fw={700}>
+                              {historyData.length > 0
+                                ? Math.round(historyData.reduce((sum, d) => sum + parseFloat(d.total_protein || 0), 0) / historyData.length).toFixed(0)
+                                : 0}g
+                            </Text>
+                          </Card>
+                        </>
+                      )}
                       <Card withBorder p="md">
                         <Text size="xs" c="dimmed" mb="xs">Days Logged</Text>
                         <Text size="xl" fw={700}>{historyData.length}</Text>

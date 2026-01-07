@@ -779,18 +779,54 @@ router.post('/logs', requireRole(['client']), async (req, res) => {
   try {
     const { log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes, meal_plan_meal_id } = req.body
 
+    // Validate required fields
+    if (!food_name || food_name.trim() === '') {
+      return res.status(400).json({ message: 'Food name is required' })
+    }
+
+    // Convert numeric values, defaulting to 0 if not provided
+    const logDate = log_date || new Date().toISOString().split('T')[0]
+    const numQuantity = quantity ? parseFloat(quantity) : 1
+    const numCalories = calories ? parseFloat(calories) : 0
+    const numProtein = protein ? parseFloat(protein) : 0
+    const numCarbs = carbs ? parseFloat(carbs) : 0
+    const numFats = fats ? parseFloat(fats) : 0
+
+    console.log('Creating nutrition log:', {
+      client_id: req.user.id,
+      log_date: logDate,
+      meal_type,
+      food_name,
+      quantity: numQuantity,
+      unit,
+      calories: numCalories,
+      protein: numProtein,
+      carbs: numCarbs,
+      fats: numFats
+    })
+
     const result = await pool.query(
       `INSERT INTO nutrition_logs 
        (client_id, log_date, meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes, meal_plan_meal_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
-      [req.user.id, log_date || new Date().toISOString().split('T')[0], meal_type, food_name, quantity, unit, calories, protein, carbs, fats, notes || null, meal_plan_meal_id || null]
+      [req.user.id, logDate, meal_type, food_name.trim(), numQuantity, unit || 'serving', numCalories, numProtein, numCarbs, numFats, notes || null, meal_plan_meal_id || null]
     )
 
+    console.log('Nutrition log created successfully:', result.rows[0])
     res.status(201).json(result.rows[0])
   } catch (error) {
     console.error('Error creating nutrition log:', error)
-    res.status(500).json({ message: 'Failed to create nutrition log' })
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint
+    })
+    res.status(500).json({ 
+      message: 'Failed to create nutrition log',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 
