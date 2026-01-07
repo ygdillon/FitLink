@@ -158,7 +158,7 @@ function ClientProfile() {
                     {client.weight && (
                       <Grid.Col span={6}>
                         <Text size="sm" c="dimmed">Weight</Text>
-                        <Text>{client.weight} kg</Text>
+                        <Text>{(parseFloat(client.weight) * 2.20462).toFixed(2)} lbs</Text>
                       </Grid.Col>
                     )}
                     {client.age && (
